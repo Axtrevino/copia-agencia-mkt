@@ -25,11 +25,23 @@ Luego importa `n8n/listos/` (pasos en [../docs/instalacion.md](../docs/instalaci
 | 31 | Leads: crear encabezados (manual) |
 | 40 | SEO borradores en Webflow (edita «Preparar pedido») |
 | 41 | SEO acciones (publicar o pedir cambios) |
+| 42 | SEO posiciones y on-page (edita «Marcas»: público, reglas y keywords base) |
+| 43 | SEO preparar pestañas (manual, una vez) |
 | 50 | Paid campañas de Meta (en pausa, con tope diario) |
 | 52 | Paid propuesta (Claude arma la campaña que escribes en el panel) |
 | 51 | Meta Ads optimizador (pon el costo objetivo por lead en «Configuración») |
+| 53 | Audiencias de Meta (listar, crear base y similares; sin listas de clientes) |
+| 54 | Meta Ads acciones: los botones ✅/❌ del optimizador (sub-flujo de 12) |
 | 60 | Panel (lectura) |
 | 61 | Panel acciones |
+| 62 | Panel analytics (lectura): GA4, Search Console, Meta y pestañas SEO (edita «Configuración») |
+| 63 | Panel SEO: aprobar o descartar propuestas |
+| 64 | Panel agentes: estado de los flujos y encargos (credenciales «n8n API» y «GitHub») |
+| 70 | Analista semanal (edita «Marcas»: eventos de GA4) |
+| 71 | BigQuery diario |
+| 72 | Leads a BigQuery |
+| 73 | BigQuery preparar (manual, una vez) |
+| 74 | Docs oficiales (edita «Fuentes») |
 
 **Otra marca:** duplica 10 y 11, cambia `marca`, `nombre`, `page_id` e `ig_id` en «Config» y la
-credencial de Meta; agrégala en 20, 21, 30 y 40 y en el nodo «Publicar de nuevo» de 12.
+credencial de Meta; agrégala en 20, 21, 30, 40, 42, 53, 62, 70 y 71 y en el nodo «Publicar de nuevo» de 12.

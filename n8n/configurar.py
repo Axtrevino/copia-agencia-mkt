@@ -32,6 +32,7 @@ REFERENCIAS = {
     "FLUJO_NUEVA_VERSION": "13-nueva-version-de-post.json",
     "FLUJO_SEO_BORRADORES": "40-seo-borradores.json",
     "FLUJO_SEO_ACCIONES": "41-seo-acciones.json",
+    "FLUJO_META_ACCIONES": "54-meta-ads-acciones.json",
 }
 
 

@@ -210,6 +210,27 @@
                 ]
               },
               "outputKey": "cambios (respuesta a foto)"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_query?.data ?? \"\" }}",
+                    "rightValue": "meta|",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "meta"
             }
           ]
         },
@@ -1135,6 +1156,28 @@
           "waitForSubWorkflow": false
         }
       }
+    },
+    {
+      "id": "9435283f-fe0a-5748-a8aa-9d9a1381e784",
+      "name": "Meta: mandar a acciones",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        1440
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__FLUJO_META_ACCIONES__"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
     }
   ],
   "connections": {
@@ -1185,6 +1228,13 @@
         [
           {
             "node": "Obtener post_id",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Meta: mandar a acciones",
             "type": "main",
             "index": 0
           }

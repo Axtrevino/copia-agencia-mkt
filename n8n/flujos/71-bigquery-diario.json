@@ -1,0 +1,915 @@
+{
+  "name": "Agencia · BigQuery diario",
+  "nodes": [
+    {
+      "id": "93648f83-c150-5c1b-92aa-711d0c474f3c",
+      "name": "Diario 10:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "43499084-264b-587e-959a-01eedfd2a23b",
+      "name": "Cargar ahora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "46f23053-2ef2-51ae-b21d-f926bf77293e",
+      "name": "Publicados",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        100
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Publicados"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e69da9dc-ab62-5390-a1df-3cf8f321f680",
+      "name": "Preparar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Posts publicados en los últimos 14 días (la liga trae «facebook  |  instagram»).\nconst hoy = $now.setZone('America/Mexico_City');\nconst ayer = hoy.minus({ days: 1 });\nconst corte = hoy.minus({ days: 14 }).toFormat('yyyy-MM-dd HH:mm');\nconst posts = $input.all().map(i => i.json).filter(r => r && r.post_id && String(r.fecha_hora || '') >= corte).map(r => {\n  const partes = String(r.liga || '').split('  |  ');\n  return { post_id: String(r.post_id), marca: String(r.marca || ''), fecha_hora: String(r.fecha_hora || ''),\n    fb_post_id: (partes[0] || '').trim().replace('https://www.facebook.com/', ''),\n    ig_shortcode: (partes[1] || '').trim().replace(/^https:\\/\\/www\\.instagram\\.com\\/(p|reel)\\//, '').replace(/\\/+$/, '') };\n});\nconst base = { hoy: hoy.toFormat('yyyy-MM-dd'), ayer: ayer.toFormat('yyyy-MM-dd'), since: ayer.startOf('day').toSeconds(), until: hoy.startOf('day').toSeconds() };\nif (!posts.length) return [{ json: { ...base, sin_posts: true, marca: '', fb_post_id: '' } }];\nreturn posts.map(p => ({ json: { ...base, ...p } }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "6b6dafac-63e5-5ebb-bfc2-af05a03c70c2",
+      "name": "FB post A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.marca === 'marca-a' && $json.fb_post_id ? 'https://graph.facebook.com/v26.0/' + $json.fb_post_id + '?fields=insights.metric(post_total_media_view_unique),reactions.summary(total_count),comments.summary(total_count),shares' : 'https://graph.facebook.com/v26.0/me?fields=id' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "0bd7bfdf-724e-5558-af39-3451eaed1256",
+      "name": "FB post B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Preparar').item.json.marca === 'marca-b' && $('Preparar').item.json.fb_post_id ? 'https://graph.facebook.com/v26.0/' + $('Preparar').item.json.fb_post_id + '?fields=insights.metric(post_total_media_view_unique),reactions.summary(total_count),comments.summary(total_count),shares' : 'https://graph.facebook.com/v26.0/me?fields=id' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b8d7a574-4657-538e-8e90-6866bd25acd9",
+      "name": "IG media A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v26.0/__META_IG_ID_A__/media?fields=id,shortcode,permalink,like_count,comments_count,insights.metric(reach,saved)&limit=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "eb31e5c8-e7f7-5222-9a93-546aaca2dd2f",
+      "name": "IG media B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v26.0/__META_IG_ID_B__/media?fields=id,shortcode,permalink,like_count,comments_count,insights.metric(reach,saved)&limit=100",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ea5b61ec-2521-5deb-9bb3-b96090ff22ae",
+      "name": "FB cuenta A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/me?fields=id,name,followers_count,fan_count,insights.metric(page_total_media_view_unique,page_media_view,page_post_engagements).period(day).since(' + $('Preparar').first().json.since + ').until(' + $('Preparar').first().json.until + ')' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "116162e9-631a-5a7f-b4da-123231e37da9",
+      "name": "FB cuenta B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/me?fields=id,name,followers_count,fan_count,insights.metric(page_total_media_view_unique,page_media_view,page_post_engagements).period(day).since(' + $('Preparar').first().json.since + ').until(' + $('Preparar').first().json.until + ')' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "afcd970a-12f8-56b0-8765-b52597872b30",
+      "name": "IG cuenta A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2016,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/__META_IG_ID_A__?fields=id,username,followers_count,insights.metric(reach,views,profile_views,total_interactions).period(day).metric_type(total_value).since(' + $('Preparar').first().json.since + ').until(' + $('Preparar').first().json.until + ')' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d2793de7-146f-5a08-b31c-701fbaf9543c",
+      "name": "IG cuenta B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2240,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/__META_IG_ID_B__?fields=id,username,followers_count,insights.metric(reach,views,profile_views,total_interactions).period(day).metric_type(total_value).since(' + $('Preparar').first().json.since + ').until(' + $('Preparar').first().json.until + ')' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ee304d21-1661-5f6e-be04-6d86abffed41",
+      "name": "Ads A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2464,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_A__/insights?level=ad&time_increment=1&limit=500&fields=account_id,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,reach,clicks,actions&time_range=' + encodeURIComponent(JSON.stringify({ since: $('Preparar').first().json.ayer, until: $('Preparar').first().json.ayer })) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "238b1780-bdb4-58cd-976d-7216d809f4bb",
+      "name": "Ads B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2688,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_B__/insights?level=ad&time_increment=1&limit=500&fields=account_id,campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,reach,clicks,actions&time_range=' + encodeURIComponent(JSON.stringify({ since: $('Preparar').first().json.ayer, until: $('Preparar').first().json.ayer })) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "38ce9254-cf20-522c-b4cf-1c706c3a639c",
+      "name": "Armar filas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const P = $('Preparar').all().map(i => i.json);\nconst d0 = P[0];\nconst safe = n => { try { return $(n).all().map(i => i.json); } catch (e) { return []; } };\nconst one = n => safe(n)[0] || {};\nconst errMsg = j => j && j.error ? String(j.error.message || j.error.description || JSON.stringify(j.error)) : '';\nconst int = v => (v === undefined || v === null || v === '') ? null : Math.round(Number(v));\nconst valor = (ins, nombre) => { const d = (ins?.data || []).find(x => x.name === nombre); return d?.values?.[0]?.value ?? d?.total_value?.value ?? null; };\nconst errores = [];\nconst MARCAS = { 'marca-a': 'A', 'marca-b': 'B' };\n// Posts\nconst fb = { 'marca-a': safe('FB post A'), 'marca-b': safe('FB post B') };\nconst ig = { 'marca-a': one('IG media A'), 'marca-b': one('IG media B') };\nconst posts = [];\nP.forEach((p, i) => {\n  if (p.sin_posts || !MARCAS[p.marca]) return;\n  const x = fb[p.marca][i] || {}, fe = errMsg(x);\n  const pub = p.fecha_hora ? p.fecha_hora.replace(' ', 'T') + ':00' : null;\n  if (p.fb_post_id) posts.push({ snapshot_date: d0.hoy, post_id: p.post_id, marca: p.marca, canal: 'fb', external_id: p.fb_post_id, published_at: pub,\n    alcance: fe ? null : int(valor(x.insights, 'post_total_media_view_unique')), reacciones: fe ? null : int(x?.reactions?.summary?.total_count ?? 0),\n    comentarios: fe ? null : int(x?.comments?.summary?.total_count ?? 0), compartidos: fe ? null : int(x?.shares?.count ?? 0), guardados: null, error: fe ? fe.slice(0, 500) : null });\n  const media = ((ig[p.marca] || {}).data || []).find(m => m.shortcode === p.ig_shortcode);\n  if (p.ig_shortcode) posts.push({ snapshot_date: d0.hoy, post_id: p.post_id, marca: p.marca, canal: 'ig', external_id: p.ig_shortcode, published_at: pub,\n    alcance: media ? int(valor(media.insights, 'reach')) : null, reacciones: media ? int(media.like_count) : null, comentarios: media ? int(media.comments_count) : null,\n    compartidos: null, guardados: media ? int(valor(media.insights, 'saved')) : null, error: media ? null : (errMsg(ig[p.marca]) || 'post de IG no encontrado en los últimos 100').slice(0, 500) });\n});\nposts.forEach(r => { r.interacciones = r.error ? null : (r.reacciones || 0) + (r.comentarios || 0) + (r.compartidos || 0) + (r.guardados || 0); });\n// Cuentas\nconst dia = (ins, nombre) => { const d = (ins?.data || []).find(x => x.name === nombre); if (!d) return null; if (d.total_value) return int(d.total_value.value); const v = d.values?.[0]; return v ? int(v.value) : null; };\nconst social = [];\nfor (const [m, L] of Object.entries(MARCAS)) {\n  const f = one('FB cuenta ' + L), fe = errMsg(f);\n  social.push({ date: d0.ayer, marca: m, canal: 'fb', account_id: f.id || null, followers: int(f.followers_count ?? f.fan_count), reach: dia(f.insights, 'page_total_media_view_unique'), views: dia(f.insights, 'page_media_view'), profile_views: null, engagements: dia(f.insights, 'page_post_engagements'), error: fe ? fe.slice(0, 500) : null });\n  const g = one('IG cuenta ' + L), ge = errMsg(g);\n  social.push({ date: d0.ayer, marca: m, canal: 'ig', account_id: g.id || null, followers: int(g.followers_count), reach: dia(g.insights, 'reach'), views: dia(g.insights, 'views'), profile_views: dia(g.insights, 'profile_views'), engagements: dia(g.insights, 'total_interactions'), error: ge ? ge.slice(0, 500) : null });\n}\n// Anuncios\nconst leadsDe = a => (a || []).filter(x => /lead/.test(x.action_type)).reduce((s, x) => Math.max(s, Number(x.value) || 0), 0);\nconst ads = [];\nfor (const [m, L] of Object.entries(MARCAS)) {\n  const j = one('Ads ' + L), e = errMsg(j);\n  if (e) errores.push(m + ' anuncios: ' + e);\n  (j.data || []).forEach(r => ads.push({ date: r.date_start || d0.ayer, marca: m, account_id: r.account_id || null, campaign_id: r.campaign_id, campaign_name: r.campaign_name, adset_id: r.adset_id, adset_name: r.adset_name, ad_id: r.ad_id, ad_name: r.ad_name, spend: r.spend ?? null, impressions: int(r.impressions), reach: int(r.reach), clicks: int(r.clicks), leads: int(leadsDe(r.actions)) }));\n}\nposts.filter(r => r.error).forEach(r => errores.push(`post ${r.post_id} ${r.canal}: ${r.error}`));\nsocial.filter(r => r.error).forEach(r => errores.push(`cuenta ${r.marca} ${r.canal}: ${r.error}`));\nconst job = (tabla, fecha, filas, select) => ({ configuration: { query: {\n  query: `SELECT ${select} FROM UNNEST(JSON_QUERY_ARRAY(@filas)) AS j`, useLegacySql: false, parameterMode: 'NAMED',\n  queryParameters: [{ name: 'filas', parameterType: { type: 'STRING' }, parameterValue: { value: JSON.stringify(filas) } }],\n  destinationTable: { projectId: '__BQ_PROYECTO__', datasetId: '__BQ_DATASET__', tableId: `${tabla}$${fecha.replace(/-/g, '')}` },\n  writeDisposition: 'WRITE_TRUNCATE', createDisposition: 'CREATE_NEVER' } }, jobReference: { projectId: '__BQ_PROYECTO__', location: '__BQ_UBICACION__' } });\nconst s = c => `JSON_VALUE(j, '$.${c}') AS ${c}`;\nconst i = c => `SAFE_CAST(JSON_VALUE(j, '$.${c}') AS INT64) AS ${c}`;\nconst L = 'CURRENT_TIMESTAMP() AS loaded_at';\nreturn [{ json: { hoy: d0.hoy, ayer: d0.ayer, n_posts: posts.length, n_social: social.length, n_ads: ads.length, errores,\n  job_posts: job('post_metrics_daily', d0.hoy, posts, [\"CAST(JSON_VALUE(j, '$.snapshot_date') AS DATE) AS snapshot_date\", s('post_id'), s('marca'), s('canal'), s('external_id'), \"SAFE_CAST(JSON_VALUE(j, '$.published_at') AS DATETIME) AS published_at\", i('alcance'), i('interacciones'), i('reacciones'), i('comentarios'), i('compartidos'), i('guardados'), s('error'), L].join(', ')),\n  job_social: job('social_account_daily', d0.ayer, social, [\"CAST(JSON_VALUE(j, '$.date') AS DATE) AS date\", s('marca'), s('canal'), s('account_id'), i('followers'), i('reach'), i('views'), i('profile_views'), i('engagements'), s('error'), L].join(', ')),\n  job_ads: job('meta_ads_daily', d0.ayer, ads, [\"CAST(JSON_VALUE(j, '$.date') AS DATE) AS date\", s('marca'), s('account_id'), s('campaign_id'), s('campaign_name'), s('adset_id'), s('adset_name'), s('ad_id'), s('ad_name'), \"SAFE_CAST(JSON_VALUE(j, '$.spend') AS NUMERIC) AS spend\", i('impressions'), i('reach'), i('clicks'), i('leads'), L].join(', ')),\n} }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "25a81c0d-8273-5581-b9ee-ba0d826e9c82",
+      "name": "Cargar posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3136,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/jobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Armar filas').first().json.job_posts) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d9c27af9-b866-5fcf-83ce-3bbde6b9d335",
+      "name": "Cargar cuentas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3360,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/jobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Armar filas').first().json.job_social) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b25114ad-0faa-56a5-88cd-0cac16a11814",
+      "name": "Cargar ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3584,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/jobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Armar filas').first().json.job_ads) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "7c4dbbce-cabb-5053-ba12-4803b9635103",
+      "name": "Esperar 15 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3808,
+        100
+      ],
+      "parameters": {
+        "amount": 15
+      },
+      "webhookId": "b96a53ae-fd61-593f-9237-85893578f32e"
+    },
+    {
+      "id": "61090ada-ba59-54d2-a826-1b8da97c5c05",
+      "name": "Revisar posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4032,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/jobs/' + (($('Cargar posts').first().json.jobReference || {}).jobId || 'sin-job') + '?location=__BQ_UBICACION__' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "d0f7567b-a5a5-5354-96bc-3bc2288dddd2",
+      "name": "Revisar cuentas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4256,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/jobs/' + (($('Cargar cuentas').first().json.jobReference || {}).jobId || 'sin-job') + '?location=__BQ_UBICACION__' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "43142e24-5774-5fda-baba-a1e4f21548ea",
+      "name": "Revisar ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4480,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/jobs/' + (($('Cargar ads').first().json.jobReference || {}).jobId || 'sin-job') + '?location=__BQ_UBICACION__' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "4e15f856-3def-5931-b241-49c124ee4e60",
+      "name": "Registrar resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4704,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const b = $('Armar filas').first().json;\nconst res = ['posts', 'cuentas', 'ads'].map(n => { let j = {}, c = {}; try { j = $('Revisar ' + n).first().json || {}; c = $('Cargar ' + n).first().json || {}; } catch (e) {}\n  return { paso: n, estado: (j.status || {}).state || null, error: (c.error && c.error.message) || ((j.status || {}).errorResult || {}).message || (j.error ? String(j.error.message || j.error) : null) }; });\nconst malas = res.filter(r => r.error || r.estado !== 'DONE');\nif (malas.length) throw new Error('Carga a BigQuery no terminó: ' + malas.map(c => `${c.paso}: ${c.error || c.estado}`).join('; ').slice(0, 400));\nreturn [{ json: { hoy: b.hoy, ayer: b.ayer, filas: { post_metrics_daily: b.n_posts, social_account_daily: b.n_social, meta_ads_daily: b.n_ads }, avisos: b.errores } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    }
+  ],
+  "connections": {
+    "Diario 10:00": {
+      "main": [
+        [
+          {
+            "node": "Publicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar ahora": {
+      "main": [
+        [
+          {
+            "node": "Publicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicados": {
+      "main": [
+        [
+          {
+            "node": "Preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar": {
+      "main": [
+        [
+          {
+            "node": "FB post A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB post A": {
+      "main": [
+        [
+          {
+            "node": "FB post B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB post B": {
+      "main": [
+        [
+          {
+            "node": "IG media A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG media A": {
+      "main": [
+        [
+          {
+            "node": "IG media B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG media B": {
+      "main": [
+        [
+          {
+            "node": "FB cuenta A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB cuenta A": {
+      "main": [
+        [
+          {
+            "node": "FB cuenta B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB cuenta B": {
+      "main": [
+        [
+          {
+            "node": "IG cuenta A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG cuenta A": {
+      "main": [
+        [
+          {
+            "node": "IG cuenta B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG cuenta B": {
+      "main": [
+        [
+          {
+            "node": "Ads A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ads A": {
+      "main": [
+        [
+          {
+            "node": "Ads B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ads B": {
+      "main": [
+        [
+          {
+            "node": "Armar filas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar filas": {
+      "main": [
+        [
+          {
+            "node": "Cargar posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar posts": {
+      "main": [
+        [
+          {
+            "node": "Cargar cuentas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar cuentas": {
+      "main": [
+        [
+          {
+            "node": "Cargar ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar ads": {
+      "main": [
+        [
+          {
+            "node": "Esperar 15 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 15 s": {
+      "main": [
+        [
+          {
+            "node": "Revisar posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar posts": {
+      "main": [
+        [
+          {
+            "node": "Revisar cuentas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar cuentas": {
+      "main": [
+        [
+          {
+            "node": "Revisar ads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar ads": {
+      "main": [
+        [
+          {
+            "node": "Registrar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 1800,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Diario 10:00: métricas de posts publicados (FB e IG), de las cuentas y de los anuncios de ayer → BigQuery (partición del día)."
+  },
+  "pinData": {},
+  "active": false
+}

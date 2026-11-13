@@ -1,0 +1,956 @@
+{
+  "name": "Agencia · Meta Ads acciones (botones)",
+  "nodes": [
+    {
+      "id": "e5ba2381-b51f-5c8c-b689-60d9802c60fb",
+      "name": "Desde Telegram (respuestas)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        480
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "06a7ce3b-ec60-56fd-ab6d-d360a24da879",
+      "name": "Probar (simulación)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        288
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "aaed9407-c4be-5180-98e2-02d0058ab05b",
+      "name": "Fila de prueba",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        288
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__META_DECISIONES_TABLA_ID__",
+          "cachedResultName": "meta_ads_decisiones"
+        },
+        "returnAll": false,
+        "limit": 1,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "0972af38-d4a2-50de-bedf-9c7c8fca1e2d",
+      "name": "Ejemplo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        288
+      ],
+      "parameters": {
+        "jsCode": "// Simula que tocaste ✅ en la fila más reciente. No cambia nada en Meta, ni en la tabla, ni en Telegram.\nconst f = $input.first().json || {};\nreturn [{ json: { simular: true, callback_query: { id: '', data: 'meta|ok|' + (f.id || 0), message: { chat: { id: 0 }, message_id: 0, text: 'prueba' } } } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "4cbdcd9a-3a67-5d95-9c90-0ca89f45bc5b",
+      "name": "Leer botón",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        416
+      ],
+      "parameters": {
+        "jsCode": "// Botón: meta|ok|<id fila> o meta|no|<id fila> (id de meta_ads_decisiones).\nconst x = $input.first().json || {};\nconst q = x.callback_query || {};\nconst p = String(q.data || '').split('|');\nreturn [{ json: { simular: !!x.simular, q, decision: p[1] === 'ok' ? 'ok' : (p[1] === 'no' ? 'no' : ''), row_id: Number(p[2]) || 0 } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "a9b43686-6dfc-567a-92e8-17dba64d23bb",
+      "name": "Leer propuesta",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        416
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__META_DECISIONES_TABLA_ID__",
+          "cachedResultName": "meta_ads_decisiones"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "226c40ac-6f83-5222-b496-5de324d6a911",
+      "name": "Subidas aplicadas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        416
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__META_DECISIONES_TABLA_ID__",
+          "cachedResultName": "meta_ads_decisiones"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "accion",
+              "condition": "eq",
+              "keyValue": "subir presupuesto"
+            },
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "aprobada"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 100,
+        "orderBy": true,
+        "orderByColumn": "updatedAt",
+        "orderByDirection": "DESC"
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "81505428-1d49-50b9-949e-8c8742224bce",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        416
+      ],
+      "parameters": {
+        "jsCode": "// Revisa la propuesta antes de tocar Meta: tope diario por campaña, +20 % máximo,\n// una subida cada 3 días por conjunto y la propuesta debe ser de hace 2 días o menos.\nconst TOPE = 300; // MXN al día por campaña; el mismo del optimizador y de «Paid campañas»\nconst B = $('Leer botón').first().json;\nlet f = $('Leer propuesta').first().json || {};\nconst num = v => Number(v) || 0;\nconst ahora = $now.setZone('America/Mexico_City');\nif (B.simular && f.id) f = Object.assign({}, f, { estado: 'propuesta', accion: f.accion === 'pausar' ? 'pausar' : 'subir presupuesto', propuesta_presupuesto: f.propuesta_presupuesto || TOPE, fecha: ahora.toFormat('yyyy-MM-dd HH:mm') });\nconst out = (tipo, razon, extra) => [{ json: Object.assign({ simular: B.simular, q: B.q, decision: B.decision, tipo, razon: razon || '', fila: f, marca: f.marca || '' }, extra || {}) }];\nif (!B.decision || !B.row_id) return out('invalido', 'el botón no trae datos válidos');\nif (!f.id) return out('invalido', 'no encontré la propuesta en la bitácora');\nif (String(f.estado) !== 'propuesta') return out('invalido', 'ya estaba «' + f.estado + '»');\nif (B.decision === 'no') return out('rechazar');\nconst fecha = String(f.fecha || '').slice(0, 10);\nif (!fecha || fecha < ahora.minus({ days: 2 }).toFormat('yyyy-MM-dd')) return out('invalido', 'la propuesta es del ' + fecha + ' y los datos ya cambiaron; espera la de la siguiente corrida');\nif (f.accion === 'pausar') return out('pausar');\nif (f.accion !== 'subir presupuesto') return out('invalido', 'esta propuesta no se aplica con botón (' + f.accion + ')');\nconst monto = num(f.propuesta_presupuesto);\nif (!(monto > 0 && monto <= TOPE)) return out('invalido', 'el monto propuesto (MXN ' + monto + ') está fuera del tope de MXN ' + TOPE + ' al día');\nconst hace3 = $now.toUTC().minus({ days: 3 }).toMillis();\nconst reciente = $('Subidas aplicadas').all().map(i => i.json).some(r => r && r.adset_id === f.adset_id && new Date(r.updatedAt || 0).getTime() >= hace3);\nif (reciente) return out('invalido', 'a este conjunto ya le subí el presupuesto en los últimos 3 días');\nreturn out('subir', '', { monto });\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "e7061441-20bf-5f5d-98de-938aa4ec7e01",
+      "name": "¿Qué marca? (leer)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1568,
+        400
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "A",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['subir','pausar'].includes($json.tipo) && $json.marca === 'marca-a' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "B",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['subir','pausar'].includes($json.tipo) && $json.marca === 'marca-b' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "sin Meta"
+        }
+      }
+    },
+    {
+      "id": "0b5c1946-8a5f-56b4-af95-ae2c10be89d9",
+      "name": "Meta A (leer)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        224
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v26.0/{{ $json.fila.adset_id }}?fields=name,effective_status,daily_budget,campaign{id,name,daily_budget}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "475611f6-9eb2-5a65-9333-71ff4b7bfd72",
+      "name": "Meta B (leer)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        416
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v26.0/{{ $json.fila.adset_id }}?fields=name,effective_status,daily_budget,campaign{id,name,daily_budget}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c8a4db3b-f9f2-5008-b92f-32866335e2fc",
+      "name": "Preparar cambio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        320
+      ],
+      "parameters": {
+        "jsCode": "// Con el estado actual en Meta decide qué se escribe. El presupuesto puede estar en el conjunto o en la campaña.\nconst V = $('Validar').first().json;\nconst r = $input.first().json || {};\nconst b = r.error ? { error: r.error } : r;\nconst num = v => Number(v) || 0;\nconst out = (ok, extra) => [{ json: Object.assign({}, V, { ok }, extra) }];\nif (b.error || !b.id) return out(false, { tipo: 'error', razon: 'no pude leer el conjunto en Meta: ' + String((b.error && b.error.message) || 'sin respuesta').slice(0, 200) });\nif (V.tipo === 'pausar') {\n  if (b.effective_status === 'PAUSED' || b.effective_status === 'CAMPAIGN_PAUSED') return out(false, { tipo: 'invalido', razon: 'ya estaba en pausa' });\n  return out(true, { objeto: V.fila.adset_id, cuerpo: 'status=PAUSED' });\n}\nconst enCampana = !num(b.daily_budget) && b.campaign && num(b.campaign.daily_budget);\nconst objeto = enCampana ? b.campaign.id : V.fila.adset_id;\nconst actual = (enCampana ? num(b.campaign.daily_budget) : num(b.daily_budget)) / 100;\nif (!actual) return out(false, { tipo: 'invalido', razon: 'el conjunto no tiene presupuesto diario (¿es de por vida?); no lo cambio' });\nif (V.monto <= actual) return out(false, { tipo: 'invalido', razon: 'ya tiene MXN ' + actual + ' al día' });\nif (V.monto > Math.round(actual * 1.2) + 1) return out(false, { tipo: 'invalido', razon: 'el presupuesto cambió (hoy MXN ' + actual + '); subir a ' + V.monto + ' sería más de 20 %' });\nreturn out(true, { objeto, actual, en_campana: !!enCampana, cuerpo: 'daily_budget=' + Math.round(V.monto * 100) });\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "0181bfe2-e660-5259-beed-3940a80ad9a6",
+      "name": "¿Aplicar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok && !$json.simular }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "1b53ad9f-3193-50f6-a4cc-7169e9c1cd69",
+      "name": "¿Qué marca? (escribir)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2464,
+        176
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "A",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['subir','pausar'].includes($json.tipo) && $json.marca === 'marca-a' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "B",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ ['subir','pausar'].includes($json.tipo) && $json.marca === 'marca-b' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "sin Meta"
+        }
+      }
+    },
+    {
+      "id": "9c55d704-8944-586f-8099-4fbf602817fa",
+      "name": "Meta A (escribir)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2688,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v26.0/{{ $json.objeto }}?{{ $json.cuerpo }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "910c1dc4-402f-595d-adf1-d65c20fe839d",
+      "name": "Meta B (escribir)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2688,
+        192
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v26.0/{{ $json.objeto }}?{{ $json.cuerpo }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "fa210042-26b3-5dec-a4d9-fa8a6eba655c",
+      "name": "Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        304
+      ],
+      "parameters": {
+        "jsCode": "// Arma el estado final de la fila y el texto para Telegram.\nconst V = $('Validar').first().json;\nlet P = V; try { if ($('Preparar cambio').isExecuted) P = $('Preparar cambio').first().json; } catch (e) {}\nlet escrito = null;\nfor (const n of ['Meta A (escribir)', 'Meta B (escribir)']) { try { if ($(n).isExecuted) escrito = $(n).first().json; } catch (e) {} }\nconst ahora = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm');\nconst e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nlet estado = '', texto = '', cambiar = false;\nif (P.tipo === 'rechazar') { estado = 'rechazada'; cambiar = true; texto = '❌ No aprobada. No cambié nada.'; }\nelse if (P.tipo === 'invalido') texto = 'ℹ️ No lo apliqué: ' + P.razon + '.';\nelse if (P.tipo === 'error') texto = '⚠️ ' + P.razon;\nelse if (P.ok && V.simular) texto = '🧪 Simulación: se habría escrito «' + P.cuerpo + '» en ' + P.objeto + '.';\nelse if (P.ok) {\n  const b = escrito || {};\n  if (escrito && !b.error) {\n    estado = 'aprobada'; cambiar = true;\n    texto = P.tipo === 'pausar' ? '⏸️ Listo: pausé el conjunto.' : '✅ Listo: presupuesto de MXN ' + P.actual + ' a ' + P.monto + ' al día' + (P.en_campana ? ' (en la campaña)' : '') + '.';\n  } else { estado = 'error'; cambiar = true; texto = '⚠️ Meta no aceptó el cambio: ' + String((b.error && (b.error.error_user_msg || b.error.message)) || 'sin respuesta').slice(0, 200); }\n}\nconst f = P.fila || {};\nreturn [{ json: { simular: V.simular, q: V.q, row_id: f.id || 0, cambiar: cambiar && !!f.id, estado,\n  detalle: (String(f.detalle || '') + ' · ' + ahora + ' ' + (V.decision === 'ok' ? '✅' : '❌') + ': ' + texto).slice(0, 500), texto,\n  html: e(String((V.q.message || {}).text || '').slice(0, 3500)) + '\\n\\n<b>' + e(texto) + '</b>' } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "23d6d44f-b166-54ed-89b9-7764880689c4",
+      "name": "¿Guardar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3136,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.cambiar && !$json.simular }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2d7fa5ae-dd0f-52d2-88b5-7891fc2a38da",
+      "name": "Actualizar propuesta",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3360,
+        240
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__META_DECISIONES_TABLA_ID__",
+          "cachedResultName": "meta_ads_decisiones"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "={{ $json.estado }}",
+            "detalle": "={{ $json.detalle }}"
+          },
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "97895be2-5b19-587d-8929-a2a030171532",
+      "name": "¿Contestar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3584,
+        304
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !$('Resultado').first().json.simular }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "2703ae40-f864-532a-b31d-c56c47a95f4f",
+      "name": "Contestar botón",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3808,
+        304
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Resultado').first().json.q.id }}",
+        "additionalFields": {
+          "text": "={{ $('Resultado').first().json.texto.slice(0, 190) }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "779d001b-6429-5852-be19-d79fc3c1c1a7",
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "8ba3f2dc-198a-50e9-91a4-aa8dc2f25791",
+      "name": "Editar mensaje",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4032,
+        304
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "editMessageText",
+        "messageType": "message",
+        "chatId": "={{ $('Resultado').first().json.q.message.chat.id }}",
+        "messageId": "={{ $('Resultado').first().json.q.message.message_id }}",
+        "replyMarkup": "none",
+        "text": "={{ $('Resultado').first().json.html }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "2fccc07b-12a5-5804-9954-567d1bd068df",
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Probar (simulación)": {
+      "main": [
+        [
+          {
+            "node": "Fila de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila de prueba": {
+      "main": [
+        [
+          {
+            "node": "Ejemplo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejemplo": {
+      "main": [
+        [
+          {
+            "node": "Leer botón",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desde Telegram (respuestas)": {
+      "main": [
+        [
+          {
+            "node": "Leer botón",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer botón": {
+      "main": [
+        [
+          {
+            "node": "Leer propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer propuesta": {
+      "main": [
+        [
+          {
+            "node": "Subidas aplicadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subidas aplicadas": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "¿Qué marca? (leer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Qué marca? (leer)": {
+      "main": [
+        [
+          {
+            "node": "Meta A (leer)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Meta B (leer)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta A (leer)": {
+      "main": [
+        [
+          {
+            "node": "Preparar cambio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta B (leer)": {
+      "main": [
+        [
+          {
+            "node": "Preparar cambio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar cambio": {
+      "main": [
+        [
+          {
+            "node": "¿Aplicar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Aplicar?": {
+      "main": [
+        [
+          {
+            "node": "¿Qué marca? (escribir)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Qué marca? (escribir)": {
+      "main": [
+        [
+          {
+            "node": "Meta A (escribir)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Meta B (escribir)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta A (escribir)": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta B (escribir)": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado": {
+      "main": [
+        [
+          {
+            "node": "¿Guardar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Guardar?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar propuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Contestar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar propuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Contestar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contestar?": {
+      "main": [
+        [
+          {
+            "node": "Contestar botón",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contestar botón": {
+      "main": [
+        [
+          {
+            "node": "Editar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 300,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lo llama Telegram (respuestas) con meta|ok|id o meta|no|id. Aplica la propuesta solo si sigue vigente."
+  },
+  "pinData": {},
+  "active": false
+}

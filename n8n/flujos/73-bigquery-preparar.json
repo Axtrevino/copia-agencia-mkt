@@ -1,0 +1,123 @@
+{
+  "name": "Agencia · BigQuery preparar (manual)",
+  "nodes": [
+    {
+      "id": "52abc28b-d9ef-5557-b290-748f90c9f49e",
+      "name": "Ejecutar una vez",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "f8cb1cd3-0bee-57d5-8767-d6b3de4789e4",
+      "name": "DDL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const P = '__BQ_PROYECTO__', D = '__BQ_DATASET__', U = '__BQ_UBICACION__';\nconst t = n => '`' + P + '.' + D + '.' + n + '`';\nconst sql = [\n  `CREATE SCHEMA IF NOT EXISTS \\`${P}.${D}\\` OPTIONS(location='${U}')`,\n  `CREATE TABLE IF NOT EXISTS ${t('post_metrics_daily')} (snapshot_date DATE, post_id STRING, marca STRING, canal STRING, external_id STRING, published_at DATETIME, alcance INT64, interacciones INT64, reacciones INT64, comentarios INT64, compartidos INT64, guardados INT64, error STRING, loaded_at TIMESTAMP) PARTITION BY snapshot_date`,\n  `CREATE TABLE IF NOT EXISTS ${t('social_account_daily')} (date DATE, marca STRING, canal STRING, account_id STRING, followers INT64, reach INT64, views INT64, profile_views INT64, engagements INT64, error STRING, loaded_at TIMESTAMP) PARTITION BY date`,\n  `CREATE TABLE IF NOT EXISTS ${t('meta_ads_daily')} (date DATE, marca STRING, account_id STRING, campaign_id STRING, campaign_name STRING, adset_id STRING, adset_name STRING, ad_id STRING, ad_name STRING, spend NUMERIC, impressions INT64, reach INT64, clicks INT64, leads INT64, loaded_at TIMESTAMP) PARTITION BY date`,\n].join(';\\n') + ';';\nreturn [{ json: { body: { query: sql, useLegacySql: false, location: U, timeoutMs: 60000 } } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "9f68cd08-d6b7-5028-81bd-1cb9ac9e7ff8",
+      "name": "BigQuery: crear",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://bigquery.googleapis.com/bigquery/v2/projects/__BQ_PROYECTO__/queries",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "b8a5fb6e-73af-5181-ac0d-bca677b5e9f6",
+      "name": "Revisar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const j = $input.first().json || {};\nif (j.error) throw new Error('BigQuery: ' + (j.error.message || JSON.stringify(j.error)).slice(0, 400));\nreturn [{ json: { ok: true, mensaje: 'Dataset y tablas listos. La tabla leads la crea «Leads a BigQuery» en su primera corrida.' } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar una vez": {
+      "main": [
+        [
+          {
+            "node": "DDL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DDL": {
+      "main": [
+        [
+          {
+            "node": "BigQuery: crear",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BigQuery: crear": {
+      "main": [
+        [
+          {
+            "node": "Revisar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 300,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Una vez: crea el dataset, las tablas diarias particionadas y la vista del embudo."
+  },
+  "pinData": {},
+  "active": false
+}

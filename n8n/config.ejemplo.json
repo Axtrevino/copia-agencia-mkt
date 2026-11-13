@@ -27,6 +27,17 @@
   "WEBFLOW_SITE_ID_A": "",
   "WEBFLOW_COLLECTION_ID_A": "",
 
+  "GA4_PROPIEDAD_A": "ID numérico de la propiedad de GA4 de la marca A (Admin → Detalles de la propiedad)",
+  "GA4_PROPIEDAD_B": "ID numérico de la propiedad de GA4 de la marca B",
+  "GSC_SITIO_A": "Propiedad de Search Console de la marca A: sc-domain:marca-a.com o https://www.marca-a.com/",
+  "GSC_SITIO_B": "Propiedad de Search Console de la marca B",
+
+  "BQ_PROYECTO": "ID del proyecto de Google Cloud con BigQuery",
+  "BQ_DATASET": "marketing",
+  "BQ_UBICACION": "US",
+
+  "GITHUB_REPO": "tu-usuario/tu-repo (donde se guardan los docs oficiales y los encargos del panel)",
+
   "SEO_TABLA_ID": "ID de la tabla de datos seo_articulos en n8n",
   "PAID_TABLA_ID": "ID de la tabla de datos paid_campanas en n8n",
   "META_DECISIONES_TABLA_ID": "ID de la tabla de datos meta_ads_decisiones en n8n"

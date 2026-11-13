@@ -1,0 +1,371 @@
+{
+  "name": "Agencia · Analista semanal",
+  "nodes": [
+    {
+      "id": "3f105363-944c-58dd-ba34-5410bf98b61a",
+      "name": "Cada lunes 8:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e6083d78-956e-5116-b498-e63744929c65",
+      "name": "Probar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "c1a241e2-c1c0-5d62-99ab-d26af4d91e2e",
+      "name": "Marcas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Una entrada por marca. eventos: eventos de GA4 que quieres ver (nombre → etiqueta del reporte).\nconst MARCAS = [\n  { marca: 'marca-a', nombre: 'Marca A', ga4: '__GA4_PROPIEDAD_A__', gsc: '__GSC_SITIO_A__', eventos: { generate_lead: 'Leads', form_submit: 'Formularios enviados' } },\n  { marca: 'marca-b', nombre: 'Marca B', ga4: '__GA4_PROPIEDAD_B__', gsc: '__GSC_SITIO_B__', eventos: { generate_lead: 'Leads', form_submit: 'Formularios enviados' } },\n];\nconst hoy = $now.setZone('America/Mexico_City').startOf('day');\nconst d = n => hoy.minus({ days: n }).toISODate();\nconst fechas = { actual: { ini: d(7), fin: d(1) }, anterior: { ini: d(14), fin: d(8) }, gsc: { ini: d(9), fin: d(3), desde: d(16) } };\nconst rangos = [{ startDate: '7daysAgo', endDate: 'yesterday', name: 'actual' }, { startDate: '14daysAgo', endDate: '8daysAgo', name: 'anterior' }];\nreturn MARCAS.map(m => ({ json: Object.assign({}, m, { fechas,\n  ga4_url: 'https://analyticsdata.googleapis.com/v1beta/properties/' + m.ga4 + ':batchRunReports',\n  ga4_body: { requests: [\n    { dateRanges: rangos, metrics: [{ name: 'activeUsers' }, { name: 'sessions' }, { name: 'engagementRate' }] },\n    { dateRanges: rangos, dimensions: [{ name: 'eventName' }], metrics: [{ name: 'eventCount' }], dimensionFilter: { filter: { fieldName: 'eventName', inListFilter: { values: Object.keys(m.eventos) } } } },\n    { dateRanges: [rangos[0]], dimensions: [{ name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'sessions' }], orderBys: [{ metric: { metricName: 'sessions' }, desc: true }], limit: 6 },\n    { dateRanges: [rangos[0]], dimensions: [{ name: 'landingPage' }], metrics: [{ name: 'sessions' }], orderBys: [{ metric: { metricName: 'sessions' }, desc: true }], limit: 5 },\n  ] },\n  gsc_url: 'https://www.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(m.gsc) + '/searchAnalytics/query',\n}) }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "b84e8a50-75b1-5984-9e47-9f7c5b31eec7",
+      "name": "GA4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.ga4_url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.ga4_body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "afae6ffc-5ece-5783-8e1c-2a056550ff0d",
+      "name": "GSC por día",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Marcas').item.json.gsc_url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ startDate: $('Marcas').item.json.fechas.gsc.desde, endDate: $('Marcas').item.json.fechas.gsc.fin, dimensions: ['date'], rowLimit: 30 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "522b6d9f-937d-5300-8fc1-03cb9dad4f35",
+      "name": "GSC búsquedas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Marcas').item.json.gsc_url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ startDate: $('Marcas').item.json.fechas.gsc.ini, endDate: $('Marcas').item.json.fechas.gsc.fin, dimensions: ['query'], rowLimit: 10 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "b2630eff-6b9f-5cb5-b84a-59d93644ffac",
+      "name": "Meta Ads A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_A__/insights?fields=spend,impressions,clicks,inline_link_clicks,actions&level=account&time_ranges={{ encodeURIComponent(JSON.stringify([{ since: $('Marcas').first().json.fechas.actual.ini, until: $('Marcas').first().json.fechas.actual.fin }, { since: $('Marcas').first().json.fechas.anterior.ini, until: $('Marcas').first().json.fechas.anterior.fin }])) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "30a3b8c7-c74d-53a4-b14f-96b12fa80bca",
+      "name": "Meta Ads B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_B__/insights?fields=spend,impressions,clicks,inline_link_clicks,actions&level=account&time_ranges={{ encodeURIComponent(JSON.stringify([{ since: $('Marcas').first().json.fechas.actual.ini, until: $('Marcas').first().json.fechas.actual.fin }, { since: $('Marcas').first().json.fechas.anterior.ini, until: $('Marcas').first().json.fechas.anterior.fin }])) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "986e1487-5df9-5a4b-8f4f-f519755c3d35",
+      "name": "Armar reportes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const M = $('Marcas').all().map(i => i.json);\nconst GA = $('GA4').all().map(i => i.json || {}), GD = $('GSC por día').all().map(i => i.json || {}), GQ = $('GSC búsquedas').all().map(i => i.json || {});\nconst META = { 'marca-a': 'Meta Ads A', 'marca-b': 'Meta Ads B' };\nconst e = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst num = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 });\nconst pesos = n => '$' + num(n);\nconst pct = (a, b) => (b ? Math.round(((a - b) / b) * 100) : null);\nconst delta = (a, b) => { const p = pct(a, b); return p === null ? '' : ` (${p >= 0 ? '▲' : '▼'}${Math.abs(p)}%)`; };\nconst corta = d => { const [, m, dd] = d.split('-'); return `${Number(dd)} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][Number(m) - 1]}`; };\nconst errorDe = j => j && j.error ? (j.error.message || j.error.status || 'error') : '';\nreturn M.map((m, i) => {\n  const f = m.fechas, alertas = [];\n  let t = `📊 <b>Reporte semanal · ${e(m.nombre)}</b>\\n${corta(f.actual.ini)}–${corta(f.actual.fin)}, contra la semana anterior\\n\\n<b>Sitio (GA4)</b>\\n`;\n  const g = GA[i] || {};\n  if (errorDe(g) || !g.reports) t += `⚠️ No se pudo leer: ${e(errorDe(g) || 'sin datos')}\\n`;\n  else {\n    const [tot, evs, ch, pg] = g.reports;\n    const T = { actual: {}, anterior: {} };\n    const hdr = (tot.metricHeaders || []).map(h => h.name);\n    for (const r of tot.rows || []) { const k = r.dimensionValues.at(-1).value; if (T[k]) hdr.forEach((h, j) => (T[k][h] = Number(r.metricValues[j].value))); }\n    const ev = { actual: {}, anterior: {} };\n    for (const r of evs.rows || []) { const k = r.dimensionValues.at(-1).value; if (ev[k]) ev[k][r.dimensionValues[0].value] = Number(r.metricValues[0].value); }\n    const a = T.actual, b = T.anterior;\n    t += `Usuarios ${num(a.activeUsers)}${delta(a.activeUsers, b.activeUsers)} · Sesiones ${num(a.sessions)}${delta(a.sessions, b.sessions)}\\n`;\n    t += Object.entries(m.eventos).map(([k, lbl]) => `${e(lbl)} ${num(ev.actual[k])}${delta(ev.actual[k] || 0, ev.anterior[k] || 0)}`).join(' · ') + '\\n';\n    const canales = (ch.rows || []).map(r => `${e(r.dimensionValues[0].value)} ${num(r.metricValues[0].value)}`);\n    const paginas = (pg.rows || []).map(r => `${e(r.dimensionValues[0].value)} ${num(r.metricValues[0].value)}`);\n    if (canales.length) t += 'Canales: ' + canales.join(', ') + '\\n';\n    if (paginas.length) t += 'Páginas de entrada: ' + paginas.join(', ') + '\\n';\n    if (b.sessions >= 30 && pct(a.sessions, b.sessions) <= -30) alertas.push(`Las sesiones bajaron ${Math.abs(pct(a.sessions, b.sessions))}%.`);\n    if (!a.sessions) alertas.push('GA4 no registró visitas: revisa la etiqueta del sitio.');\n  }\n  t += `\\n<b>Google orgánico</b> (${corta(f.gsc.ini)}–${corta(f.gsc.fin)})\\n`;\n  const d = GD[i] || {}, q = GQ[i] || {};\n  if (errorDe(d)) t += `⚠️ No se pudo leer: ${e(errorDe(d))}\\n`;\n  else {\n    const s = { actual: { c: 0, i: 0, p: 0 }, anterior: { c: 0, i: 0, p: 0 } };\n    for (const r of d.rows || []) { const k = r.keys[0] >= f.gsc.ini ? 'actual' : 'anterior'; s[k].c += r.clicks; s[k].i += r.impressions; s[k].p += r.position * r.impressions; }\n    const a = s.actual, b = s.anterior;\n    t += `Clics ${num(a.c)}${delta(a.c, b.c)} · Impresiones ${num(a.i)}${delta(a.i, b.i)}` + (a.i ? ` · Posición media ${(a.p / a.i).toFixed(1)}` : '') + '\\n';\n    const busq = (q.rows || []).slice(0, 5).map(r => `«${e(r.keys[0])}» ${r.clicks} clics/${num(r.impressions)} imp`);\n    t += busq.length ? 'Búsquedas: ' + busq.join(', ') + '\\n' : 'Todavía sin búsquedas registradas.\\n';\n  }\n  t += '\\n<b>Meta Ads</b>\\n';\n  let mj = {}; try { mj = $(META[m.marca]).first().json || {}; } catch (err) { mj = { error: { message: 'no corrió' } }; }\n  if (errorDe(mj)) t += `⚠️ No se pudo leer: ${e(errorDe(mj))}\\n`;\n  else {\n    const out = {};\n    for (const r of mj.data || []) {\n      const k = r.date_start === f.actual.ini ? 'actual' : r.date_start === f.anterior.ini ? 'anterior' : null;\n      if (!k) continue;\n      const acc = {}; for (const x of r.actions || []) acc[x.action_type] = Number(x.value);\n      out[k] = { gasto: Number(r.spend || 0), clics: Number(r.inline_link_clicks || r.clicks || 0), leads: acc['lead'] ?? acc['offsite_conversion.fb_pixel_lead'] ?? acc['onsite_conversion.lead_grouped'] ?? 0 };\n    }\n    const a = out.actual, b = out.anterior || {};\n    if (!a || !a.gasto) t += 'Sin gasto esta semana.\\n';\n    else {\n      t += `Gasto ${pesos(a.gasto)}${delta(a.gasto, b.gasto)} · Clics ${num(a.clics)} · Leads ${num(a.leads)}` + (a.leads ? ` · Costo por lead ${pesos(a.gasto / a.leads)}` : '') + '\\n';\n      if (!a.leads && a.gasto >= 500) alertas.push(`Meta gastó ${pesos(a.gasto)} sin leads registrados.`);\n    }\n  }\n  if (alertas.length) t += '\\n🚨 ' + alertas.join('\\n🚨 ');\n  return { json: { marca: m.marca, texto: t.trim() } };\n});\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "eefaa533-c00a-5632-9658-e17e19632880",
+      "name": "Telegram: Reportes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1792,
+        100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true,
+          "message_thread_id": "__TEMA_REPORTES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "c4842392-e1c1-5d7a-8b86-36061356c5d9",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Cada lunes 8:30": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcas": {
+      "main": [
+        [
+          {
+            "node": "GA4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GA4": {
+      "main": [
+        [
+          {
+            "node": "GSC por día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSC por día": {
+      "main": [
+        [
+          {
+            "node": "GSC búsquedas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSC búsquedas": {
+      "main": [
+        [
+          {
+            "node": "Meta Ads A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta Ads A": {
+      "main": [
+        [
+          {
+            "node": "Meta Ads B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta Ads B": {
+      "main": [
+        [
+          {
+            "node": "Armar reportes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar reportes": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Reportes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 1800,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lunes 8:30: GA4, Search Console y Meta Ads de cada marca (semana contra la anterior) y un reporte por marca a Telegram (Reportes)."
+  },
+  "pinData": {},
+  "active": false
+}

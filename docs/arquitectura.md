@@ -52,11 +52,23 @@ Todo lo de la marca está en `marcas/<slug>/marca.json` y `ficha.md` (ver los co
 | 31 | Leads (preparar hoja) | Manual | Crea los encabezados de la pestaña Leads. |
 | 40 | SEO (borradores) | Martes y jueves | Siguiente tema de `seo_articulos` → artículo + portada → borrador en Webflow → Telegram. |
 | 41 | SEO acciones | Sub-flujo | ✅ publica en Webflow; ✏️ pide cambios y rehace el borrador. |
+| 42 | SEO posiciones y on-page | Lunes 7:43 | Posiciones (DataForSEO) y Search Console; cada dos semanas revisión on-page y propuestas de Claude («propuesto»). No aplica nada. |
+| 43 | SEO preparar pestañas | Manual | Crea las pestañas SEO del Sheet. |
 | 50 | Paid campañas (Meta) | Pestaña Paid del panel (webhook con token) | Crea campañas de Meta en pausa (7 objetivos), con pieza y texto; «probar» valida sin crear. |
 | 52 | Paid propuesta | Pestaña Paid del panel | Manda lo que escribió la persona a Modal /campana y devuelve la propuesta. No crea nada. |
-| 51 | Meta Ads optimizador | Diario 10:40 | Pausa campañas «[Agente]» que rompen las reglas de costo por lead; propone lo demás; bitácora en `meta_ads_decisiones`. |
+| 51 | Meta Ads optimizador | Diario 10:40 | Pausa campañas «[Agente]» que rompen las reglas de costo por lead; propone lo demás (subir presupuesto y pausar con ✅/❌); bitácora en `meta_ads_decisiones`. |
+| 53 | Audiencias de Meta | Webhook o manual | Lista audiencias, formularios y posts; crea audiencias base «[Agente]» y similares 1 %. |
+| 54 | Meta Ads acciones | Sub-flujo de 12 | ✅ aplica la propuesta solo si sigue vigente; ❌ la descarta. |
 | 60 | Panel (lectura) | Webhook | Resumen para el panel (Sheet, seo_articulos, paid_campanas y meta_ads_decisiones). |
 | 61 | Panel acciones | Webhook | Aprobar, pedir cambios o descartar desde el panel. |
+| 62 | Panel analytics (lectura) | Webhook | GA4, Search Console, Meta, leads del Sheet y pestañas SEO para Resultados, Analytics y SEO. |
+| 63 | Panel SEO | Webhook | Aprueba o descarta propuestas SEO (solo cambia el Sheet). |
+| 64 | Panel agentes | Webhook | Flujos y corridas de tu n8n y encargos (issues «encargo»); crea encargos. |
+| 70 | Analista semanal | Lunes 8:30 | GA4 + Search Console + Meta Ads, semana contra semana, a Telegram. |
+| 71 | BigQuery diario | Diario 10:00 | Métricas de posts, cuentas y anuncios → BigQuery. |
+| 72 | Leads a BigQuery | Cada hora :17 | Pestaña Leads sin datos de contacto → BigQuery. |
+| 73 | BigQuery preparar | Manual | Dataset y tablas. |
+| 74 | Docs oficiales | Domingo 6:13 | Documentación de Meta y Google Ads: guarda lo que cambió en tu repo y avisa con análisis de Claude. |
 
 ## Estados de un post
 

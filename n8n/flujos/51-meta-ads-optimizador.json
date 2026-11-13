@@ -186,7 +186,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Reglas (ventana: últimos 7 días). Pausar solo lo hace solo en campañas creadas por el agente\n// («[Agente] …»); en las demás lo propone. Subir presupuesto siempre es propuesta, con tope.\nconst C = $('Configuración').first().json;\nconst recientes = $('Decisiones recientes').all().map(i => i.json).filter(r => r && r.adset_id);\nconst num = v => Number(v) || 0;\nconst leadsDe = a => (a || []).filter(x => /lead/i.test(String(x.action_type || ''))).reduce((s, x) => Math.max(s, num(x.value)), 0);\nconst msg = x => (x && x.error && (x.error.error_user_msg || x.error.message)) || '';\nconst filas = [], errores = [], pausas = { 'marca-a': [], 'marca-b': [] };\nlet frenado = false;\nfor (const [marca, nodo] of [['marca-a', 'Meta A'], ['marca-b', 'Meta B']]) {\n  const M = C.MARCAS[marca], obj = M.cpl_objetivo ? num(M.cpl_objetivo) : 0;\n  let items = [];\n  try { items = $(nodo).all().map(i => i.json || {}); } catch (e) { errores.push(M.nombre + ': no se leyó Meta'); continue; }\n  if (items.length === 1 && items[0].error) { errores.push(M.nombre + ': ' + msg(items[0]).slice(0, 200)); continue; }\n  const partes = {};\n  ['conjuntos', 'anuncios', 'diario', 'semana'].forEach((k, i) => {\n    const x = items[i] || {}; let body = {};\n    try { body = JSON.parse(x.body || '{}'); } catch (e) {}\n    if (Number(x.code) !== 200 || body.error) errores.push(M.nombre + ' (' + k + '): ' + (msg(body) || ('código ' + x.code)).slice(0, 200));\n    partes[k] = body.data || [];\n    // Límites de uso de la API: frenar al pasar el 75 %.\n    (x.headers || []).forEach(h => {\n      const n = String(h.name || '').toLowerCase();\n      if (n === 'x-business-use-case-usage' || n === 'x-ad-account-usage' || n === 'x-app-usage') {\n        const nums = (String(h.value || '').match(/\"(call_count|total_cputime|total_time|acc_id_util_pct)\"\\s*:\\s*([0-9.]+)/g) || []).map(s => num(s.split(':')[1]));\n        if (nums.some(v => v > 75)) frenado = true;\n      }\n    });\n  });\n  const anunciosPor = {}; partes.anuncios.forEach(a => { anunciosPor[a.adset_id] = (anunciosPor[a.adset_id] || 0) + 1; });\n  const semana = {}; partes.semana.forEach(r => { semana[r.adset_id] = r; });\n  const diario = {}; partes.diario.forEach(r => { (diario[r.adset_id] = diario[r.adset_id] || []).push(r); });\n  for (const s of partes.conjuntos) {\n    const w = semana[s.id] || {}, dias = (diario[s.id] || []).sort((a, b) => String(a.date_start).localeCompare(String(b.date_start)));\n    const gasto = num(w.spend), leads = leadsDe(w.actions), cpl = leads ? gasto / leads : null, frec = num(w.frequency);\n    const ult3 = dias.slice(-3), prev = dias.slice(0, -3);\n    const sum = (arr, f) => arr.reduce((t, r) => t + f(r), 0);\n    const ctr = arr => { const imp = sum(arr, r => num(r.impressions)); return imp ? sum(arr, r => num(r.clicks)) / imp : null; };\n    const ctr3 = ctr(ult3), ctrPrev = ctr(prev), imPrev = sum(prev, r => num(r.impressions));\n    const gasto3 = sum(ult3, r => num(r.spend)), leads3 = sum(ult3, r => leadsDe(r.actions));\n    const camp = (s.campaign && s.campaign.name) || '';\n    const presupuesto = num(s.daily_budget || (s.campaign && s.campaign.daily_budget)) / 100;\n    const deAgente = /^\\[Agente\\]/.test(camp);\n    const aprendiendo = String((s.learning_stage_info || {}).status || '').toUpperCase() === 'LEARNING';\n    const base = { fecha: C.hora, marca, campana: camp.slice(0, 120), conjunto: String(s.name || '').slice(0, 120), adset_id: s.id, gasto_7d: Math.round(gasto * 100) / 100, leads_7d: leads, cpl_7d: cpl === null ? null : Math.round(cpl * 100) / 100, cpl_objetivo: obj || null, frecuencia: Math.round(frec * 100) / 100, presupuesto_dia: presupuesto || null, propuesta_presupuesto: null };\n    const add = (regla, accion, estado, detalle, extra) => filas.push(Object.assign({}, base, { regla, accion, estado, detalle: String(detalle).slice(0, 500) }, extra || {}));\n    const pausar = (regla, detalle) => {\n      if (deAgente && !frenado) { pausas[marca].push(s.id); add(regla, 'pausar', C.simular ? 'simulación' : 'aplicada', detalle); }\n      else add(regla, 'pausar', 'propuesta', detalle + (deAgente ? ' (no se aplicó: la API pasó el 75 % de uso)' : ' (campaña hecha a mano: solo propongo)'));\n    };\n    if (obj && leads === 0 && gasto >= 3 * obj) { pausar('desastre', 'Gastó MXN ' + gasto.toFixed(0) + ' en 7 días sin leads (3× el objetivo de ' + obj + ').'); continue; }\n    if (aprendiendo) { if (gasto > 0) add('aprendizaje', 'no tocar', 'informativa', 'En fase de aprendizaje: no se toca.'); continue; }\n    if (!obj) { if (gasto > 0) add('sin objetivo', 'solo reporte', 'informativa', 'Sin costo objetivo por lead: solo reporto. Gasto 7 d MXN ' + gasto.toFixed(0) + ', leads ' + leads + '.'); }\n    else if (leads === 0 && gasto >= 2 * obj) { pausar('2× sin leads', 'Gastó MXN ' + gasto.toFixed(0) + ' sin leads (objetivo ' + obj + ').'); continue; }\n    else if (cpl !== null && cpl > 1.5 * obj && (leads >= 5 || gasto >= 5 * obj)) { pausar('costo alto', 'Costo por lead MXN ' + cpl.toFixed(0) + ', más de 1.5× el objetivo (' + obj + ').'); continue; }\n    else if (leads3 >= 3 && gasto3 / leads3 <= 0.8 * obj && presupuesto) {\n      const subidaReciente = recientes.some(r => r.adset_id === s.id && r.regla === 'costo bajo' && String(r.fecha).slice(0, 10) >= C.hace3);\n      const nuevo = Math.min(C.TOPE, Math.round(presupuesto * 1.15));\n      if (!subidaReciente && nuevo > presupuesto) add('costo bajo', 'subir presupuesto', 'propuesta', 'Costo por lead de los últimos 3 días MXN ' + (gasto3 / leads3).toFixed(0) + ' (20 % o más abajo del objetivo ' + obj + '). Propongo pasar de MXN ' + presupuesto + ' a ' + nuevo + ' al día.', { propuesta_presupuesto: nuevo });\n    }\n    if (gasto <= 0) continue;\n    if (frec > 3 && ctr3 !== null && ctrPrev !== null && imPrev >= 1000 && ctr3 < 0.8 * ctrPrev) add('fatiga', 'pedir creativos', 'propuesta', 'Frecuencia ' + frec.toFixed(1) + ' y CTR bajando (' + (ctrPrev * 100).toFixed(2) + ' % → ' + (ctr3 * 100).toFixed(2) + ' %).');\n    if ((anunciosPor[s.id] || 0) < 2) add('pocos anuncios', 'proponer variantes', 'propuesta', 'Tiene ' + (anunciosPor[s.id] || 0) + ' anuncio(s) activo(s); conviene tener al menos 2.');\n  }\n}\nconst lote = ids => ids.length ? JSON.stringify(ids.map(id => ({ method: 'POST', relative_url: id, body: 'status=PAUSED' }))) : '';\nconst nombre = m => C.MARCAS[m].nombre;\nconst lineas = filas.filter(f => f.estado !== 'informativa').map(f => '• ' + nombre(f.marca) + ' · ' + f.conjunto + ': ' + f.accion + ' (' + f.estado + '). ' + f.detalle);\nconst sinObj = Object.keys(C.MARCAS).filter(m => !C.MARCAS[m].cpl_objetivo).map(nombre);\nlet mensaje = '';\nif (lineas.length || errores.length) {\n  mensaje = '<b>Meta Ads · optimizador</b>' + (C.simular ? ' (simulación)' : '') + '\\n' + lineas.join('\\n');\n  if (errores.length) mensaje += '\\n⚠️ ' + errores.join(' · ');\n  if (frenado) mensaje += '\\nFrené: la API de Meta pasó el 75 % de uso.';\n  if (sinObj.length) mensaje += '\\nSin costo objetivo por lead: ' + sinObj.join(', ') + ' (solo reporto).';\n  if (lineas.some(l => l.includes('(propuesta)'))) mensaje += '\\nLas propuestas se aplican a mano en el Administrador de anuncios.';\n}\nconst esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&lt;(\\/?)b&gt;/g, '<$1b>');\nreturn [{ json: { simular: C.simular, frenado, errores, filas, lote_pausa_a: lote(pausas['marca-a']), lote_pausa_b: lote(pausas['marca-b']), mensaje: esc(mensaje).slice(0, 3900) } }];"
+        "jsCode": "// Reglas (ventana: últimos 7 días). Pausar solo lo hace solo en campañas creadas por el agente\n// («[Agente] …»); en las demás lo propone. Subir presupuesto siempre es propuesta, con tope.\nconst C = $('Configuración').first().json;\nconst recientes = $('Decisiones recientes').all().map(i => i.json).filter(r => r && r.adset_id);\nconst num = v => Number(v) || 0;\nconst leadsDe = a => (a || []).filter(x => /lead/i.test(String(x.action_type || ''))).reduce((s, x) => Math.max(s, num(x.value)), 0);\nconst msg = x => (x && x.error && (x.error.error_user_msg || x.error.message)) || '';\nconst filas = [], errores = [], pausas = { 'marca-a': [], 'marca-b': [] };\nlet frenado = false;\nfor (const [marca, nodo] of [['marca-a', 'Meta A'], ['marca-b', 'Meta B']]) {\n  const M = C.MARCAS[marca], obj = M.cpl_objetivo ? num(M.cpl_objetivo) : 0;\n  let items = [];\n  try { items = $(nodo).all().map(i => i.json || {}); } catch (e) { errores.push(M.nombre + ': no se leyó Meta'); continue; }\n  if (items.length === 1 && items[0].error) { errores.push(M.nombre + ': ' + msg(items[0]).slice(0, 200)); continue; }\n  const partes = {};\n  ['conjuntos', 'anuncios', 'diario', 'semana'].forEach((k, i) => {\n    const x = items[i] || {}; let body = {};\n    try { body = JSON.parse(x.body || '{}'); } catch (e) {}\n    if (Number(x.code) !== 200 || body.error) errores.push(M.nombre + ' (' + k + '): ' + (msg(body) || ('código ' + x.code)).slice(0, 200));\n    partes[k] = body.data || [];\n    // Límites de uso de la API: frenar al pasar el 75 %.\n    (x.headers || []).forEach(h => {\n      const n = String(h.name || '').toLowerCase();\n      if (n === 'x-business-use-case-usage' || n === 'x-ad-account-usage' || n === 'x-app-usage') {\n        const nums = (String(h.value || '').match(/\"(call_count|total_cputime|total_time|acc_id_util_pct)\"\\s*:\\s*([0-9.]+)/g) || []).map(s => num(s.split(':')[1]));\n        if (nums.some(v => v > 75)) frenado = true;\n      }\n    });\n  });\n  const anunciosPor = {}; partes.anuncios.forEach(a => { anunciosPor[a.adset_id] = (anunciosPor[a.adset_id] || 0) + 1; });\n  const semana = {}; partes.semana.forEach(r => { semana[r.adset_id] = r; });\n  const diario = {}; partes.diario.forEach(r => { (diario[r.adset_id] = diario[r.adset_id] || []).push(r); });\n  for (const s of partes.conjuntos) {\n    const w = semana[s.id] || {}, dias = (diario[s.id] || []).sort((a, b) => String(a.date_start).localeCompare(String(b.date_start)));\n    const gasto = num(w.spend), leads = leadsDe(w.actions), cpl = leads ? gasto / leads : null, frec = num(w.frequency);\n    const ult3 = dias.slice(-3), prev = dias.slice(0, -3);\n    const sum = (arr, f) => arr.reduce((t, r) => t + f(r), 0);\n    const ctr = arr => { const imp = sum(arr, r => num(r.impressions)); return imp ? sum(arr, r => num(r.clicks)) / imp : null; };\n    const ctr3 = ctr(ult3), ctrPrev = ctr(prev), imPrev = sum(prev, r => num(r.impressions));\n    const gasto3 = sum(ult3, r => num(r.spend)), leads3 = sum(ult3, r => leadsDe(r.actions));\n    const camp = (s.campaign && s.campaign.name) || '';\n    const presupuesto = num(s.daily_budget || (s.campaign && s.campaign.daily_budget)) / 100;\n    const deAgente = /^\\[Agente\\]/.test(camp);\n    const aprendiendo = String((s.learning_stage_info || {}).status || '').toUpperCase() === 'LEARNING';\n    const base = { fecha: C.hora, marca, campana: camp.slice(0, 120), conjunto: String(s.name || '').slice(0, 120), adset_id: s.id, gasto_7d: Math.round(gasto * 100) / 100, leads_7d: leads, cpl_7d: cpl === null ? null : Math.round(cpl * 100) / 100, cpl_objetivo: obj || null, frecuencia: Math.round(frec * 100) / 100, presupuesto_dia: presupuesto || null, propuesta_presupuesto: null };\n    const add = (regla, accion, estado, detalle, extra) => filas.push(Object.assign({}, base, { regla, accion, estado, detalle: String(detalle).slice(0, 500) }, extra || {}));\n    const pausar = (regla, detalle) => {\n      if (deAgente && !frenado) { pausas[marca].push(s.id); add(regla, 'pausar', C.simular ? 'simulación' : 'aplicada', detalle); }\n      else add(regla, 'pausar', 'propuesta', detalle + (deAgente ? ' (no se aplicó: la API pasó el 75 % de uso)' : ' (campaña hecha a mano: solo propongo)'));\n    };\n    if (obj && leads === 0 && gasto >= 3 * obj) { pausar('desastre', 'Gastó MXN ' + gasto.toFixed(0) + ' en 7 días sin leads (3× el objetivo de ' + obj + ').'); continue; }\n    if (aprendiendo) { if (gasto > 0) add('aprendizaje', 'no tocar', 'informativa', 'En fase de aprendizaje: no se toca.'); continue; }\n    if (!obj) { if (gasto > 0) add('sin objetivo', 'solo reporte', 'informativa', 'Sin costo objetivo por lead: solo reporto. Gasto 7 d MXN ' + gasto.toFixed(0) + ', leads ' + leads + '.'); }\n    else if (leads === 0 && gasto >= 2 * obj) { pausar('2× sin leads', 'Gastó MXN ' + gasto.toFixed(0) + ' sin leads (objetivo ' + obj + ').'); continue; }\n    else if (cpl !== null && cpl > 1.5 * obj && (leads >= 5 || gasto >= 5 * obj)) { pausar('costo alto', 'Costo por lead MXN ' + cpl.toFixed(0) + ', más de 1.5× el objetivo (' + obj + ').'); continue; }\n    else if (leads3 >= 3 && gasto3 / leads3 <= 0.8 * obj && presupuesto) {\n      const subidaReciente = recientes.some(r => r.adset_id === s.id && r.regla === 'costo bajo' && String(r.fecha).slice(0, 10) >= C.hace3);\n      const nuevo = Math.min(C.TOPE, Math.round(presupuesto * 1.15));\n      if (!subidaReciente && nuevo > presupuesto) add('costo bajo', 'subir presupuesto', 'propuesta', 'Costo por lead de los últimos 3 días MXN ' + (gasto3 / leads3).toFixed(0) + ' (20 % o más abajo del objetivo ' + obj + '). Propongo pasar de MXN ' + presupuesto + ' a ' + nuevo + ' al día.', { propuesta_presupuesto: nuevo });\n    }\n    if (gasto <= 0) continue;\n    if (frec > 3 && ctr3 !== null && ctrPrev !== null && imPrev >= 1000 && ctr3 < 0.8 * ctrPrev) add('fatiga', 'pedir creativos', 'propuesta', 'Frecuencia ' + frec.toFixed(1) + ' y CTR bajando (' + (ctrPrev * 100).toFixed(2) + ' % → ' + (ctr3 * 100).toFixed(2) + ' %).');\n    if ((anunciosPor[s.id] || 0) < 2) add('pocos anuncios', 'proponer variantes', 'propuesta', 'Tiene ' + (anunciosPor[s.id] || 0) + ' anuncio(s) activo(s); conviene tener al menos 2.');\n  }\n}\nconst lote = ids => ids.length ? JSON.stringify(ids.map(id => ({ method: 'POST', relative_url: id, body: 'status=PAUSED' }))) : '';\nconst nombre = m => C.MARCAS[m].nombre;\nconst lineas = filas.filter(f => f.estado !== 'informativa').map(f => '• ' + nombre(f.marca) + ' · ' + f.conjunto + ': ' + f.accion + ' (' + f.estado + '). ' + f.detalle);\nconst sinObj = Object.keys(C.MARCAS).filter(m => !C.MARCAS[m].cpl_objetivo).map(nombre);\nlet mensaje = '';\nif (lineas.length || errores.length) {\n  mensaje = '<b>Meta Ads · optimizador</b>' + (C.simular ? ' (simulación)' : '') + '\\n' + lineas.join('\\n');\n  if (errores.length) mensaje += '\\n⚠️ ' + errores.join(' · ');\n  if (frenado) mensaje += '\\nFrené: la API de Meta pasó el 75 % de uso.';\n  if (sinObj.length) mensaje += '\\nSin costo objetivo por lead: ' + sinObj.join(', ') + ' (solo reporto).';\n  if (lineas.some(l => l.includes('(propuesta)'))) mensaje += '\\nSubir presupuesto y pausar llegan aparte con ✅/❌ (Aprobaciones); lo demás se aplica a mano en el Administrador de anuncios.';\n}\nconst esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&lt;(\\/?)b&gt;/g, '<$1b>');\nreturn [{ json: { simular: C.simular, frenado, errores, filas, lote_pausa_a: lote(pausas['marca-a']), lote_pausa_b: lote(pausas['marca-b']), mensaje: esc(mensaje).slice(0, 3900) } }];"
       }
     },
     {
@@ -611,6 +611,110 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000
+    },
+    {
+      "id": "80bbef32-ec4a-5126-abd6-dc9f0dd233ba",
+      "name": "Propuestas de esta corrida",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3080,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__META_DECISIONES_TABLA_ID__",
+          "cachedResultName": "meta_ads_decisiones"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "fecha",
+              "condition": "eq",
+              "keyValue": "={{ $('Configuración').first().json.hora }}"
+            },
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "propuesta"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "62a4f931-52b7-582c-961a-ea9887752531",
+      "name": "Botones",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3304,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Una pregunta por propuesta que se puede aplicar con un botón (subir presupuesto o pausar).\n// ✅ la aplica el flujo «Meta Ads acciones» solo si sigue vigente; ❌ la descarta.\nconst C = $('Configuración').first().json;\nconst e = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nreturn $input.all().map(i => i.json).filter(r => r && r.id && ['subir presupuesto', 'pausar'].includes(r.accion)).map(r => ({ json: { id: r.id,\n  texto: '💡 <b>' + e((C.MARCAS[r.marca] || {}).nombre || r.marca) + ' · ' + e(r.conjunto) + '</b>\\n' + e(r.campana) + '\\n\\n' + (r.accion === 'pausar' ? '⏸️ Propongo <b>pausar</b> este conjunto.' : '⬆️ Propongo <b>subir el presupuesto</b> a MXN ' + e(r.propuesta_presupuesto) + ' al día (hoy ' + e(r.presupuesto_dia) + ').') + '\\n' + e(r.detalle) + '\\n\\nGasto 7 días MXN ' + e(r.gasto_7d) + ' · leads ' + e(r.leads_7d) + (r.cpl_7d ? ' · costo por lead ' + e(r.cpl_7d) : '') } }));\n"
+      }
+    },
+    {
+      "id": "d68c8d3f-efb4-5faa-9cef-2bf1d930c915",
+      "name": "Pedir OK en Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3528,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Aplicar",
+                    "additionalFields": {
+                      "callback_data": "={{ 'meta|ok|' + $json.id }}"
+                    }
+                  },
+                  {
+                    "text": "❌ No",
+                    "additionalFields": {
+                      "callback_data": "={{ 'meta|no|' + $json.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true,
+          "message_thread_id": "__TEMA_APROBACIONES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "8dcfffa6-b5ce-562b-b14c-91ba21155319"
     }
   ],
   "connections": {
@@ -776,6 +880,39 @@
         [
           {
             "node": "Aviso Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso Telegram": {
+      "main": [
+        [
+          {
+            "node": "Propuestas de esta corrida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Propuestas de esta corrida": {
+      "main": [
+        [
+          {
+            "node": "Botones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Botones": {
+      "main": [
+        [
+          {
+            "node": "Pedir OK en Telegram",
             "type": "main",
             "index": 0
           }

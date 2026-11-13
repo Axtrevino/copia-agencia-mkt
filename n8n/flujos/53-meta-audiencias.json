@@ -1,0 +1,384 @@
+{
+  "name": "Agencia · Audiencias de Meta",
+  "nodes": [
+    {
+      "id": "334e19d6-37e9-559e-80b1-1aa5d720683c",
+      "name": "Pedido",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencia-paid-audiencias",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      },
+      "webhookId": "ffe2658b-3fae-53d0-92ce-06d1fe40d29d"
+    },
+    {
+      "id": "40551f9d-0b9c-595c-a62c-5f5963471e40",
+      "name": "Probar (listar)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "268d0a37-dc8a-5564-98cf-3cae32ac6ab7",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Audiencias de Meta. «listar» trae audiencias, formularios y posts recientes de cada marca;\n// «crear» hace las audiencias base que falten; «similar» crea una similar 1 % del país a partir de otra.\n// No se suben listas de clientes (hazlo solo cuando tu aviso de privacidad cubra ese uso).\n// Edita C: una entrada por marca. paginas_clave: rutas del sitio que valen una audiencia propia (30 días).\nconst b = (($json.body || $json) || {});\nconst accion = String(b.accion || 'listar').trim();\nconst PAIS = 'MX';\nconst C = {\n  'marca-a': { act: '__META_AD_ACCOUNT_A__', page: '__META_PAGE_ID_A__', ig: '__META_IG_ID_A__', pixel: '__META_PIXEL_ID_A__', paginas_clave: ['contacto'] },\n  'marca-b': { act: '__META_AD_ACCOUNT_B__', page: '__META_PAGE_ID_B__', ig: '__META_IG_ID_B__', pixel: '__META_PIXEL_ID_B__', paginas_clave: ['contacto'] },\n};\nconst DIA = 86400;\nconst regla = (tipo, id, dias, campo, op, valor) => ({ inclusions: { operator: 'or', rules: [{ event_sources: [{ type: tipo, id }], retention_seconds: dias * DIA, filter: { operator: 'and', filters: [{ field: campo, operator: op, value: valor }] } }] } });\nconst BASE = m => {\n  const c = C[m];\n  const L = [\n    { clave: 'sitio_30', nombre: 'Visitantes del sitio · 30 días', rule: regla('pixel', c.pixel, 30, 'url', 'i_contains', ''), prefill: true },\n    { clave: 'sitio_180', nombre: 'Visitantes del sitio · 180 días', rule: regla('pixel', c.pixel, 180, 'url', 'i_contains', ''), prefill: true },\n    { clave: 'lead_180', nombre: 'Dejaron sus datos en el sitio · 180 días', rule: regla('pixel', c.pixel, 180, 'event', 'eq', 'Lead'), prefill: true },\n    ...c.paginas_clave.map(p => ({ clave: 'pagina_' + p.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_30', nombre: 'Visitaron /' + p + ' · 30 días', rule: regla('pixel', c.pixel, 30, 'url', 'i_contains', p), prefill: true })),\n    { clave: 'fb_365', nombre: 'Interactuaron con la página de Facebook · 365 días', rule: regla('page', c.page, 365, 'event', 'eq', 'page_engaged') },\n    { clave: 'ig_365', nombre: 'Interactuaron con Instagram · 365 días', rule: regla('ig_business', c.ig, 365, 'event', 'eq', 'ig_business_profile_all') },\n    { clave: 'form_90', nombre: 'Abrieron un formulario de Meta · 90 días', rule: regla('lead', c.page, 90, 'event', 'eq', 'opened_form') },\n  ];\n  return L.map(a => Object.assign(a, { nombre: '[Agente] ' + a.nombre }));\n};\nconst enc = o => Object.entries(o).map(([k, v]) => k + '=' + encodeURIComponent(typeof v === 'string' ? v : JSON.stringify(v))).join('&');\nconst CAMPOS = 'id,name,subtype,approximate_count_lower_bound,approximate_count_upper_bound,delivery_status,operation_status,time_created,retention_days,description';\nlet marca = '', crear = [];\nif (accion === 'crear' || accion === 'similar') {\n  marca = String(b.marca || '');\n  if (!C[marca]) throw new Error('Marca inválida: usa ' + Object.keys(C).join(' o ') + '.');\n}\nif (accion === 'crear') {\n  const pedidas = Array.isArray(b.claves) && b.claves.length ? b.claves.map(String) : null;\n  crear = BASE(marca).filter(a => !pedidas || pedidas.includes(a.clave)).map(a => ({ que: a.nombre, relative_url: C[marca].act + '/customaudiences', body: enc(Object.assign({ name: a.nombre, description: 'Creada por el agente de Paid (' + a.clave + ')', rule: a.rule }, a.prefill ? { prefill: 'true' } : {})) }));\n  if (!crear.length) throw new Error('No hay audiencias base con esas claves.');\n} else if (accion === 'similar') {\n  const origen = String(b.origen || '');\n  if (!/^\\d+$/.test(origen)) throw new Error('Falta la audiencia de origen.');\n  const nombre = String(b.nombre_origen || origen).replace(/^\\[Agente\\]\\s*/, '').slice(0, 60);\n  crear = [{ que: 'Similar 1 % ' + PAIS, relative_url: C[marca].act + '/customaudiences', body: enc({ name: '[Agente] Similar 1 % ' + PAIS + ' · ' + nombre, subtype: 'LOOKALIKE', origin_audience_id: origen, lookalike_spec: { type: 'similarity', ratio: 0.01, country: PAIS } }) }];\n} else if (accion !== 'listar') throw new Error('Acción no válida: listar, crear o similar.');\nconst lote = m => JSON.stringify([\n  ...(m === marca ? crear.map((x, i) => ({ method: 'POST', name: 'c' + i, relative_url: x.relative_url, body: x.body })) : []),\n  { method: 'GET', name: 'audiencias', relative_url: C[m].act + '/customaudiences?fields=' + CAMPOS + '&limit=200' },\n  { method: 'GET', name: 'ig', relative_url: C[m].ig + '/media?fields=id,shortcode,caption,permalink,timestamp,media_type,thumbnail_url,media_url&limit=15' },\n]);\nconst pagina = m => JSON.stringify([\n  { method: 'GET', name: 'formularios', relative_url: C[m].page + '/leadgen_forms?fields=id,name,status,leads_count,created_time,locale&limit=50' },\n  { method: 'GET', name: 'posts', relative_url: C[m].page + '/published_posts?fields=id,message,created_time,permalink_url,full_picture&limit=15' },\n]);\nconst base = Object.fromEntries(Object.keys(C).map(m => [m, BASE(m).map(a => ({ clave: a.clave, nombre: a.nombre }))]));\nreturn [{ json: { accion, marca, crear: crear.map(x => x.que), base, lote_a: lote('marca-a'), lote_b: lote('marca-b'), pagina_a: pagina('marca-a'), pagina_b: pagina('marca-b') } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "fdfc570d-acf0-5f57-a583-2edb6565f879",
+      "name": "Audiencias A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ \"include_headers=false&batch=\" + encodeURIComponent($(\"Validar\").first().json.lote_a) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "4341ee8e-03b2-5f68-acd5-0aefca9b0b21",
+      "name": "Audiencias B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ \"include_headers=false&batch=\" + encodeURIComponent($(\"Validar\").first().json.lote_b) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "44425565-8cf3-5162-8c2f-fa509bb69bf6",
+      "name": "Página A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ \"include_headers=false&batch=\" + encodeURIComponent($(\"Validar\").first().json.pagina_a) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "09ab3875-e5c9-59fa-bbf6-571c3f90bc3b",
+      "name": "Página B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ \"include_headers=false&batch=\" + encodeURIComponent($(\"Validar\").first().json.pagina_b) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ecde23e8-359f-58b9-ad63-40ec7df6c503",
+      "name": "Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Audiencias, formularios y posts recientes por marca, más lo que se creó.\nconst V = $('Validar').first().json;\nconst lote = n => { try { return $(n).all().map(i => i.json || {}); } catch (e) { return []; } };\nconst parse = x => { try { return JSON.parse(x.body || '{}'); } catch (e) { return {}; } };\nconst err = o => { const e = (o && o.error) || {}; return e.error_user_msg || e.error_user_title || e.message || ''; };\nconst out = { ok: true, mensaje: '', data: {} };\nconst creadas = [], fallas = [];\nfor (const [m, nA, nP] of [['marca-a', 'Audiencias A', 'Página A'], ['marca-b', 'Audiencias B', 'Página B']]) {\n  const A = lote(nA), P = lote(nP);\n  if (A.length === 1 && A[0].error) { out.data[m] = { error: err(A[0]) || 'Meta no contestó' }; continue; }\n  const nCrear = m === V.marca ? V.crear.length : 0;\n  A.slice(0, nCrear).forEach((x, i) => { const r = parse(x); if (r.id) creadas.push(V.crear[i]); else fallas.push(V.crear[i] + ': ' + (err(r) || 'código ' + x.code)); });\n  const aud = parse(A[nCrear] || {}), ig = parse(A[nCrear + 1] || {});\n  const forms = parse(P[0] || {}), posts = parse(P[1] || {});\n  const lista = (aud.data || []).map(a => {\n    const lo = Number(a.approximate_count_lower_bound), hi = Number(a.approximate_count_upper_bound);\n    const clave = ((/\\(([a-z_0-9]+)\\)$/.exec(a.description || '') || [])[1]) || '';\n    return { id: a.id, nombre: a.name, tipo: a.subtype, min: lo > 0 ? lo : null, max: hi > 0 ? hi : null, entrega: (a.delivery_status || {}).description || '',\n      estado: (a.operation_status || {}).description || '', creada: a.time_created ? new Date(a.time_created * 1000).toISOString().slice(0, 10) : '', dias: a.retention_days || null, agente: /^\\[Agente\\]/.test(a.name || ''), clave };\n  });\n  const tiene = new Set(lista.map(a => a.clave).filter(Boolean));\n  out.data[m] = {\n    audiencias: lista,\n    faltan: (V.base[m] || []).filter(a => !tiene.has(a.clave)),\n    formularios: (forms.data || []).map(f => ({ id: f.id, nombre: f.name, estado: f.status, leads: f.leads_count || 0, creado: String(f.created_time || '').slice(0, 10) })),\n    posts_fb: (posts.data || []).map(p => ({ id: p.id, texto: String(p.message || '').slice(0, 160), fecha: String(p.created_time || '').slice(0, 10), liga: p.permalink_url, img: p.full_picture || '' })),\n    posts_ig: (ig.data || []).map(p => ({ id: p.id, codigo: p.shortcode, texto: String(p.caption || '').slice(0, 160), fecha: String(p.timestamp || '').slice(0, 10), liga: p.permalink, img: p.thumbnail_url || p.media_url || '', tipo: p.media_type })),\n    errores: [err(aud), err(ig), err(forms), err(posts)].filter(Boolean),\n  };\n}\nif (V.accion !== 'listar') {\n  out.ok = !fallas.length;\n  out.mensaje = (creadas.length ? 'Creadas en Meta: ' + creadas.join(', ') + '.' : '') + (fallas.length ? (creadas.length ? ' ' : '') + 'No se pudieron crear: ' + fallas.join('; ') : '');\n} else out.mensaje = 'Audiencias al día.';\nreturn [{ json: out }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f5aa8e68-99ed-52e0-bd41-b4c200ba3e8d",
+      "name": "¿Contestar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ (() => { try { return $('Pedido').isExecuted; } catch (e) { return false; } })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cf40c028-5500-5ceb-a5a9-f4fbc123d5ad",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Pedido": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar (listar)": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "Audiencias A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audiencias A": {
+      "main": [
+        [
+          {
+            "node": "Audiencias B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audiencias B": {
+      "main": [
+        [
+          {
+            "node": "Página A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página A": {
+      "main": [
+        [
+          {
+            "node": "Página B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página B": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Contestar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contestar?": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 300,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lista audiencias, formularios y posts recientes por marca; crea las audiencias base [Agente] y similares 1 % México. No sube listas de clientes."
+  },
+  "pinData": {},
+  "active": false
+}

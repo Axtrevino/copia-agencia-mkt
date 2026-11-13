@@ -1,0 +1,1119 @@
+{
+  "name": "Agencia · SEO posiciones y on-page",
+  "nodes": [
+    {
+      "id": "ab3738c7-5cb9-5096-90ac-ac2686c169f9",
+      "name": "Cada lunes 7:43",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "43 7 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "445a8760-f3d6-5109-ae0c-9493836cfccd",
+      "name": "Probar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "6a33a2cf-fd3d-5557-9c81-90d52b587840",
+      "name": "Marcas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Configuración por marca. Edita aquí: público, reglas de la marca y keywords base que siempre se miden.\n// gsc: la propiedad de Search Console tal como aparece en Search Console («sc-domain:tu-dominio.com» o «https://www.tu-dominio.com/»).\n// competidores: dominios (o parte) que quieres ver si aparecen en el top 10.\n// On-page y propuestas de Claude: cada dos semanas contando desde BASE_ONPAGE. «Probar» corre todo.\nconst BASE_ONPAGE = '2027-01-04';\nconst MARCAS = {\n  'marca-a': { nombre: 'Marca A', dominio: '__DOMINIO_A__', gsc: '__GSC_SITIO_A__', competidores: [],\n    publico: 'describe aquí a quién le vende la marca',\n    reglas: 'Escribe aquí las reglas de la marca: palabras prohibidas, promesas que no se pueden hacer, tono.',\n    keywords_base: [] },\n  'marca-b': { nombre: 'Marca B', dominio: '__DOMINIO_B__', gsc: '__GSC_SITIO_B__', competidores: [],\n    publico: 'describe aquí a quién le vende la marca',\n    reglas: 'Escribe aquí las reglas de la marca: palabras prohibidas, promesas que no se pueden hacer, tono.',\n    keywords_base: [] },\n};\nconst hoy = $now.setZone('America/Mexico_City').startOf('day');\nconst d = n => hoy.minus({ days: n }).toISODate();\nlet programado = false;\ntry { programado = $('Cada lunes 7:43').isExecuted === true; } catch (e) {}\nconst semanas = Math.round(hoy.diff(DateTime.fromISO(BASE_ONPAGE, { zone: 'America/Mexico_City' }), 'days').days / 7);\nconst toca = ((semanas % 2) + 2) % 2 === 0;\nconst onpage = !programado || toca;\nconst prox = hoy.startOf('week').plus({ weeks: toca ? 2 : 1 });\nreturn [{ json: {\n  MARCAS, fecha: hoy.toISODate(), semana: hoy.toFormat(\"kkkk-'W'WW\"),\n  gsc: { ini: d(9), fin: d(3), antIni: d(16), antFin: d(10), ini28: d(30), fin28: d(3) },\n  programado, onpage, proximoOnpage: prox.toISODate(),\n} }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "f9935c7b-39f3-50d0-8c4d-94a913e52d62",
+      "name": "Leer seo_articulos",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "fa4efa95-e74f-5e55-98a5-bcd061624983",
+      "name": "Leer Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/Keywords!A:H",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "b7b11d61-ac72-5ea0-9072-6a313b591b12",
+      "name": "Leer historial",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/%27SEO%20posiciones%27!A:Q",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a3fceba3-00fa-5683-b5b8-b6327e958e36",
+      "name": "Consultas a Search Console",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Tres consultas por marca: semana (búsqueda + página), semana anterior (búsqueda) y 28 días por página.\nconst F = $('Marcas').first().json;\nconst out = [];\nfor (const [marca, c] of Object.entries(F.MARCAS)) {\n  const url = 'https://www.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(c.gsc) + '/searchAnalytics/query';\n  out.push({ json: { marca, tipo: 'semana', url, body: { startDate: F.gsc.ini, endDate: F.gsc.fin, dimensions: ['query', 'page'], rowLimit: 1000 } } });\n  out.push({ json: { marca, tipo: 'anterior', url, body: { startDate: F.gsc.antIni, endDate: F.gsc.antFin, dimensions: ['query'], rowLimit: 1000 } } });\n  out.push({ json: { marca, tipo: 'paginas', url, body: { startDate: F.gsc.ini28, endDate: F.gsc.fin28, dimensions: ['page'], rowLimit: 500 } } });\n  out.push({ json: { marca, tipo: 'sitemap', url: 'https://' + String(c.dominio).replace(/^https?:\\/\\//, '').replace(/\\/$/, '') + '/sitemap.xml', body: null } });\n}\nreturn out;\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "a2625ba5-34b9-506f-8746-e7fd8db7cb03",
+      "name": "Search Console",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body || {}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "3a112318-b947-52a2-9e33-259acba29173",
+      "name": "¿Solo Search Console?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.tipo !== 'sitemap' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9ff05e68-6818-555e-bf18-6a23ec4b60eb",
+      "name": "¿Solo sitemaps?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.tipo === 'sitemap' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "21f42919-2caf-5c24-b100-dfabb7ed4fee",
+      "name": "Sitemaps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "de3f4d7f-6244-5594-9b56-0bae8d4541aa",
+      "name": "Keywords a medir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Keywords a medir: artículos (seo_articulos), pestaña Keywords y las keywords base de cada marca.\nconst F = $('Marcas').first().json;\nconst MAX = 40;\nconst norm = s => String(s || '').trim().toLowerCase().replace(/\\s+/g, ' ');\nconst lista = Object.fromEntries(Object.keys(F.MARCAS).map(m => [m, new Map()]));\nconst add = (marca, kw, origen, volumen) => {\n  const k = norm(kw);\n  if (!k || !lista[marca] || lista[marca].has(k)) return;\n  lista[marca].set(k, { marca, keyword: k, origen, volumen: volumen === null || volumen === undefined ? '' : volumen });\n};\nfor (const it of $('Leer seo_articulos').all()) { const r = it.json || {}; add(r.marca, r.keyword, r.estado === 'publicado' ? 'artículo publicado' : 'artículo planeado', r.volumen); }\nfor (const r of (($('Leer Keywords').first().json || {}).values || []).slice(1)) add(r[1], r[2], 'pestaña Keywords', r[5]);\nfor (const [marca, c] of Object.entries(F.MARCAS)) for (const k of c.keywords_base || []) add(marca, Array.isArray(k) ? k[0] : k, 'base', Array.isArray(k) ? k[1] : '');\nconst out = [];\nfor (const m of Object.values(lista)) out.push(...[...m.values()].slice(0, MAX));\nif (!out.length) throw new Error('No hay keywords que medir: agrega filas a la pestaña Keywords o keywords_base en «Marcas».');\nreturn out.map(j => ({ json: j }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "7e29c5c4-1ed5-5fec-985e-41373d135c2c",
+      "name": "Google (DataForSEO)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2016,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/serp/google/organic/live/regular",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ keyword: $json.keyword, location_code: 2484, language_code: 'es', se_domain: 'google.com.mx', device: 'desktop', depth: 30, tag: $json.marca }]) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "DataForSEO"
+        }
+      }
+    },
+    {
+      "id": "84d38163-3704-5d9d-baaf-86a5b4942815",
+      "name": "¿Toca on-page?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Marcas').first().json.onpage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e861b07d-135c-5a50-9147-a056146cf684",
+      "name": "Páginas a revisar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Páginas a revisar: sitemap + artículos publicados + páginas con impresiones en Search Console.\n// Las páginas legales (privacidad, términos, aviso, cookies) nunca se revisan ni se cambian.\nconst F = $('Marcas').first().json;\nconst esLegal = u => { let s = String(u || ''); try { s = decodeURIComponent(s); } catch (e) {} const p = s.replace(/^https?:\\/\\/[^\\/?#]+/i, '').toLowerCase(); return /\\/(?:[^\\/?#]*privacidad[^\\/?#]*|privacy[^\\/?#]*|t[eé]rminos[^\\/?#]*|terms[^\\/?#]*|aviso(?:-[^\\/?#]*)?|legal(?:es)?|cookies)(?:\\/|$|[?#])/.test(p); };\nconst limpia = u => { const m = String(u || '').match(/^(https?:\\/\\/[^\\/?#]+)([^?#]*)/i); return m ? (m[1].toLowerCase() + m[2]).replace(/\\/$/, '') : null; };\nconst marcas = Object.keys(F.MARCAS);\nconst urls = Object.fromEntries(marcas.map(m => [m, new Set()]));\nconst enSitemap = Object.fromEntries(marcas.map(m => [m, new Set()]));\nconst sm = $('¿Solo sitemaps?').all().map(i => i.json), smr = $('Sitemaps').all().map(i => i.json);\nsm.forEach((s, i) => { const xml = String((smr[i] || {}).data || ''); for (const m of xml.matchAll(/<loc>\\s*([^<\\s]+)\\s*<\\/loc>/g)) { const u = limpia(m[1]); if (u) { urls[s.marca].add(u); enSitemap[s.marca].add(u); } } });\nfor (const it of $('Leer seo_articulos').all()) { const r = it.json || {}; if (r.estado === 'publicado' && r.url && urls[r.marca]) { const u = limpia(r.url); if (u) urls[r.marca].add(u); } }\nconst pedidos = $('¿Solo Search Console?').all().map(i => i.json), gsc = $('Search Console').all().map(i => i.json);\npedidos.forEach((p, i) => { if (p.tipo !== 'paginas') return; for (const r of ((gsc[i] || {}).rows || [])) { const u = limpia(r.keys[0]); if (u && r.impressions >= 5) urls[p.marca].add(u); } });\nconst omitir = /\\/(checkout|order-confirmation|paypal-checkout|401|404)$/;\nconst out = [];\nfor (const marca of marcas) for (const u of [...urls[marca]].filter(u => !omitir.test(u) && !esLegal(u)).slice(0, 40)) out.push({ json: { marca, url: u, en_sitemap: enSitemap[marca].has(u) } });\nreturn out;\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "9541ea9f-e1f2-5e4b-a9d4-729cebd39375",
+      "name": "On-page (DataForSEO)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2688,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/on_page/instant_pages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ url: $json.url, enable_javascript: false, accept_language: 'es-MX', tag: $json.marca }]) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "DataForSEO"
+        }
+      }
+    },
+    {
+      "id": "b0eadb6d-3f86-5808-a1e3-413f9a217b7c",
+      "name": "Analizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Junta posiciones (DataForSEO), Search Console y on-page. Un item por marca con filas para el Sheet,\n// el texto del reporte y el pedido a Claude.\nconst F = $('Marcas').first().json;\nconst MARCAS = F.MARCAS;\nconst e = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst num = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 });\nconst limpia = u => { const m = String(u || '').match(/^(https?:\\/\\/[^\\/?#]+)([^?#]*)/i); return m ? (m[1].toLowerCase() + m[2]).replace(/\\/$/, '') : null; };\nconst corta = u => String(u || '').replace(/^https?:\\/\\/(www\\.)?/, '').replace(/^[^/]+/, '') || '/';\nconst normUrl = u => { let s = limpia(u) || ''; try { s = decodeURIComponent(s); } catch (err) {} return s.toLowerCase(); };\nconst leer = n => { try { return $(n).first().json; } catch (err) { return {}; } };\nconst R = {};\nfor (const m of Object.keys(MARCAS)) R[m] = { filasPos: [], filasOn: [], pos: [], paginas: [], errores: [], redirigen: [], costo: 0 };\n\n// Historial: última posición guardada por marca + keyword antes de hoy.\nconst prev = {};\nfor (const r of (leer('Leer historial').values || []).slice(1)) {\n  const [fecha, , marca, kw, , , posicion] = r;\n  if (!fecha || fecha >= F.fecha) continue;\n  const k = marca + '|' + kw;\n  if (!prev[k] || prev[k].fecha <= fecha) prev[k] = { fecha, posicion: posicion === '' || posicion === undefined ? null : Number(posicion) };\n}\n\n// Search Console.\nconst G = {};\nfor (const m of Object.keys(MARCAS)) G[m] = { error: null, q: {}, a: {}, paginas: [] };\nconst pedidos = $('¿Solo Search Console?').all().map(i => i.json), resp = $('Search Console').all().map(i => i.json || {});\npedidos.forEach((p, i) => {\n  const r = resp[i] || {}, g = G[p.marca]; if (!g) return;\n  if (r.error) { g.error = r.error.message || r.error.status || 'error'; return; }\n  if (p.tipo === 'semana') for (const x of r.rows || []) {\n    const [query, page] = x.keys;\n    const y = g.q[query] || (g.q[query] = { c: 0, i: 0, pw: 0, page, pi: 0 });\n    y.c += x.clicks; y.i += x.impressions; y.pw += x.position * x.impressions;\n    if (x.impressions > y.pi) { y.pi = x.impressions; y.page = page; }\n  }\n  if (p.tipo === 'anterior') for (const x of r.rows || []) g.a[x.keys[0]] = { c: x.clicks, i: x.impressions, pos: x.position };\n  if (p.tipo === 'paginas') g.paginas = (r.rows || []).map(x => ({ url: limpia(x.keys[0]), c: x.clicks, i: x.impressions, ctr: x.ctr, pos: x.position }));\n});\nfor (const g of Object.values(G)) for (const y of Object.values(g.q)) y.pos = y.i ? y.pw / y.i : null;\n\n// Posiciones en Google (DataForSEO). A veces el dominio viene como google.com.mx/goto: se toma de breadcrumb.\nconst dom = d => String(d || '').replace(/^www\\./, '').toLowerCase();\nconst real = x => {\n  const d = dom(x.domain);\n  if (d && !/^google\\.[a-z.]+$/.test(d) && !/google\\.[a-z.]+\\/goto/.test(String(x.url || ''))) return { d, url: x.url || '' };\n  const m = String(x.breadcrumb || '').match(/^https?:\\/\\/([^\\s\\/›]+)/i);\n  return m ? { d: dom(m[1]), url: 'https://' + m[1].toLowerCase() } : { d: '', url: '' };\n};\nconst kws = $('Keywords a medir').all();\n$('Google (DataForSEO)').all().forEach((it, i) => {\n  const base = (kws[i] && kws[i].json) || {};\n  const t = (it.json.tasks || [])[0] || {};\n  const marca = (t.data && t.data.tag) || base.marca;\n  const cfg = MARCAS[marca]; if (!cfg) return;\n  const r = R[marca];\n  r.costo += Number(t.cost || 0);\n  const kw = base.keyword || (t.data && t.data.keyword);\n  if (t.status_code !== 20000) { r.errores.push(`${kw}: ${t.status_message || (it.json.error && it.json.error.message) || 'sin respuesta'}`); return; }\n  const items = (((t.result || [])[0] || {}).items || []).filter(x => x.type === 'organic').map(x => { const rr = real(x); return Object.assign({}, x, { domReal: rr.d, urlReal: rr.url }); });\n  const g = G[marca].q[kw];\n  const dominio = dom(String(cfg.dominio).replace(/^https?:\\/\\//, '').replace(/\\/.*$/, ''));\n  const nuestro = items.find(x => x.domReal.endsWith(dominio));\n  const pos = nuestro ? nuestro.rank_group : null;\n  const urlNuestra = nuestro ? (nuestro.urlReal.split('/').length > 3 ? nuestro.urlReal : ((g && g.page) || nuestro.urlReal)) : '';\n  const p = prev[marca + '|' + kw];\n  const posAnt = p ? p.posicion : null;\n  let cambio = 'primera medición';\n  if (p) {\n    if (pos && posAnt) cambio = posAnt === pos ? '=' : (posAnt > pos ? `▲${posAnt - pos}` : `▼${pos - posAnt}`);\n    else if (pos && !posAnt) cambio = 'entró';\n    else if (!pos && posAnt) cambio = 'salió';\n    else cambio = 'sigue fuera';\n  }\n  const top = items.slice(0, 3).map(x => x.domReal);\n  const comp = (cfg.competidores || []).length ? [...new Set(items.filter(x => x.rank_group <= 10 && cfg.competidores.some(c => x.domReal.includes(c))).map(x => x.domReal))] : [];\n  r.pos.push({ kw, pos, posAnt, cambio, url: urlNuestra, volumen: base.volumen, top, comp });\n  r.filasPos.push([F.fecha, F.semana, marca, kw, base.origen || '', base.volumen ?? '', pos ?? '', posAnt ?? '', cambio,\n    urlNuestra, top[0] || '', top[1] || '', top[2] || '', comp.join(', '), g ? g.c : '', g ? g.i : '', g && g.pos ? Math.round(g.pos * 10) / 10 : '']);\n});\n\n// On-page (solo si toca).\nconst pags = F.onpage ? $('Páginas a revisar').all() : [];\nconst audit = [], titulos = {};\n(F.onpage ? $('On-page (DataForSEO)').all() : []).forEach((it, i) => {\n  const base = (pags[i] && pags[i].json) || {};\n  const marca = base.marca; if (!R[marca]) return;\n  const t = (it.json.tasks || [])[0] || {};\n  R[marca].costo += Number(t.cost || 0);\n  const x = t.status_code === 20000 ? ((((t.result || [])[0] || {}).items || [])[0]) : null;\n  if (!x) { audit.push({ marca, base, error: t.status_message || (it.json.error && it.json.error.message) || 'sin respuesta' }); return; }\n  // Si la URL redirige, no se revisa (DataForSEO reportaría la página destino).\n  const sc0 = Number(x.status_code) || 0;\n  if ((sc0 >= 300 && sc0 < 400) || x.location || x.redirect_url || (x.checks && x.checks.is_redirect) || (x.url && normUrl(x.url) !== normUrl(base.url))) { R[marca].redirigen.push({ url: base.url }); return; }\n  audit.push({ marca, base, x });\n  const ti = (x.meta && x.meta.title) || '';\n  titulos[marca] = titulos[marca] || {};\n  (titulos[marca][ti] = titulos[marca][ti] || []).push(base.url);\n});\nconst PRIO = ['ok', 'baja', 'media', 'alta'];\nfor (const a of audit) {\n  const P = []; let prio = 0;\n  const add = (txt, p) => { P.push(txt); prio = Math.max(prio, p); };\n  const gp = G[a.marca].paginas.find(p => p.url === a.base.url);\n  let fila = { status: '', score: '', titulo: '', tl: '', dl: '', h1: '', palabras: '', seg: '', descripcion: '' };\n  if (a.error) add('No se pudo revisar: ' + a.error, 1);\n  else {\n    const x = a.x, m = x.meta || {}, c = x.checks || {};\n    const sc = x.status_code, tl = m.title_length ?? (m.title || '').length, dl = m.description_length ?? (m.description || '').length;\n    const h1 = (m.htags && m.htags.h1) || [];\n    const palabras = m.content ? m.content.plain_text_word_count : null;\n    const seg = x.page_timing && x.page_timing.duration_time ? x.page_timing.duration_time / 1000 : null;\n    fila = { status: sc, score: x.onpage_score != null ? Math.round(x.onpage_score) : '', titulo: m.title || '', tl, dl, h1: h1[0] || '', palabras: palabras ?? '', seg: seg ? Math.round(seg * 10) / 10 : '', descripcion: m.description || '' };\n    if (sc >= 400) add(`La página responde ${sc}`, 3);\n    if (!m.title) add('Sin título', 3);\n    else if (tl > 60) add(`Título largo (${tl} caracteres; Google corta cerca de 60)`, 2);\n    else if (tl < 30) add(`Título corto (${tl} caracteres)`, 1);\n    if (!m.description) add('Sin meta descripción', 2);\n    else if (dl > 160) add(`Descripción larga (${dl} caracteres)`, 1);\n    else if (dl < 70) add(`Descripción corta (${dl} caracteres)`, 1);\n    if (!h1.length) add('Sin H1', 2);\n    else if (h1.length > 1) add(`${h1.length} H1 (debe haber uno)`, 1);\n    if (m.title && (titulos[a.marca][m.title] || []).length > 1) add('Título repetido en otra página', 2);\n    if (palabras != null && palabras < 300) add(`Poco texto (${palabras} palabras)`, 1);\n    if (c.no_image_alt) add('Imágenes sin texto alternativo', 1);\n    if (seg && seg > 3) add(`Carga lenta (${seg.toFixed(1)} s)`, 2);\n    if (m.canonical && limpia(m.canonical) && limpia(m.canonical) !== a.base.url) add('El canonical apunta a otra URL', 2);\n    if (sc === 200 && !a.base.en_sitemap) add('No está en el sitemap', 2);\n  }\n  if (gp && gp.i >= 50 && gp.pos <= 15 && gp.ctr < 0.02) add(`CTR bajo en Google: ${(gp.ctr * 100).toFixed(1)}% con ${gp.i} impresiones (posición ${gp.pos.toFixed(1)})`, 3);\n  R[a.marca].paginas.push({ url: a.base.url, prio, problemas: P, gsc: gp || null, ...fila });\n  R[a.marca].filasOn.push([F.fecha, F.semana, a.marca, a.base.url, fila.status, fila.score, fila.titulo, fila.tl, fila.dl, fila.h1, fila.palabras, fila.seg, P.join('; '), PRIO[prio], gp ? gp.i : '']);\n}\n\nreturn Object.entries(MARCAS).map(([marca, cfg]) => {\n  const r = R[marca], g = G[marca];\n  let t = `🔎 <b>SEO semanal · ${e(cfg.nombre)}</b>\\n${F.semana}\\n`;\n  const en = (a, b) => r.pos.filter(p => p.pos && p.pos >= a && p.pos <= b).length;\n  t += `\\n<b>Posiciones en Google</b> (${r.pos.length} keywords, top 30)\\nTop 3: ${en(1, 3)} · Top 10: ${en(1, 10)} · 11–30: ${en(11, 30)} · No aparecemos: ${r.pos.filter(p => !p.pos).length}\\n`;\n  const mejores = r.pos.filter(p => p.pos).sort((a, b) => a.pos - b.pos).slice(0, 6);\n  if (mejores.length) t += 'Mejores: ' + mejores.map(p => `«${e(p.kw)}» #${p.pos}`).join(', ') + '\\n';\n  const subieron = r.pos.filter(p => p.pos && p.posAnt && p.pos < p.posAnt).sort((a, b) => (b.posAnt - b.pos) - (a.posAnt - a.pos)).slice(0, 5);\n  const bajaron = r.pos.filter(p => p.posAnt && (!p.pos || p.pos > p.posAnt)).slice(0, 5);\n  if (subieron.length) t += '▲ ' + subieron.map(p => `«${e(p.kw)}» ${p.posAnt}→${p.pos}`).join(', ') + '\\n';\n  if (bajaron.length) t += '▼ ' + bajaron.map(p => `«${e(p.kw)}» ${p.posAnt}→${p.pos || 'fuera'}`).join(', ') + '\\n';\n  if (r.pos.length && r.pos.every(p => p.cambio === 'primera medición')) t += 'Primera medición: la comparación empieza la próxima semana.\\n';\n  const comps = [...new Set(r.pos.flatMap(p => p.comp))];\n  if (comps.length) t += `Competencia en el top 10: ${e(comps.join(', '))}\\n`;\n  if (r.errores.length) t += `⚠️ No se pudieron medir ${r.errores.length} keywords.\\n`;\n  t += `\\n<b>Search Console</b> (${F.gsc.ini.slice(5)} a ${F.gsc.fin.slice(5)})\\n`;\n  if (g.error) t += `⚠️ No se pudo leer: ${e(g.error)}\\n`;\n  else {\n    const qs = Object.entries(g.q);\n    const c = qs.reduce((s, [, x]) => s + x.c, 0), i = qs.reduce((s, [, x]) => s + x.i, 0);\n    const ca = Object.values(g.a).reduce((s, x) => s + x.c, 0), ia = Object.values(g.a).reduce((s, x) => s + x.i, 0);\n    t += `Clics ${num(c)} (antes ${num(ca)}) · Impresiones ${num(i)} (antes ${num(ia)})\\n`;\n    const top = qs.sort((a, b) => b[1].i - a[1].i).slice(0, 5);\n    t += top.length ? 'Búsquedas: ' + top.map(([q, x]) => `«${e(q)}» ${x.c}/${num(x.i)} pos ${x.pos ? x.pos.toFixed(1) : '–'}`).join(', ') + '\\n' : 'Todavía sin búsquedas registradas.\\n';\n  }\n  if (F.onpage) {\n    const alta = r.paginas.filter(p => p.prio === 3).length, media = r.paginas.filter(p => p.prio === 2).length;\n    t += `\\n<b>Revisión on-page</b>: ${r.paginas.length} páginas · ${alta} prioridad alta · ${media} media\\n`;\n    for (const p of [...r.paginas].sort((a, b) => b.prio - a.prio).filter(p => p.prio >= 2).slice(0, 6)) t += `• ${e(corta(p.url))}: ${e(p.problemas.slice(0, 3).join('; '))}\\n`;\n    if (r.redirigen.length) t += `• No se revisaron ${r.redirigen.length} URLs que redirigen.\\n`;\n  } else t += `\\n<b>Revisión on-page</b>: cada dos semanas; la última sigue en el Sheet. Próxima: ${F.proximoOnpage}.\\n`;\n  const paraClaude = [...r.paginas].sort((a, b) => b.prio - a.prio || ((b.gsc && b.gsc.i) || 0) - ((a.gsc && a.gsc.i) || 0)).slice(0, 10).map(p => ({\n    url: p.url, titulo: p.titulo, descripcion: p.descripcion, h1: p.h1, palabras: p.palabras, problemas: p.problemas,\n    google_28d: p.gsc ? { clics: p.gsc.c, impresiones: p.gsc.i, ctr: Math.round(p.gsc.ctr * 1000) / 10, posicion: Math.round(p.gsc.pos * 10) / 10 } : null,\n    busquedas: Object.entries(g.q).filter(([, x]) => limpia(x.page) === p.url).sort((a, b) => b[1].i - a[1].i).slice(0, 5).map(([q, x]) => ({ q, impresiones: x.i, posicion: x.pos ? Math.round(x.pos * 10) / 10 : null })),\n  }));\n  const cerca = r.pos.filter(p => p.pos && p.pos >= 4 && p.pos <= 30).map(p => ({ keyword: p.kw, posicion: p.pos, url: p.url, volumen: p.volumen }));\n  const sinPagina = r.pos.filter(p => !p.pos && Number(p.volumen) >= 100).map(p => ({ keyword: p.kw, volumen: p.volumen }));\n  const prompt = `Marca: ${cfg.nombre} (${cfg.dominio}). Público: ${cfg.publico}.\\nReglas de la marca (obligatorias): ${cfg.reglas}\\n\\n` +\n    'Tarea: propone como máximo 5 cambios on-page con el mayor impacto esperado. Prioriza páginas con impresiones en Google y keywords en posiciones 4 a 30. ' +\n    'Cada cambio debe poder aplicarse tal cual: un título de máximo 60 caracteres, una meta descripción de 120 a 155 caracteres, un solo H1, o una instrucción concreta de contenido o enlace interno (qué texto y hacia qué URL). ' +\n    'Usa solo los datos de abajo: no inventes cifras, precios ni promesas de posición. Escribe en español de México. ' +\n    'Responde SOLO con JSON válido, sin texto adicional: {\"cambios\":[{\"url\":\"\",\"cambio\":\"titulo|descripcion|h1|contenido|enlace_interno|tecnico\",\"actual\":\"\",\"propuesta\":\"\",\"por_que\":\"\"}]}\\n\\n' +\n    'Páginas revisadas:\\n' + JSON.stringify(paraClaude) + '\\n\\nKeywords en posiciones 4 a 30:\\n' + JSON.stringify(cerca) + '\\n\\nKeywords con búsquedas donde no aparecemos:\\n' + JSON.stringify(sinPagina);\n  return { json: { marca, nombre: cfg.nombre, texto: t, prompt, filasPos: r.filasPos, filasOn: r.filasOn, costo: Math.round(r.costo * 10000) / 10000 } };\n});\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "71b5529c-68f1-59ed-aaf3-a90f9b3812c1",
+      "name": "¿Toca propuestas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3136,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Marcas').first().json.onpage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "551e5d18-541e-5527-ad31-9f07f49f506f",
+      "name": "Claude propone cambios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3360,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 8000, system: 'Eres especialista en SEO para sitios en español de México. Propones cambios on-page concretos, aplicables y que respetan las reglas de la marca. Nunca propongas cambios en páginas legales (privacidad, términos, aviso, cookies). Respondes solo JSON válido.', messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "id": "e8a23cb2-a2df-5368-9716-c44bb493080b",
+      "name": "Armar reporte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3584,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Junta el análisis con las propuestas de Claude: filas para el Sheet y mensajes de Telegram.\n// Las propuestas quedan «propuesto»: se aprueban o descartan en el panel (pestaña SEO) y se aplican a mano en el sitio.\nconst esLegal = u => { let s = String(u || ''); try { s = decodeURIComponent(s); } catch (e) {} const p = s.replace(/^https?:\\/\\/[^\\/?#]+/i, '').toLowerCase(); return /\\/(?:[^\\/?#]*privacidad[^\\/?#]*|privacy[^\\/?#]*|t[eé]rminos[^\\/?#]*|terms[^\\/?#]*|aviso(?:-[^\\/?#]*)?|legal(?:es)?|cookies)(?:\\/|$|[?#])/.test(p); };\nconst F = $('Marcas').first().json;\nconst SHEET = 'https://docs.google.com/spreadsheets/d/__SHEET_ID__/edit';\nconst e = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst corta = u => String(u || '').replace(/^https?:\\/\\/(www\\.)?/, '').replace(/^[^/]+/, '') || '/';\nconst sinHtml = s => String(s || '').replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');\nconst limpiar = [];\ntry { ($('Leer historial').first().json.values || []).forEach((r, i) => { if (i > 0 && r[0] === F.fecha) limpiar.push(`'SEO posiciones'!A${i + 1}:Q${i + 1}`); }); } catch (err) {}\nconst an = $('Analizar').all();\nlet cl = [];\ntry { if (F.onpage) cl = $('Claude propone cambios').all(); } catch (err) {}\nconst salida = { filasPos: [], filasOn: [], filasProp: [], filasRep: [], mensajes: [], limpiar };\nan.forEach((it, i) => {\n  const a = it.json;\n  const c = (cl[i] && cl[i].json) || {};\n  let cambios = [], errorClaude = null;\n  if (F.onpage) {\n    if (c.error || !c.content) errorClaude = (c.error && (c.error.message || c.error.type)) || 'sin respuesta';\n    else {\n      const txt = (c.content || []).filter(b => b.type === 'text').map(b => b.text).join('');\n      const m = txt.match(/\\{[\\s\\S]*\\}/);\n      try { cambios = (JSON.parse(m ? m[0] : txt).cambios || []).filter(x => x && !esLegal(x.url)).slice(0, 5); } catch (err) { errorClaude = 'respuesta no legible'; }\n    }\n  }\n  let t = a.texto;\n  if (F.onpage) {\n    t += `\\n<b>Cambios propuestos</b> (apruébalos o descártalos en el panel, pestaña SEO; no se aplica nada solo)\\n`;\n    if (errorClaude) t += `⚠️ No se pudieron generar: ${e(errorClaude)}\\n`;\n    else if (!cambios.length) t += 'Sin cambios propuestos esta vez.\\n';\n  }\n  cambios.forEach((x, k) => {\n    const prop = String(x.propuesta || '');\n    t += `${k + 1}. <b>${e(x.cambio)}</b> en ${e(corta(x.url))}\\n   → ${e(prop.length > 260 ? prop.slice(0, 257) + '…' : prop)}\\n`;\n    salida.filasProp.push([F.fecha, F.semana, a.marca, x.url || '', x.cambio || '', x.actual || '', x.propuesta || '', x.por_que || '', 'propuesto']);\n  });\n  t += `\\nCosto DataForSEO: US$${a.costo}\\n<a href=\"${SHEET}\">Ver detalle en el Sheet</a> (pestañas SEO)`;\n  if (t.length > 3900) { let corto = ''; for (const linea of t.split('\\n')) { if ((corto + linea).length > 3700) break; corto += linea + '\\n'; } t = corto + `…\\n<a href=\"${SHEET}\">Sigue en el Sheet</a>`; }\n  salida.filasPos.push(...a.filasPos);\n  salida.filasOn.push(...a.filasOn);\n  salida.filasRep.push([F.fecha, F.semana, a.marca, sinHtml(t), a.costo]);\n  salida.mensajes.push({ marca: a.marca, texto: t });\n});\nreturn [{ json: salida }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "704a8492-693a-5e5b-99ec-4bc54bb94269",
+      "name": "Borrar posiciones de hoy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3808,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values:batchClear",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ranges: $(\"Armar reporte\").first().json.limpiar }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "84dc33f6-2cc5-5fd0-b074-5d2c72602dc3",
+      "name": "Guardar posiciones",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4032,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/%27SEO%20posiciones%27!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $(\"Armar reporte\").first().json.filasPos }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "51452d70-5733-5d25-a5de-a118cd2e2486",
+      "name": "¿Guardar on-page?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4256,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Marcas').first().json.onpage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b603571a-09f2-5254-a81b-adb87e0078da",
+      "name": "Guardar on-page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4480,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/%27SEO%20on-page%27!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $(\"Armar reporte\").first().json.filasOn }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a94ed0ca-dabc-5d29-8d36-6eaf81c3eafc",
+      "name": "Guardar propuestas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4704,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/%27SEO%20propuestas%27!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $(\"Armar reporte\").first().json.filasProp }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "608b1fb4-bd35-5809-98ec-d57ffb6ef98d",
+      "name": "Guardar reporte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        4928,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/%27SEO%20reportes%27!A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: $(\"Armar reporte\").first().json.filasRep }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "b5499981-1e1f-521a-90d9-056c0f2f0dfe",
+      "name": "Mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5152,
+        100
+      ],
+      "parameters": {
+        "jsCode": "return $('Armar reporte').first().json.mensajes.map(m => ({ json: m }));",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "20c12418-25ea-58a1-b8fa-58508a392a3d",
+      "name": "Telegram: Reportes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        5376,
+        100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true,
+          "message_thread_id": "__TEMA_REPORTES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "407a40a7-9368-5431-ab8c-5278baddbe20",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "73321bc7-b575-5ea7-bf55-2bbd0f13f64d",
+      "name": "Esperar ramas",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1792,
+        -100
+      ],
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 1
+      }
+    }
+  ],
+  "connections": {
+    "Cada lunes 7:43": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcas": {
+      "main": [
+        [
+          {
+            "node": "Leer seo_articulos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer seo_articulos": {
+      "main": [
+        [
+          {
+            "node": "Leer Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Keywords": {
+      "main": [
+        [
+          {
+            "node": "Leer historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer historial": {
+      "main": [
+        [
+          {
+            "node": "Consultas a Search Console",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultas a Search Console": {
+      "main": [
+        [
+          {
+            "node": "¿Solo Search Console?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "¿Solo sitemaps?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Solo Search Console?": {
+      "main": [
+        [
+          {
+            "node": "Search Console",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Solo sitemaps?": {
+      "main": [
+        [
+          {
+            "node": "Sitemaps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Console": {
+      "main": [
+        [
+          {
+            "node": "Esperar ramas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sitemaps": {
+      "main": [
+        [
+          {
+            "node": "Esperar ramas",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Esperar ramas": {
+      "main": [
+        [
+          {
+            "node": "Keywords a medir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keywords a medir": {
+      "main": [
+        [
+          {
+            "node": "Google (DataForSEO)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google (DataForSEO)": {
+      "main": [
+        [
+          {
+            "node": "¿Toca on-page?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Toca on-page?": {
+      "main": [
+        [
+          {
+            "node": "Páginas a revisar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Páginas a revisar": {
+      "main": [
+        [
+          {
+            "node": "On-page (DataForSEO)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On-page (DataForSEO)": {
+      "main": [
+        [
+          {
+            "node": "Analizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar": {
+      "main": [
+        [
+          {
+            "node": "¿Toca propuestas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Toca propuestas?": {
+      "main": [
+        [
+          {
+            "node": "Claude propone cambios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Armar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude propone cambios": {
+      "main": [
+        [
+          {
+            "node": "Armar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar reporte": {
+      "main": [
+        [
+          {
+            "node": "Borrar posiciones de hoy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar posiciones de hoy": {
+      "main": [
+        [
+          {
+            "node": "Guardar posiciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar posiciones": {
+      "main": [
+        [
+          {
+            "node": "¿Guardar on-page?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Guardar on-page?": {
+      "main": [
+        [
+          {
+            "node": "Guardar on-page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar on-page": {
+      "main": [
+        [
+          {
+            "node": "Guardar propuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar propuestas": {
+      "main": [
+        [
+          {
+            "node": "Guardar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar reporte": {
+      "main": [
+        [
+          {
+            "node": "Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensajes": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Reportes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 3000,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lunes: posición de cada keyword en Google (DataForSEO) y Search Console. Cada dos semanas: revisión on-page y Claude propone cambios al Sheet y a Telegram. No aplica nada. Nunca toca páginas legales."
+  },
+  "pinData": {},
+  "active": false
+}

@@ -9,12 +9,14 @@ pasos 5 a 7 por ti.
 |---|---|---|
 | Anthropic | Claude arma las propuestas de campaña en la pestaña Paid (si no hay llave, lo hace GPT) | Por uso |
 | OpenAI | Texto (GPT) e imágenes (GPT Image) | Por uso; una pieza en calidad alta cuesta centavos de dólar |
-| Modal | Correr el servicio `app/` | Por segundo; tiene crédito gratis mensual |
+| Modal | Correr el servicio `app/` | Por segundo; trae saldo gratis cada mes |
 | n8n | Flujos | n8n Cloud o tu propio servidor |
 | Google | Sheet | Gratis |
 | Telegram | Aprobaciones y avisos | Gratis |
 | Meta for Developers | Publicar en Facebook/Instagram, leads, Conversions API, campañas | Gratis (las campañas sí cuestan) |
-| Opcionales | Tavily (noticias), Apify (competencia), DataForSEO (keywords), Webflow (blog) | Por uso |
+| Google Cloud | GA4, Search Console y BigQuery con una cuenta de servicio (Analytics, Resultados, SEO, Analista, BigQuery) | Gratis hasta cierto uso; BigQuery cobra por consulta |
+| GitHub | Encargos del panel y copia de los docs oficiales | Gratis |
+| Opcionales | Tavily (noticias y docs oficiales), Apify (competencia), DataForSEO (keywords, posiciones y on-page), Webflow (blog) | Por uso |
 
 ## 2. Tu marca
 
@@ -65,6 +67,10 @@ Crea estas credenciales con **exactamente** estos nombres (los flujos los buscan
 | Apify (Authorization: Bearer) | Header Auth | `Authorization: Bearer <token>` |
 | DataForSEO | HTTP Basic Auth y DataForSEO API | Usuario y contraseña de la API |
 | Webflow | Webflow API | Token del sitio con permiso de CMS y Assets |
+| Google (cuenta de servicio) | Google Service Account API | JSON de una cuenta de servicio con los alcances `analytics.readonly`, `webmasters.readonly` y `bigquery`. Agrégala como lector en GA4 (Admin → Acceso a la propiedad) y como usuario en Search Console; dale «BigQuery Job User» y «Data Editor» en tu proyecto |
+| Anthropic | Anthropic API | Llave de Anthropic (propuestas SEO y análisis de docs oficiales) |
+| GitHub | GitHub API | Token de acceso fino con permiso de *Contents* e *Issues* (lectura y escritura) solo en tu repo |
+| n8n API | n8n API | Llave de tu n8n (Settings → n8n API) y la URL de tu n8n; la usa la pestaña Agentes |
 
 Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y secretos de Modal.
 
@@ -82,14 +88,23 @@ Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y s
 4. Abre cada flujo y revisa que las credenciales quedaron asignadas (los nodos HTTP a veces no se
    asignan solos).
 5. En «Agencia · Leads» cambia los dominios de `DOMINIOS` si no usaste `config.json`.
-6. Activa primero: Alertas de error, Telegram (respuestas) y Vigilante. Luego Preparar y Publicar.
+6. Corre una vez, a mano: «Leads (preparar hoja)», «SEO preparar pestañas» y «BigQuery preparar».
+7. En «Panel analytics (lectura)» → nodo «Configuración» pon el evento de GA4 que cuenta como lead
+   (`generate_lead` por omisión) y, si tienes, un paso intermedio del embudo (`form_start`).
+   En «SEO posiciones y on-page» → nodo «Marcas» escribe el público y las reglas de cada marca.
+8. Activa primero: Alertas de error, Telegram (respuestas) y Vigilante. Luego Preparar y Publicar.
+   Los agentes de análisis (Analista, BigQuery, SEO posiciones, Docs oficiales) se activan cuando
+   ya estén sus credenciales.
 
 ## 7. Meta
 
 - Página de Facebook con Instagram profesional ligado.
 - App de Meta en modo Live con permisos `pages_manage_posts`, `pages_read_engagement`,
   `instagram_basic`, `instagram_content_publish`, `leads_retrieval` y, para campañas y CAPI,
-  `ads_management`.
+  `ads_management`. Para métricas (BigQuery diario, panel) agrega `read_insights` e
+  `instagram_manage_insights` al token de página.
+- Las audiencias que crea «Audiencias de Meta» necesitan el píxel en el sitio y aceptar los términos
+  de públicos personalizados en el Administrador de anuncios. No sube listas de clientes.
 - En tu sitio, manda los formularios al webhook `https://<tu-n8n>/webhook/agencia-leads` con
   `navigator.sendBeacon` (campo `d` con JSON: `campos`, `pagina`, `atribucion`, `event_id`, `fbp`,
   `fbc`). Usa el mismo `event_id` en el píxel para que Meta no cuente doble.
@@ -97,7 +112,7 @@ Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y s
 ## 8. Panel
 
 Abre `panel/index.html` (o súbelo a cualquier hosting estático) → Conexión → URL de tu n8n y el
-valor de «Panel (X-Panel-Token)». Activa en n8n «Panel (lectura)», «Panel acciones», «Paid propuesta» y «Paid campañas (Meta)»; los cuatro usan la credencial «Panel (X-Panel-Token)». En la pestaña Paid las campañas se crean en pausa; prenderlas es lo único que gasta.
+valor de «Panel (X-Panel-Token)». Activa en n8n «Panel (lectura)», «Panel acciones», «Paid propuesta», «Paid campañas (Meta)», «Panel analytics (lectura)», «Panel SEO (aprobar propuestas)» y «Panel agentes (lectura y encargos)»; todos usan la credencial «Panel (X-Panel-Token)». Si falta alguno de los tres últimos, su pestaña dice qué conectar en vez de romperse. En la pestaña Paid las campañas se crean en pausa; prenderlas es lo único que gasta.
 
 ## Primera prueba
 

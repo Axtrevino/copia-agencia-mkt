@@ -1,0 +1,634 @@
+{
+  "name": "Agencia · Docs oficiales",
+  "nodes": [
+    {
+      "id": "e90ea3c8-fdaf-571c-ae7b-a0c69f7f781b",
+      "name": "Cada domingo 6:13",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "13 6 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9c8c0d26-3dd3-5cd2-a8c3-e426ac145211",
+      "name": "Probar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "6958c11c-bd3b-54f4-9b0b-652b6d10e9a8",
+      "name": "Fuentes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Documentación oficial que siguen los agentes. Para agregar una página: una fila más.\n// Se guarda en tu repo (__GITHUB_REPO__) → docs-oficiales/<area>/<id>.md\nconst F = [\n  ['meta', 'limites-de-uso', 'Límites de uso de la Marketing API', 'https://developers.facebook.com/docs/marketing-api/overview/rate-limiting'],\n  ['meta', 'changelog-marketing-api', 'Changelog de la Marketing API', 'https://developers.facebook.com/docs/marketing-api/marketing-api-changelog'],\n  ['meta', 'changelog-graph-api', 'Changelog de la Graph API (versiones y retiros)', 'https://developers.facebook.com/docs/graph-api/changelog'],\n  ['meta', 'campana', 'Referencia: Campaign', 'https://developers.facebook.com/docs/marketing-api/reference/ad-campaign-group'],\n  ['meta', 'conjunto', 'Referencia: Ad Set', 'https://developers.facebook.com/docs/marketing-api/reference/ad-campaign'],\n  ['meta', 'anuncio', 'Referencia: Ad', 'https://developers.facebook.com/docs/marketing-api/reference/adgroup'],\n  ['meta', 'creativo', 'Referencia: Ad Creative', 'https://developers.facebook.com/docs/marketing-api/reference/ad-creative'],\n  ['meta', 'reglas-automaticas', 'Reglas automatizadas (Ad Rule)', 'https://developers.facebook.com/docs/marketing-api/reference/ad-rule/'],\n  ['meta', 'insights', 'Insights API', 'https://developers.facebook.com/docs/marketing-api/insights'],\n  ['meta', 'categoria-especial', 'Categorías especiales de anuncios', 'https://developers.facebook.com/docs/marketing-api/audiences/special-ad-category'],\n  ['meta', 'publicos-personalizados', 'Públicos personalizados', 'https://developers.facebook.com/docs/marketing-api/audiences/guides/custom-audiences'],\n  ['meta', 'lead-ads', 'Lead Ads (formularios instantáneos)', 'https://developers.facebook.com/docs/marketing-api/guides/lead-ads'],\n  ['meta', 'conversions-api', 'Conversions API', 'https://developers.facebook.com/docs/marketing-api/conversions-api'],\n  ['meta', 'conversions-api-deduplicacion', 'Conversions API: deduplicar píxel y servidor', 'https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events'],\n  ['meta', 'politicas-publicidad', 'Normas de publicidad de Meta', 'https://transparency.meta.com/policies/ad-standards/'],\n  ['google', 'release-notes', 'Google Ads API: notas de versión', 'https://developers.google.com/google-ads/api/docs/release-notes'],\n  ['google', 'fechas-de-retiro', 'Google Ads API: fechas de retiro de versiones', 'https://developers.google.com/google-ads/api/docs/sunset-dates'],\n  ['google', 'niveles-de-acceso', 'Google Ads API: niveles de acceso', 'https://developers.google.com/google-ads/api/docs/api-policy/access-levels'],\n  ['google', 'cuotas', 'Google Ads API: cuotas y límites', 'https://developers.google.com/google-ads/api/docs/best-practices/quotas'],\n  ['google', 'campanas', 'Google Ads API: campañas', 'https://developers.google.com/google-ads/api/docs/campaigns/overview'],\n  ['google', 'ideas-de-keywords', 'Google Ads API: ideas de palabras clave', 'https://developers.google.com/google-ads/api/docs/keyword-planning/generate-keyword-ideas'],\n  ['google', 'recomendaciones', 'Google Ads API: recomendaciones', 'https://developers.google.com/google-ads/api/docs/recommendations'],\n  ['google', 'cpa-objetivo', 'CPA objetivo (Target CPA)', 'https://support.google.com/google-ads/answer/6268632?hl=es'],\n  ['google', 'conversiones-mejoradas-leads', 'Conversiones mejoradas para leads', 'https://support.google.com/google-ads/answer/15713840?hl=es'],\n  ['google', 'anuncios-adaptables-busqueda', 'Anuncios de búsqueda adaptables', 'https://support.google.com/google-ads/answer/7684791?hl=es'],\n  ['google', 'politica-customer-match', 'Política: Customer Match', 'https://support.google.com/adspolicy/answer/6299717?hl=es'],\n];\nreturn F.map(([area, id, titulo, url]) => ({ json: { area, id, titulo, url, ruta: 'docs-oficiales/' + area + '/' + id + '.md' } }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "d93c43df-8a9b-5c2c-91bc-b3dd08af8290",
+      "name": "Tavily: leer página",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/extract",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ urls: [$json.url], extract_depth: \"advanced\", format: \"markdown\" }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 4,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Tavily (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "id": "e159f183-6505-56f6-9e58-c4a8bb023ab9",
+      "name": "GitHub: versión guardada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://api.github.com/repos/__GITHUB_REPO__/contents/' + $('Fuentes').item.json.ruta + '?ref=main' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      }
+    },
+    {
+      "id": "79bfcc35-c338-55fc-93f0-fdeb886b0aa9",
+      "name": "Comparar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Compara lo que trae Tavily con lo guardado en GitHub. Solo escribe lo que cambió.\nconst fuentes = $('Fuentes').all().map(i => i.json);\nconst tav = $('Tavily: leer página').all().map(i => i.json || {});\nconst gh = $input.all().map(i => i.json || {});\nconst hoy = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd');\nconst SEP = '\\n<!-- contenido -->\\n';\nconst limpiar = s => String(s || '').replace(/\\r/g, '').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst out = [];\nfuentes.forEach((f, i) => {\n  const t = tav[i] || {};\n  const r = (t.results || [])[0] || {};\n  const nuevo = limpiar(r.raw_content).slice(0, 900000);\n  if (nuevo.length < 400) {\n    const motivo = ((t.failed_results || [])[0] || {}).error || t.detail || t.error || (nuevo ? 'contenido muy corto' : 'sin contenido');\n    out.push({ json: { ...f, estado: 'fallo', motivo: String(typeof motivo === 'string' ? motivo : JSON.stringify(motivo)).slice(0, 160) } });\n    return;\n  }\n  const g = gh[i] || {};\n  let viejo = '';\n  if (g.content) { const txt = Buffer.from(String(g.content).replace(/\\n/g, ''), 'base64').toString('utf8'); viejo = limpiar(txt.includes(SEP) ? txt.split(SEP)[1] : txt); }\n  if (viejo && viejo === nuevo) { out.push({ json: { ...f, estado: 'igual' } }); return; }\n  const archivo = '---\\ntitulo: ' + JSON.stringify(f.titulo) + '\\nfuente: ' + f.url + '\\narea: ' + f.area + '\\nactualizado: ' + hoy + '\\nnota: Copia automática de la documentación oficial. La fuente manda.\\n---\\n' + SEP + nuevo + '\\n';\n  let cambios = '';\n  if (viejo) {\n    const a = new Set(viejo.split('\\n').map(l => l.trim()).filter(Boolean)), b = new Set(nuevo.split('\\n').map(l => l.trim()).filter(Boolean));\n    cambios = [...[...b].filter(l => !a.has(l)).slice(0, 40).map(l => '+ ' + l.slice(0, 300)), ...[...a].filter(l => !b.has(l)).slice(0, 25).map(l => '- ' + l.slice(0, 300))].join('\\n');\n    if (!cambios) { out.push({ json: { ...f, estado: 'igual' } }); return; }\n  }\n  out.push({ json: { ...f, estado: viejo ? 'cambio' : 'nuevo', cambios, archivo } });\n});\nreturn out;\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "ef19f4b6-fbe3-590c-8e76-584ab9026ee2",
+      "name": "Resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const it = $('Comparar').all().map(i => i.json);\nconst n = e => it.filter(x => x.estado === e);\nconst nuevos = n('nuevo'), cambios = n('cambio'), fallos = n('fallo'), iguales = n('igual');\nif (!nuevos.length && !cambios.length && !fallos.length) return [];\nconst e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst base = 'https://github.com/__GITHUB_REPO__/blob/main/';\nlet t = '📖 <b>Docs oficiales de Meta y Google</b>\\n' + nuevos.length + ' nuevas · ' + cambios.length + ' con cambios · ' + iguales.length + ' sin cambios · ' + fallos.length + ' sin leer';\nif (cambios.length) t += '\\n\\n<b>Cambiaron:</b>\\n' + cambios.map(c => '• <a href=\"' + base + c.ruta + '\">' + e(c.titulo) + '</a>').join('\\n');\nif (nuevos.length && nuevos.length <= 8) t += '\\n\\n<b>Nuevas:</b>\\n' + nuevos.map(c => '• ' + e(c.titulo)).join('\\n');\nif (fallos.length) t += '\\n\\n<b>No se pudieron leer:</b>\\n' + fallos.map(c => '• ' + e(c.titulo) + ' — ' + e(c.motivo)).join('\\n');\nconst pedido = cambios.length ? {\n  model: 'claude-sonnet-4-5', max_tokens: 2000,\n  system: 'Revisas cambios en la documentación oficial para una agencia que opera anuncios de Meta (Marketing API, Conversions API, públicos, reglas) y Google Ads con agentes en n8n. Te paso las líneas que cambiaron esta semana. Responde en español de México, máximo 150 palabras, en viñetas «- »: solo lo que afecta o podría afectar a los agentes (versiones que se retiran y fecha, campos obsoletos, límites, requisitos, políticas) y qué hay que hacer. Si nada importa, responde exactamente: «Nada que afecte a los agentes.» No inventes; si no es claro, dilo.',\n  messages: [{ role: 'user', content: cambios.map(c => '## ' + c.titulo + ' (' + c.url + ')\\n' + c.cambios).join('\\n\\n').slice(0, 60000) }],\n} : null;\nreturn [{ json: { analizar: !!pedido, texto: t, pedido } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "f6f700f2-3777-5fb3-b2d4-e99658774ec2",
+      "name": "¿Analizar cambios?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.analizar }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "31e864e6-bddc-5bf5-b2c3-164ddc2c22be",
+      "name": "Claude: ¿afecta a los agentes?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.pedido) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 180000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "id": "919492ce-0cf0-5cb7-b837-a31a69daf065",
+      "name": "Agregar análisis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const r = $('Resumen').first().json;\nconst j = $json || {};\nconst e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst txt = Array.isArray(j.content) ? j.content.filter(c => c.type === 'text').map(c => c.text).join('\\n').trim() : 'Claude no respondió: ' + JSON.stringify(j.error || j).slice(0, 200);\nreturn [{ json: { texto: (r.texto + '\\n\\n<b>¿Afecta a los agentes?</b>\\n' + e(txt)).slice(0, 4000) } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "d7773820-67b9-5180-bab5-02db737a21d8",
+      "name": "Telegram: Reportes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2016,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ String($json.texto).slice(0, 4000) }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true,
+          "message_thread_id": "__TEMA_REPORTES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "ff0f5053-7e4c-5d3b-a549-9af91a516ec9",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "823902b6-122d-5442-9230-fb0671fa8181",
+      "name": "Armar commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -100
+      ],
+      "parameters": {
+        "jsCode": "const cambios = $input.all().map(i => i.json).filter(j => j.estado === 'nuevo' || j.estado === 'cambio');\nif (!cambios.length) return [];\nconst hoy = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd');\nreturn [{ json: { n: cambios.length, tree: cambios.map(c => ({ path: c.ruta, mode: '100644', type: 'blob', content: c.archivo })),\n  message: 'docs-oficiales: ' + cambios.length + ' página(s) nuevas o actualizadas (' + hoy + ')\\n\\n' + cambios.map(c => '- ' + c.estado + ': ' + c.ruta).join('\\n') } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "98907cd7-a59d-5ad4-a9f7-7654d2d49f41",
+      "name": "GitHub: último commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        -100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/__GITHUB_REPO__/commits/main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      }
+    },
+    {
+      "id": "2e46043d-1c17-52d0-8b55-ebec722d5de5",
+      "name": "GitHub: crear árbol",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/__GITHUB_REPO__/git/trees",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ base_tree: $json.commit.tree.sha, tree: $('Armar commit').first().json.tree }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      }
+    },
+    {
+      "id": "7077c1c5-3ad7-5f11-aa5c-e31887211fc7",
+      "name": "GitHub: crear commit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/__GITHUB_REPO__/git/commits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $('Armar commit').first().json.message, tree: $json.sha, parents: [$('GitHub: último commit').first().json.sha] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      }
+    },
+    {
+      "id": "e2cb15d6-1aa2-5dbd-b91b-375527955111",
+      "name": "GitHub: mover main",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2016,
+        -100
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.github.com/repos/__GITHUB_REPO__/git/refs/heads/main",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sha: $json.sha, force: false }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada domingo 6:13": {
+      "main": [
+        [
+          {
+            "node": "Fuentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar": {
+      "main": [
+        [
+          {
+            "node": "Fuentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fuentes": {
+      "main": [
+        [
+          {
+            "node": "Tavily: leer página",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily: leer página": {
+      "main": [
+        [
+          {
+            "node": "GitHub: versión guardada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: versión guardada": {
+      "main": [
+        [
+          {
+            "node": "Comparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparar": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Armar commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "¿Analizar cambios?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Analizar cambios?": {
+      "main": [
+        [
+          {
+            "node": "Claude: ¿afecta a los agentes?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: Reportes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude: ¿afecta a los agentes?": {
+      "main": [
+        [
+          {
+            "node": "Agregar análisis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar análisis": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Reportes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar commit": {
+      "main": [
+        [
+          {
+            "node": "GitHub: último commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: último commit": {
+      "main": [
+        [
+          {
+            "node": "GitHub: crear árbol",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: crear árbol": {
+      "main": [
+        [
+          {
+            "node": "GitHub: crear commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: crear commit": {
+      "main": [
+        [
+          {
+            "node": "GitHub: mover main",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 3000,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Domingo 6:13: lee con Tavily páginas oficiales de Meta y Google Ads, guarda en tu repo (docs-oficiales/) solo lo que cambió y avisa en Telegram con un análisis de Claude."
+  },
+  "pinData": {},
+  "active": false
+}

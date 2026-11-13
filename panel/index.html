@@ -179,6 +179,174 @@
   dialog input, dialog textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); }
   .fila-btn { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
   code { font: 13px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+
+  /* Resultados, Analytics, SEO, Agentes y detalle (artboards de «Panel · secciones» en Paper) */
+  .ceja-s { font: 600 13px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .ceja-m { font: 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .mono { font-family: var(--mono); font-size: 12px; }
+  .mu { color: var(--muted); } .up { color: var(--up); } .dn { color: var(--down); } .gris { color: #BDBDBD; }
+  .sm { font-size: 13px; }
+  .tocable { cursor: pointer; }
+  .n1.tocable:hover, .kpi.tocable:hover .n2 { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 8px; }
+  .sec-tit.sin { border-bottom: 0; padding-bottom: 14px; margin: 0; }
+  .sec-tit .der-btn { display: flex; align-items: center; gap: 16px; }
+  .pill { background: var(--accent); border-radius: var(--r-sm); padding: 4px 10px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .pill.gris { background: var(--soft); color: var(--ink); font-weight: 600; }
+  .pill.suave { background: var(--accent-soft); font-weight: 600; }
+  .comp { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 15px; line-height: 20px; }
+  .enlace-n { background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; font-size: 13px; margin-top: 16px; }
+  .enlace-n:hover { color: var(--ink); }
+  .dt { font: 12px var(--mono); display: inline-block; width: 52px; text-align: right; flex-shrink: 0; }
+  .raya { display: inline-block; width: 26px; height: 3px; background: #BDBDBD; border-radius: 2px; vertical-align: middle; }
+  .ancho-embudo { max-width: 884px; }
+
+  /* Héroe con número y tarjetas a la derecha */
+  .heroe-a { display: flex; gap: 64px; align-items: flex-end; padding: 64px 0 56px; }
+  .heroe-a .izq { width: 620px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; }
+  .heroe-a .grande { display: flex; align-items: baseline; gap: 20px; }
+  .heroe-a .n1 { margin: 0; line-height: 120px; }
+  .sitios { display: flex; flex-direction: column; gap: 6px; padding-bottom: 14px; font-size: 15px; }
+  .sitios .punto { width: 8px; height: 8px; margin-right: 8px; }
+  .frase-lado { font-size: 24px; font-weight: 600; letter-spacing: -.02em; line-height: 1.12; padding-bottom: 16px; }
+  .kpis { flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; padding-bottom: 8px; }
+  .kpi { border-top: 1px solid var(--line); padding-top: 14px; display: grid; grid-template-rows: auto auto 1fr; gap: 8px; }
+  .kpi .t { color: var(--muted); font-size: 13px; }
+  .kpi .nota { color: var(--muted); }
+  .kpi .nota.up { color: var(--up); } .kpi .nota.dn { color: var(--down); }
+  @media (max-width: 1100px) { .heroe-a { flex-direction: column; align-items: stretch; gap: 32px; } .heroe-a .izq { width: auto; } }
+  @media (max-width: 760px) { .heroe-a .n1 { line-height: 72px; } .kpis { grid-template-columns: 1fr 1fr; } .heroe-a .grande { flex-wrap: wrap; } }
+
+  /* Dos columnas: contenido + 400 px */
+  .cols-a { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 56px; padding-bottom: 64px; }
+  .cols-d { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; padding: 16px 0 56px; }
+  @media (max-width: 1000px) { .cols-a, .cols-d { grid-template-columns: 1fr; } }
+
+  /* Gráfica por día */
+  .graf { width: 100%; height: auto; display: block; overflow: visible; }
+  .graf .gl { stroke: var(--line); stroke-width: 1; }
+  .graf .gt { font: 10px var(--mono); fill: var(--muted); letter-spacing: .04em; }
+  .graf .gpk { font: 700 15px var(--sans); fill: var(--ink); }
+  .graf .gp { fill: none; stroke: #5E5E5E; stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .graf .barra-d:hover rect[fill]:not([fill="transparent"]) { opacity: .8; }
+  .leyenda { display: flex; gap: 18px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .leyenda i.punteada { width: 18px; height: 0; border-top: 2px dashed #5E5E5E; border-radius: 0; vertical-align: 3px; }
+
+  /* Canales y páginas de entrada */
+  .canal { border-top: 1px solid var(--line); padding: 14px 0; display: flex; flex-direction: column; gap: 10px; }
+  .canales .canal:last-child, .cols-d .canal:last-child { border-bottom: 1px solid var(--line); }
+  .canal .fila-c { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 500; }
+  .canal .fila-c .der { display: flex; gap: 14px; align-items: baseline; }
+  .canal .fila-c b { font-size: 20px; letter-spacing: -.02em; }
+  .canal.otros .fila-c { color: var(--muted); }
+  .entrada { display: grid; grid-template-columns: 10px minmax(0, 1fr) 220px 56px; gap: 10px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .entrada .ruta { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entrada b { text-align: right; font-size: 15px; }
+  @media (max-width: 760px) { .entrada { grid-template-columns: 10px minmax(0, 1fr) 48px; } .entrada .riel { display: none; } }
+  .evento { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .evento.resalta { background: var(--accent-soft); padding: 14px 10px; font-weight: 600; }
+
+  /* Embudo */
+  .embudo .etapa { display: flex; align-items: center; gap: 28px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .embudo .izq { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+  .embudo .t { font-weight: 600; font-size: 15px; }
+  .embudo .nota { color: var(--muted); }
+  .embudo .forma { flex: 1; max-width: 560px; height: 56px; display: flex; justify-content: center; }
+  .embudo .forma svg { width: 100%; height: 56px; }
+  .embudo .der { width: 210px; flex-shrink: 0; }
+  .embudo .der > div:first-child { white-space: nowrap; }
+  .embudo .tasa { font-size: 18px; font-weight: 700; }
+  .embudo .tasa.dn { color: var(--down); }
+  .embudo .alerta { display: inline-block; margin-top: 6px; background: var(--down); color: #fff; font-size: 11px; font-weight: 700; border-radius: var(--r-sm); padding: 2px 6px; }
+  .embudo .sm { font-size: 13px; }
+  .embudo .etapa.tocable:hover .n2 { text-decoration: underline; }
+  .embudo.compacto .etapa { gap: 20px; padding: 6px 0; }
+  .embudo.compacto .izq { width: 170px; gap: 2px; }
+  .embudo.compacto .t { font-size: 13px; font-weight: 500; }
+  .embudo.compacto .n2 { font-size: 24px; }
+  .embudo.compacto .forma { height: 46px; }
+  .embudo.compacto .forma svg { height: 46px; }
+  .embudo.compacto .der { width: 80px; text-align: right; }
+  .embudo.compacto .tasa { font-size: 14px; }
+  @media (max-width: 760px) { .embudo .etapa { flex-wrap: wrap; gap: 8px; } .embudo .izq { width: 100%; } .embudo .der { width: auto; } }
+  .apilados { border-top: 1px solid var(--line); padding-top: 40px; display: flex; flex-direction: column; gap: 40px; max-width: 884px; }
+  .mini-cab { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--ink); padding-bottom: 8px; margin-bottom: 4px; }
+  .mini-cab b { font-size: 18px; letter-spacing: -.02em; }
+  .mini-cab a { font-size: 13px; font-weight: 600; text-decoration: none; }
+
+  /* Atribución */
+  .atrib { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 48px; margin-top: 8px; }
+  @media (max-width: 1000px) { .atrib { grid-template-columns: 1fr; } }
+  .tabla-a .cab, .tabla-a .fila-a { display: grid; grid-template-columns: minmax(0, 1fr) 150px 150px 150px; gap: 24px; align-items: center; border-bottom: 1px solid var(--line); }
+  .tabla-a .cab { font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 14px 0; }
+  .tabla-a .fila-a { min-height: 60px; font-size: 15px; }
+  .tabla-a .fila-a > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+  .tabla-a .fila-a > div b { font-size: 18px; }
+  .tabla-a .fila-a .riel { width: 100%; }
+  .notas-a { display: grid; grid-template-columns: 1fr 150px; gap: 24px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+  .notas-a p { margin: 14px 0 0; }
+  @media (max-width: 760px) { .tabla-a .cab, .tabla-a .fila-a { grid-template-columns: 1fr 70px 70px; } .tabla-a .cab span:last-child, .tabla-a .fila-a > span:last-child { display: none; } .notas-a { grid-template-columns: 1fr; } }
+  .caminos { display: flex; flex-direction: column; gap: 24px; }
+  .lista-c { border-top: 1px solid var(--line); margin-top: 10px; }
+  .lista-c > div { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .lista-c > div b { font-size: 18px; }
+  .lista-c > div.resalta { background: var(--accent-soft); padding: 10px 8px; }
+  .lectura { background: var(--soft); border-radius: 12px; padding: 20px 22px; }
+  .lectura p { margin: 8px 0 0; font-size: 15px; line-height: 22px; }
+  .lectura p.sm { font-size: 13px; line-height: 19px; }
+
+  /* Pantalla de detalle */
+  .det { background: var(--bg); }
+  body.con-det > header, body.con-det > main { display: none; }
+  a.btn { text-decoration: none; display: inline-block; }
+  .det-cab { border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 2; }
+  .det-cab .envoltura { display: flex; align-items: center; gap: 20px; padding-top: 14px; padding-bottom: 14px; }
+  .det-cab .mono { flex: 1; letter-spacing: .06em; }
+  .det-cab .atras { background: none; border: 0; border-right: 1px solid var(--line); padding: 0 20px 0 0; font-weight: 600; font-size: 15px; cursor: pointer; }
+  .det-cuerpo .heroe-a { padding-top: 48px; }
+  .tabla-d th.r, .tabla-d td.r, table.kw th.r, table.kw td.r { text-align: right; }
+  .tabla-d td.tot, table.kw td.tot { font-size: 18px; font-weight: 700; }
+  .tabla-d td, table.kw td { vertical-align: middle; }
+  .como { background: var(--soft); border-radius: 14px; padding: 32px; display: grid; grid-template-columns: 276px 1fr; gap: 0; margin: 8px 0 80px; }
+  .como p { margin: 0 0 12px; max-width: 760px; font-size: 15px; line-height: 24px; }
+  @media (max-width: 760px) { .como { grid-template-columns: 1fr; gap: 14px; } }
+
+  /* SEO */
+  .props { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 1000px) { .props { grid-template-columns: 1fr; } }
+  .prop-seo { border: 1px solid var(--line); border-radius: var(--r-md); padding: 22px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .prop-seo .antes { color: var(--muted); text-decoration: line-through; font-size: 13px; }
+  .prop-seo .nuevo { font-size: 17px; font-weight: 600; line-height: 24px; }
+  .prop-seo .fila-btn { margin-top: 6px; }
+  .por-arreglar { border-bottom: 1px solid var(--line); padding: 16px 0 22px; }
+  .por-arreglar .mono { font-size: 13px; }
+  .por-arreglar p { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+
+  /* Agentes */
+  .heroe-ag { display: flex; justify-content: space-between; align-items: flex-end; gap: 48px; padding: 56px 0 56px; }
+  .heroe-ag .grande { display: flex; align-items: flex-end; gap: 16px; margin: 14px 0 12px; }
+  .heroe-ag .n1 { margin: 0; line-height: 100px; }
+  .heroe-ag .lado { display: flex; gap: 0; flex-wrap: wrap; row-gap: 20px; }
+  .scroll-x { overflow-x: auto; }
+  .heroe-ag .lado > div { border-left: 1px solid var(--line); padding: 4px 32px 4px 18px; display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+  .heroe-ag .lado .t { color: var(--muted); font-size: 13px; }
+  .heroe-ag .lado .sig { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+  @media (max-width: 1000px) { .heroe-ag { flex-direction: column; align-items: flex-start; } .heroe-ag .lado > div:first-child { border-left: 0; padding-left: 0; } }
+  @media (max-width: 760px) { .heroe-ag .lado > div { min-width: 0; padding-right: 16px; } .tabla-d { font-size: 13px; } }
+  .grupos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 56px; }
+  @media (max-width: 1000px) { .grupos { grid-template-columns: 1fr; } }
+  .grupo { border: 1px solid var(--line); border-radius: var(--r-md); padding: 20px 20px 8px; }
+  .g-cab { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--line); font-size: 18px; letter-spacing: -.01em; }
+  .g-cab .num { background: var(--ink); color: var(--accent); font: 600 12px var(--mono); border-radius: var(--r-sm); padding: 3px 6px; }
+  .ag { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .ag:last-child { border-bottom: 0; }
+  .ag b { font-size: 15px; font-weight: 600; }
+  .encargo { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .encargo a { text-decoration: none; }
+  .encargo.viejo a { color: var(--muted); }
+  .encargo .pill { font-size: 13px; padding: 3px 8px; }
+  .encargo .cerrado { color: var(--up); font-size: 13px; }
+  .detras { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 </style>
 </head>
 <body>
@@ -199,11 +367,12 @@
     <nav id="tabs">
       <button data-tab="hoy" class="activa">Hoy <span class="badge" id="badgeHoy" hidden></span></button>
       <button data-tab="resultados">Resultados</button>
+      <button data-tab="analytics">Analytics</button>
       <button data-tab="paid">Paid</button>
       <button data-tab="contenido">Contenido</button>
       <button data-tab="seo">SEO</button>
-      <button data-tab="research">Research</button>
       <button data-tab="agentes">Agentes</button>
+      <button data-tab="research">Research</button>
     </nav>
   </div>
 </header>
@@ -227,6 +396,20 @@
   <form method="dialog"><img id="imgPaid" alt="Imagen del anuncio" style="width:100%;border-radius:10px;display:block"><div class="fila-btn"><button class="btn">Cerrar</button></div></form>
 </dialog>
 
+<dialog id="dlgEncargo">
+  <form method="dialog">
+    <h2>Encargar algo nuevo</h2>
+    <p style="color:var(--muted);margin:0">Se abre un issue con la etiqueta «encargo» en tu repo.</p>
+    <label for="encTitulo">Qué quieres</label>
+    <input id="encTitulo" maxlength="140" placeholder="Ej.: reporte mensual de Paid por correo">
+    <label for="encDetalle">Detalle (opcional)</label>
+    <textarea id="encDetalle" rows="4"></textarea>
+    <div class="fila-btn"><button class="btn negro" value="ok">Encargar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
+  </form>
+</dialog>
+
+<div class="det" id="detalle" hidden></div>
+
 <dialog id="dlgCambios">
   <form method="dialog">
     <h2>Pedir cambios</h2>
@@ -246,6 +429,8 @@
   const DIAS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   let datos = null, tab = 'hoy', marca = '', abierto = '';
+  let ana = null, anaErr = '', ag = null, agErr = '', det = '';
+  const verTodo = {};
   const mem = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
   const conf = () => ({ url: mem.get('panel_url'), token: mem.get('panel_token'), nombre: mem.get('panel_nombre') || 'Agencia' });
 
@@ -262,24 +447,25 @@
   }
 
   async function cargar() {
-    try {
-      datos = await pedir('agencia-panel?dias=' + $('#dias').value);
-      $('#act').textContent = 'act. ' + String(datos.generado || '').slice(11, 16);
-      pintarMarcas();
-      pintar();
-    } catch (e) {
-      $('#contenido').innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>';
-    }
+    const dias = $('#dias').value;
+    const [a, b, c] = await Promise.allSettled([pedir('agencia-panel?dias=' + dias), pedir('agencia-panel-analytics?dias=' + dias), pedir('agencia-panel-agentes')]);
+    ana = b.status === 'fulfilled' && b.value && b.value.marcas ? b.value : null; anaErr = b.status === 'rejected' ? b.reason.message : '';
+    ag = c.status === 'fulfilled' ? c.value : null; agErr = c.status === 'rejected' ? c.reason.message : '';
+    if (a.status === 'rejected') { $('#contenido').innerHTML = '<div class="aviso error">' + esc(a.reason.message) + '</div>'; return; }
+    datos = a.value;
+    $('#act').textContent = 'act. ' + String(datos.generado || '').slice(11, 16);
+    pintarMarcas();
+    pintar();
   }
 
   // Marcas y colores (en el orden en que aparecen; los colores de la paleta se asignan en ese orden).
-  const listaMarcas = () => datos ? [...new Set([...(datos.posts || []).map(p => p.marca), ...Object.keys((datos.leads || {}).por_marca || {}), ...(datos.articulos || []).map(a => a.marca)].filter(Boolean))].sort() : [];
+  const listaMarcas = () => datos ? [...new Set([...(datos.posts || []).map(p => p.marca), ...Object.keys((datos.leads || {}).por_marca || {}), ...(datos.articulos || []).map(a => a.marca), ...Object.keys((ana && ana.marcas) || {})].filter(Boolean))].sort() : [];
   const color = m => PALETA[Math.max(0, listaMarcas().indexOf(m)) % PALETA.length];
   const nombreMarca = m => String(m || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const deMarca = x => !marca || x.marca === marca;
   function pintarMarcas() {
     const ms = listaMarcas();
-    $('#marcas').innerHTML = '<button data-m="" class="' + (!marca ? 'activa' : '') + '">Todas</button>' + ms.map(m => '<button data-m="' + esc(m) + '" class="' + (m === marca ? 'activa' : '') + '"><span class="punto" style="background:' + color(m) + '"></span>' + esc(nombreMarca(m)) + '</button>').join('');
+    $('#marcas').innerHTML = '<button data-m="" class="' + (!marca ? 'activa' : '') + '">' + (ms.length === 2 ? 'Ambas' : 'Todas') + '</button>' + ms.map(m => '<button data-m="' + esc(m) + '" class="' + (m === marca ? 'activa' : '') + '"><span class="punto" style="background:' + color(m) + '"></span>' + esc(nombreMarca(m)) + '</button>').join('');
   }
   $('#marcas').onclick = ev => { const b = ev.target.closest('button[data-m]'); if (!b) return; marca = b.dataset.m; pintarMarcas(); pintar(); };
 
@@ -344,20 +530,247 @@
       + '</div></div>';
   }
 
+  // ---------- Datos de GA4, Search Console y Meta (flujo 62 «Panel analytics») ----------
+  const MESC = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const DSEM = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const corta = s => { const f = fecha(s); return f ? f.getDate() + ' ' + MESC[f.getMonth()] : ''; };
+  const rangoTxt = (a, b) => corta(a) + ' – ' + corta(b);
+  const nomM = m => (ana && ana.marcas && ana.marcas[m] && ana.marcas[m].nombre) || nombreMarca(m);
+  const pct = (a, b) => b ? Math.round((a - b) / b * 100) : null;
+  const sum = (arr, f) => arr.reduce((t, x) => t + (Number(f(x)) || 0), 0);
+  const fmt1 = n => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 1 });
+  const flecha = (a, b, nuevoTxt) => { if (!b) return a ? '<span class="dt mu">' + (nuevoTxt || 'nuevo') + '</span>' : '<span class="dt mu">—</span>'; const p = pct(a, b); if (p === 0) return '<span class="dt mu">=</span>'; const x = a / b; const txt = x >= 2.95 ? Math.round(x) + '×' : Math.abs(p) + '%'; return '<span class="dt ' + (p > 0 ? 'up' : 'dn') + '">' + (p > 0 ? '▲ ' : '▼ ') + txt + '</span>'; };
+  const DIASR = () => { const out = []; if (!ana) return out; const d = fecha(ana.desde), h = fecha(ana.hasta); for (let x = new Date(d); x <= h; x.setDate(x.getDate() + 1)) out.push(x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0')); return out; };
+  const CANAL = { 'Organic Search': ['Buscadores · orgánico', 'Buscadores'], Direct: ['Directo', 'Directo'], 'Paid Search': ['Anuncios de búsqueda', 'Anuncios de búsqueda'], 'Organic Social': ['Redes', 'Redes'], 'Paid Social': ['Anuncios en redes', 'Anuncios en redes'], Referral: ['Otros sitios', 'Otros sitios'], Email: ['Correo', 'Correo'], 'Organic Video': ['Video', 'Video'], 'Paid Video': ['Anuncios de video', 'Anuncios de video'], Display: ['Display', 'Display'], 'Cross-network': ['Varias redes (pagado)', 'Varias redes'], 'Organic Shopping': ['Shopping', 'Shopping'], 'Paid Other': ['Otros pagados', 'Otros pagados'], 'AI Assistants': ['Asistentes de IA', 'IA'], Unassigned: ['Sin asignar', 'Sin asignar'], '(other)': ['Otros', 'Otros'] };
+  const canalN = (c, corto) => (CANAL[c] || [c, c])[corto ? 1 : 0];
+  const esPagado = c => /^Paid|Cross-network|Display/.test(c);
+
+  const leadM = m => { const M = ana.marcas[m]; return ((((M.ga4 || {}).eventos || {})[(M.lead || {}).nombre]) || [0])[0]; };
+  const marcasAna = () => ana && ana.marcas ? Object.keys(ana.marcas).filter(m => !marca || m === marca) : [];
+  function agg() {
+    const ms = marcasAna();
+    const A = { ms, ses: 0, ses_ant: 0, eng: 0, eng_ant: 0, usu: 0, diario: {}, diario_ant: {}, porDia: {}, canales: {}, paginas: [], eventos: {}, lead: 0, lead_ant: 0, medio: 0, medioOk: false, atrib: [], atribErr: '',
+      gsc: { c: 0, i: 0, c_ant: 0, i_ant: 0, pw: 0, diario: {}, consultas: [], paginas: [] }, meta: { anuncios: {}, pagina: {} }, errGa: [], errGsc: [], sheet: { total: 0, clientes: 0, medido: false } };
+    for (const m of ms) {
+      const M = ana.marcas[m], g = M.ga4 || {}, s = M.gsc || {}, me = M.meta || {};
+      if (g.error) A.errGa.push(nomM(m) + ': ' + g.error);
+      else {
+        A.ses += g.sesiones || 0; A.ses_ant += g.sesiones_ant || 0; A.eng += g.enganchadas || 0; A.eng_ant += g.enganchadas_ant || 0; A.usu += g.usuarios || 0;
+        for (const [d, v] of Object.entries(g.diario || {})) { A.diario[d] = (A.diario[d] || 0) + v.s; (A.porDia[d] = A.porDia[d] || {})[m] = v.s; }
+        const ant = Object.keys(g.diario_ant || {}).sort();
+        ant.forEach((d, i) => { A.diario_ant[i] = (A.diario_ant[i] || 0) + g.diario_ant[d].s; });
+        for (const c of g.canales || []) { const x = A.canales[c.canal] = A.canales[c.canal] || { canal: c.canal, s: 0, s_ant: 0, e: 0 }; x.s += c.s; x.s_ant += c.s_ant; x.e += c.e; }
+        for (const p of g.paginas || []) A.paginas.push({ marca: m, pagina: p.pagina, s: p.s });
+        for (const [k, v] of Object.entries(g.eventos || {})) { const x = A.eventos[k] = A.eventos[k] || [0, 0]; x[0] += v[0]; x[1] += v[1]; }
+        const ev = g.eventos || {};
+        A.lead += ((ev[(M.lead || {}).nombre] || [0])[0]); A.lead_ant += ((ev[(M.lead || {}).nombre] || [0, 0])[1]);
+        if (M.medio && M.medio.nombre) { A.medioOk = true; A.medio += ((ev[M.medio.nombre] || [0])[0]); }
+        if (g.atribucion_error) A.atribErr = g.atribucion_error;
+        for (const r of g.atribucion || []) A.atrib.push(r);
+      }
+      if (s.error) A.errGsc.push(nomM(m) + ': ' + s.error);
+      else {
+        A.gsc.c += s.clics || 0; A.gsc.i += s.impresiones || 0; A.gsc.c_ant += s.clics_ant || 0; A.gsc.i_ant += s.impresiones_ant || 0; A.gsc.pw += (s.posicion || 0) * (s.impresiones || 0);
+        for (const [d, v] of Object.entries(s.diario || {})) { const x = A.gsc.diario[d] = A.gsc.diario[d] || { c: 0, i: 0, porM: {} }; x.c += v.c; x.i += v.i; x.porM[m] = (x.porM[m] || 0) + v.i; }
+        for (const q of s.consultas || []) A.gsc.consultas.push(Object.assign({ marca: m }, q));
+        for (const p of s.paginas || []) A.gsc.paginas.push(Object.assign({ marca: m }, p));
+      }
+      for (const [d, v] of Object.entries(me.anuncios || {})) A.meta.anuncios[d] = (A.meta.anuncios[d] || 0) + v;
+      for (const [d, v] of Object.entries(me.pagina || {})) A.meta.pagina[d] = (A.meta.pagina[d] || 0) + v;
+      const L = M.leads_sheet || {}; A.sheet.total += L.total || 0; A.sheet.clientes += L.clientes || 0; A.sheet.medido = A.sheet.medido || !!L.medido;
+    }
+    A.gsc.pos = A.gsc.i ? A.gsc.pw / A.gsc.i : null;
+    A.paginas.sort((a, b) => b.s - a.s);
+    A.gsc.consultas.sort((a, b) => b.i - a.i);
+    A.anuncios = sum(Object.values(A.meta.anuncios), x => x);
+    A.alcance = sum(Object.values(A.meta.pagina), x => x);
+    A.vieron = A.gsc.i + A.anuncios + A.alcance;
+    return A;
+  }
+  const sinAna = (que) => '<div class="heroe"><div class="ceja-s">' + que + '</div><div class="n1 frase">Conecta GA4 y Search Console</div><p>Activa en tu n8n el flujo «Panel analytics (lectura)» (62) y llena GA4_PROPIEDAD y GSC_SITIO en <code>n8n/config.json</code>.' + (anaErr ? ' n8n respondió: ' + esc(anaErr) : '') + '</p></div>';
+  const errores = A => (A.errGa.length || A.errGsc.length) ? '<div class="aviso error" style="margin:0 0 24px">' + esc([...A.errGa.map(x => 'GA4 · ' + x), ...A.errGsc.map(x => 'Search Console · ' + x)].join(' · ')) + '</div>' : '';
+  const ceja2 = () => (marca ? 'el sitio de ' + nomM(marca) : marcasAna().length > 1 ? 'los ' + (marcasAna().length === 2 ? 'dos' : marcasAna().length) + ' sitios' : 'el sitio');
+  const sitios = (val, sufijo) => marcasAna().length > 1 ? '<div class="sitios">' + marcasAna().map(m => '<div><span class="punto" style="background:' + color(m) + '"></span><b>' + fmt(val(m)) + '</b> ' + esc(sufijo ? sufijo(m) : (ana.marcas[m].dominio || nomM(m))) + '</div>').join('') + '</div>' : '';
+  const badge = (a, b, txt) => { if (!b) return '<div class="comp"><span class="pill gris">sin comparar</span><span>' + esc(txt || 'Todavía no hay un periodo anterior completo para comparar.') + '</span></div>'; const p = pct(a, b); return '<div class="comp"><span class="pill">' + (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%</span><span>vs. ' + rangoTxt(ana.ant_desde, ana.ant_hasta) + '.</span></div>'; };
+  const kpi = (t, n, nota, cls, det) => '<div class="kpi' + (det ? ' tocable' : '') + '"' + (det ? ' data-det="' + det + '"' : '') + '><div class="t">' + t + '</div><div class="n2">' + n + '</div><div class="nota mono ' + (cls || '') + '">' + nota + '</div></div>';
+
+  // Gráfica de barras apiladas por día (SVG). capas: [{nombre, color, val: {fecha: n}}]; linea: [n por índice] (periodo anterior).
+  function grafica(dias, capas, linea, unidad) {
+    const W = 860, H = 290, L = 34, B = 24, T = 52;
+    const tot = dias.map(d => sum(capas, c => (c.val[d] || 0)));
+    const max0 = Math.max(1, ...tot, ...(linea || []).map(x => x || 0));
+    const paso = max0 <= 4 ? 1 : Math.pow(10, Math.floor(Math.log10(max0 / 4)));
+    const tick = [1, 2, 2.5, 5, 10].map(x => x * paso).find(x => max0 / x <= 4) || paso * 10;
+    const max = Math.ceil(max0 / tick) * tick;
+    const y = v => T + (H - T - B) * (1 - v / max);
+    const bw = (W - L) / dias.length;
+    let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="graf" role="img">';
+    for (let v = 0; v <= max; v += tick) s += '<line x1="' + L + '" x2="' + W + '" y1="' + y(v) + '" y2="' + y(v) + '" class="gl"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" class="gt" text-anchor="end">' + fmt(v) + '</text>';
+    const pico = tot.indexOf(Math.max(...tot));
+    dias.forEach((d, i) => {
+      let acc = 0; const x = L + i * bw + bw * 0.18, w = bw * 0.64;
+      s += '<g class="barra-d"><title>' + corta(d) + ': ' + capas.map(c => c.nombre + ' ' + fmt(c.val[d] || 0)).join(' · ') + (linea ? ' · antes ' + fmt(linea[i] || 0) : '') + '</title><rect x="' + (L + i * bw) + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '" fill="transparent"/>';
+      for (const c of capas) { const v = c.val[d] || 0; if (!v) continue; s += '<rect x="' + x + '" y="' + y(acc + v) + '" width="' + w + '" height="' + (y(acc) - y(acc + v)) + '" fill="' + c.color + '"/>'; acc += v; }
+      s += '</g>';
+      if (i % 7 === 0 || i === dias.length - 1) s += '<text x="' + (L + i * bw + bw / 2) + '" y="' + (H - 6) + '" class="gt" text-anchor="middle">' + corta(d).toUpperCase() + '</text>';
+    });
+    if (linea && linea.some(Boolean)) s += '<polyline class="gp" points="' + dias.map((d, i) => (L + i * bw + bw / 2) + ',' + y(linea[i] || 0)).join(' ') + '"/>';
+    if (tot[pico] > 0) { const px = Math.min(W - 70, Math.max(L + 70, L + pico * bw + bw / 2)); s += '<text x="' + px + '" y="12" class="gt" text-anchor="middle">' + corta(dias[pico]).toUpperCase() + ' · PICO</text><text x="' + px + '" y="32" class="gpk" text-anchor="middle">' + fmt(tot[pico]) + ' ' + unidad + '</text>'; }
+    return s + '</svg>';
+  }
+  const leyenda = (capas, ant) => '<div class="leyenda">' + capas.map(c => '<span><i style="background:' + c.color + '"></i>' + esc(c.nombre) + '</span>').join('') + (ant ? '<span><i class="punteada"></i>periodo anterior</span>' : '') + '</div>';
+
+  // ---------- Resultados: embudo y atribución ----------
+  function etapas(A, M) {
+    const sheetMedido = A.sheet.medido;
+    const e = [
+      { t: 'Nos vieron', n: A.vieron, nota: 'Google ' + fmt(A.gsc.i) + ' impresiones · redes ' + fmt(A.alcance) + ' · anuncios ' + fmt(A.anuncios), det: 'vieron' },
+      { t: 'Visitaron el sitio', n: A.ses, nota: 'GA4 · sesiones' + (A.ses_ant ? ' · ' + (pct(A.ses, A.ses_ant) >= 0 ? '▲ ' : '▼ ') + Math.abs(pct(A.ses, A.ses_ant)) + '% vs. periodo anterior' : ''), det: 'visitas' },
+    ];
+    const medios = [...new Set(A.ms.map(m => ((ana.marcas[m].medio || {}).etiqueta) || '').filter(Boolean))];
+    if (A.medioOk && medios.length === 1) e.push({ t: medios[0], n: A.medio, nota: 'GA4 · ' + esc([...new Set(A.ms.map(m => (ana.marcas[m].medio || {}).nombre).filter(Boolean))].join(', ')) });
+    const leads = [...new Set(A.ms.map(m => ((ana.marcas[m].lead || {}).etiqueta) || 'Dejaron sus datos'))];
+    e.push({ t: leads.length === 1 ? leads[0] : 'Dejaron sus datos', n: A.lead, nota: 'GA4 · ' + esc([...new Set(A.ms.map(m => (ana.marcas[m].lead || {}).nombre).filter(Boolean))].join(', ')) });
+    e.push(sheetMedido ? { t: 'Se volvieron clientes', n: A.sheet.clientes, nota: 'Sheet · Leads con estado «cliente»' } : { t: 'Se volvieron clientes', n: null, nota: 'Sin medir: marca «cliente» en la columna estado de la pestaña Leads.' });
+    return e;
+  }
+  function embudo(A, col, compacto) {
+    const E = etapas(A);
+    const base = E[0].n || 0;
+    const f = (n, i) => i === 0 ? 1 : (!base || n == null) ? 0.26 : Math.min(0.62, Math.max(0.24, 0.75 + 0.205 * Math.log10(Math.max(n, 0.5) / base)));
+    const anchos = E.map((x, i) => f(x.n, i));
+    const tasas = E.map((x, i) => i && E[i - 1].n && x.n != null ? x.n / E[i - 1].n : null);
+    const medibles = tasas.map((t, i) => (i > 0 && t != null && i < E.length) ? t : 9);
+    const peor = medibles.indexOf(Math.min(...medibles));
+    return '<div class="embudo' + (compacto ? ' compacto' : '') + '">' + E.map((x, i) => {
+      const a = anchos[i], b = i < E.length - 1 ? anchos[i + 1] : a * 0.9;
+      const sinMedir = x.n == null;
+      const op = Math.max(0.35, 1 - i * 0.18).toFixed(2);
+      const poly = '<svg viewBox="0 0 784 72" preserveAspectRatio="none"><polygon points="' + (392 - 392 * a) + ',0 ' + (392 + 392 * a) + ',0 ' + (392 + 392 * b) + ',72 ' + (392 - 392 * b) + ',72" ' + (sinMedir ? 'fill="none" stroke="#BDBDBD" stroke-dasharray="4 4"' : 'fill="' + col + '" fill-opacity="' + op + '"') + '/></svg>';
+      let der;
+      if (i === 0) der = '<span class="mono mu">' + (compacto ? 'inicio' : 'punto de partida') + '</span>';
+      else if (sinMedir) der = compacto ? '<span class="mono mu">sin medir</span>' : '<div><b class="sm">Ver cómo medirlo →</b><div class="mono mu">te toca a ti</div></div>';
+      else if (tasas[i] == null) der = '<span class="mono mu">—</span>';
+      else der = '<div><span class="tasa' + (i === peor ? ' dn' : '') + '">→ ' + fmt1(tasas[i] * 100) + '%</span>' + (compacto ? '' : ' <span class="mu sm">de la etapa anterior</span>' + (i === peor && E.length > 2 ? '<div><span class="alerta">Aquí se pierde más</span></div>' : '')) + '</div>';
+      return '<div class="etapa' + (x.det ? ' tocable' : '') + '"' + (x.det ? ' data-det="' + x.det + '"' : '') + '><div class="izq"><div class="t">' + esc(x.t) + '</div><div class="n2">' + (sinMedir ? '<span class="raya"></span>' : fmt(x.n)) + '</div>' + (compacto ? '' : '<div class="nota mono">' + x.nota + '</div>') + '</div><div class="forma">' + poly + '</div><div class="der">' + der + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function atribucion(A) {
+    const total = sum(A.atrib, r => r.n);
+    if (!total) return '<div class="vacio">' + (A.atribErr ? 'GA4 no devolvió la atribución: ' + esc(A.atribErr) : 'Sin leads en el periodo para repartir el mérito.') + '</div>';
+    const pri = {}, ult = {}, cam = {};
+    for (const r of A.atrib) { pri[r.primero] = (pri[r.primero] || 0) + r.n; ult[r.ultimo] = (ult[r.ultimo] || 0) + r.n; const k = canalN(r.primero, true) + ' → ' + canalN(r.ultimo, true); cam[k] = cam[k] || { n: 0, cruce: r.primero !== r.ultimo }; cam[k].n += r.n; }
+    const canales = [...new Set([...Object.keys(pri), ...Object.keys(ult)])].sort((a, b) => ((ult[b] || 0) + (pri[b] || 0)) - ((ult[a] || 0) + (pri[a] || 0))).slice(0, 6);
+    const col = marca ? color(marca) : 'var(--ink)';
+    const barra = v => '<div class="riel"><i style="width:' + Math.max(2, v / total * 100) + '%;background:' + col + '"></i></div>';
+    const caminos = Object.entries(cam).sort((a, b) => b[1].n - a[1].n).slice(0, 6);
+    const cruce = caminos.filter(([, v]) => v.cruce).sort((a, b) => b[1].n - a[1].n)[0];
+    // Lectura: el canal que más cierra contra el que más abre.
+    const topU = Object.entries(ult).sort((a, b) => b[1] - a[1])[0];
+    const deOtro = A.atrib.filter(r => r.ultimo === topU[0] && r.primero !== topU[0]).reduce((s, r) => s + r.n, 0);
+    const otros = Object.entries(A.atrib.filter(r => r.ultimo === topU[0] && r.primero !== topU[0]).reduce((o, r) => { o[r.primero] = (o[r.primero] || 0) + r.n; return o; }, {})).sort((a, b) => b[1] - a[1]);
+    const lect = canalN(topU[0]) + ' es donde más se cierra: ' + fmt(topU[1]) + ' dejaron sus datos en una visita desde ahí' + (deOtro ? ', pero ' + fmt(deOtro) + ' de ellos nos conocieron antes por ' + canalN(otros[0][0]).toLowerCase() + (otros.length > 1 ? ' u otro canal' : '') + '.' : ' y llegaron por primera vez por el mismo canal.');
+    return '<div class="atrib"><div><div class="tabla-a"><div class="cab"><span>Canal</span><span>Primer contacto</span><span>Último contacto</span><span>Modelo de GA4</span></div>'
+      + canales.map(c => '<div class="fila-a"><span>' + esc(canalN(c)) + '</span><div><b>' + fmt(pri[c] || 0) + '</b>' + barra(pri[c] || 0) + '</div><div><b>' + fmt(ult[c] || 0) + '</b>' + ((ult[c] || 0) !== (pri[c] || 0) ? ' <span class="mono ' + ((ult[c] || 0) > (pri[c] || 0) ? 'up' : 'dn') + '">' + ((ult[c] || 0) > (pri[c] || 0) ? '+' : '−') + Math.abs((ult[c] || 0) - (pri[c] || 0)) + '</span>' : '') + barra(ult[c] || 0) + '</div><span class="mono gris">—</span></div>').join('')
+      + '<div class="notas-a"><p>Primer contacto: el canal con el que la persona llegó la primera vez. Último contacto: el canal de la visita en que dejó sus datos. Modelo de GA4: reparte el mérito entre todas las visitas según su peso real (basado en datos).</p><p>Para ver el modelo de GA4, marca el evento de lead como evento clave en GA4 y abre Publicidad → Atribución.</p></div></div></div>'
+      + '<div class="caminos"><div class="ceja-m">Caminos · primer → último contacto</div><div class="lista-c">' + caminos.map(([k, v]) => '<div class="' + (cruce && k === cruce[0] ? 'resalta' : '') + '"><span>' + esc(k) + '</span><b>' + fmt(v.n) + '</b></div>').join('') + '</div>'
+      + '<div class="lectura"><div class="ceja-m">Lectura</div><p>' + esc(lect) + '</p>' + (total < 30 ? '<p class="sm mu">Con ' + fmt(total) + ' leads, una diferencia de 1 o 2 es ruido. Sirve para ver tendencias, no para mover presupuesto.</p>' : '') + '</div></div></div>';
+  }
   function vistaResultados() {
-    const L = datos.leads || {};
-    const total = Object.entries(L.por_marca || {}).filter(([m]) => !marca || m === marca).reduce((s, [, v]) => s + v, 0);
-    const k = datos.kpis || {};
-    const porMarca = Object.fromEntries(Object.entries(L.por_marca || {}).filter(([m]) => !marca || m === marca));
-    const ult = (L.ultimos || []).filter(deMarca);
-    return heroe('Leads · últimos ' + datos.dias + ' días', fmt(total), 'Personas que dejaron sus datos en los sitios o en formularios de Meta, sin pruebas ni duplicados.')
-      + '<div class="tarjetas">' + tarjeta('Leads', fmt(total), 'en ' + datos.dias + ' días', 'Formularios · sitio + Meta')
-      + tarjeta('Posts publicados', fmt(k.publicados), 'Facebook e Instagram', 'Orgánico · Meta')
-      + tarjeta('Por aprobar', fmt(k.por_aprobar), 'posts esperando tu OK', 'Calendario')
-      + tarjeta('Artículos por aprobar', fmt(k.articulos_por_aprobar), 'borradores del blog', 'seo_articulos') + '</div>'
-      + '<div class="cols" style="margin-top:48px"><div><div class="bloque">' + tituloSec('Leads por día', 'todas las fuentes') + barras(L.por_dia) + '</div>'
-      + '<div class="bloque">' + tituloSec('Últimos leads', 'contacto en el Sheet, pestaña Leads') + (ult.length ? '<table><tr><th>Fecha</th><th>Marca</th><th>Origen</th><th>Empresa</th><th>Fuente</th><th>Estado</th></tr>' + ult.map(x => '<tr><td class="mono">' + esc(String(x.fecha).slice(0, 16)) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + esc(nombreMarca(x.marca)) + '</td><td class="mono">' + esc(x.origen) + '</td><td>' + esc(x.empresa) + '</td><td class="mono">' + esc([x.utm_source, x.utm_campaign].filter(Boolean).join(' / ')) + '</td><td><span class="etiq ' + (x.estado === 'nuevo' ? 'aprobar' : 'hacer') + '">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>' : '<div class="vacio">Sin leads en el periodo.</div>') + '</div></div>'
-      + '<div><div class="bloque">' + tituloSec('Por marca', 'leads') + barras(porMarca, true) + '</div><div class="bloque">' + tituloSec('Por fuente', 'leads') + barras(L.por_fuente) + '</div></div></div>';
+    if (!ana) return sinAna('Resultados') + resultadosSheet();
+    const A = agg();
+    const leadsTxt = A.lead === 1 ? 'lead' : 'leads';
+    const tasa = A.ses ? fmt1(A.lead / A.ses * 100) + '%' : '—';
+    const ms = marcasAna();
+    let h = '<div class="heroe"><div class="ceja-s">Resultados · ' + esc(marca ? nomM(marca) : 'todas las marcas') + ' · ' + rangoTxt(ana.desde, ana.hasta) + '</div><div class="n1 frase">' + fmt(A.lead) + ' ' + leadsTxt + '</div><p>De ' + fmt(A.ses) + ' visitas al sitio: ' + tasa + '. ' + (A.sheet.medido ? fmt(A.sheet.clientes) + ' se volvieron clientes (Sheet).' : 'Todavía no sabemos cuántos se volvieron clientes.') + ' En el Sheet hay ' + fmt(A.sheet.total) + ' leads del periodo, contando formularios de Meta.</p></div>' + errores(A);
+    h += '<div class="bloque ancho-embudo">' + tituloSec('Embudo', 'El % es contra la etapa anterior · toca una etapa para ver su detalle') + embudo(A, marca ? color(marca) : 'var(--ink)') + '</div>';
+    h += '<div class="bloque">' + tituloSec('Quién se lleva el mérito', fmt(sum(A.atrib, r => r.n)) + ' leads · cada modelo reparte el mérito distinto') + atribucion(A) + '</div>';
+    if (!marca && ms.length > 1) {
+      h += '<div class="bloque apilados">' + ms.map(m => { const B = (() => { const g = marca; marca = m; const r = agg(); marca = g; return r; })(); return '<div class="mini"><div class="mini-cab"><b><span class="punto" style="background:' + color(m) + '"></span> ' + esc(nomM(m)) + '</b><a href="#" data-marca="' + esc(m) + '">Ver detalle →</a></div>' + embudo(B, color(m), true) + '</div>'; }).join('') + '</div>';
+    }
+    return h + resultadosSheet();
+  }
+  // Leads del Sheet (contacto en el Sheet, aquí solo origen y estado).
+  function resultadosSheet() {
+    const ult = ((datos.leads || {}).ultimos || []).filter(deMarca);
+    return '<div class="bloque">' + tituloSec('Últimos leads', 'del Sheet, pestaña Leads') + (ult.length ? '<div class="scroll-x"><table><tr><th>Fecha</th><th>Marca</th><th>Origen</th><th>Empresa</th><th>Fuente</th><th>Estado</th></tr>' + ult.slice(0, 12).map(x => '<tr><td class="mono">' + esc(String(x.fecha).slice(0, 16)) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + esc(nombreMarca(x.marca)) + '</td><td class="mono">' + esc(x.origen) + '</td><td>' + esc(x.empresa) + '</td><td class="mono">' + esc([x.utm_source, x.utm_campaign].filter(Boolean).join(' / ')) + '</td><td><span class="etiq hacer">' + esc(x.estado || 'nuevo') + '</span></td></tr>').join('') + '</table>' + '</div>' : '<div class="vacio">Sin leads en el periodo.</div>') + '</div>';
+  }
+
+  // ---------- Analytics ----------
+  const AUTO = new Set(['page_view', 'session_start', 'first_visit', 'user_engagement', 'scroll', 'click', 'view_search_results', 'video_start', 'video_progress', 'video_complete', 'file_download', 'form_start']);
+  function canalesHtml(A, conInter) {
+    const lista = Object.values(A.canales).sort((a, b) => b.s - a.s);
+    if (!lista.length) return '<div class="vacio">Sin visitas en el periodo.</div>';
+    const top = lista.slice(0, 4), resto = lista.slice(4);
+    if (resto.length) top.push({ canal: '(otros)', s: sum(resto, x => x.s), s_ant: sum(resto, x => x.s_ant), e: sum(resto, x => x.e), otros: true });
+    const max = Math.max(...top.map(x => x.s), 1);
+    return '<div class="canales">' + top.map(c => '<div class="canal' + (c.otros ? ' otros' : '') + '"><div class="fila-c"><span>' + esc(c.otros ? 'Otros' : canalN(c.canal)) + '</span><span class="der"><b>' + fmt(c.s) + '</b>' + (c.otros ? '<span class="dt mu">—</span>' : flecha(c.s, c.s_ant)) + '</span></div><div class="riel"><i style="width:' + Math.max(1.5, c.s / max * 100) + '%;background:' + (c.otros ? '#BDBDBD' : esPagado(c.canal) ? 'var(--accent)' : 'var(--ink)') + '"></i></div>' + (conInter ? '<div class="mono mu sm">' + (c.s ? Math.round(c.e / c.s * 100) : 0) + '% con interacción</div>' : '') + '</div>').join('') + '</div>';
+  }
+  function paginasHtml(A, n, colorear) {
+    const P = A.paginas.slice(0, n);
+    if (!P.length) return '<div class="vacio">Sin páginas en el periodo.</div>';
+    const max = Math.max(...P.map(p => p.s), 1);
+    return P.map(p => '<div class="entrada"><span class="punto" style="background:' + color(p.marca) + '"></span><span class="mono ruta">' + esc((ana.marcas[p.marca].dominio || '') + ' ' + (p.pagina || '/')) + '</span><div class="riel"><i style="width:' + Math.max(2, p.s / max * 100) + '%;background:' + (colorear ? color(p.marca) : 'var(--ink)') + '"></i></div><b>' + fmt(p.s) + '</b></div>').join('');
+  }
+  function vistaAnalytics() {
+    if (!ana) return sinAna('Analytics');
+    const A = agg(), ms = marcasAna(), dias = DIASR();
+    const inter = A.ses ? Math.round(A.eng / A.ses * 100) : 0, interAnt = A.ses_ant ? Math.round(A.eng_ant / A.ses_ant * 100) : null;
+    const etqMedio = [...new Set(ms.map(m => (ana.marcas[m].medio || {}).etiqueta).filter(Boolean))];
+    let h = errores(A) + '<div class="heroe-a"><div class="izq"><div class="ceja-s">Visitas a ' + esc(ceja2()) + ' · ' + rangoTxt(ana.desde, ana.hasta) + '</div><div class="grande"><div class="n1 tocable" data-det="visitas">' + fmt(A.ses) + '</div>' + sitios(m => (ana.marcas[m].ga4 || {}).sesiones || 0) + '</div>' + badge(A.ses, A.ses_ant) + '</div>'
+      + '<div class="kpis">' + kpi('Leads', fmt(A.lead), ms.length > 1 ? ms.map(m => esc(nomM(m)) + ' ' + fmt(leadM(m))).join(' · ') : 'GA4 · ' + esc((ana.marcas[ms[0]].lead || {}).nombre || ''))
+      + (A.medioOk && etqMedio.length === 1 ? kpi(esc(etqMedio[0]), fmt(A.medio), A.medio ? Math.round(A.lead / A.medio * 100) + '% dejó sus datos' : 'GA4') : kpi('Personas', fmt(A.usu), 'usuarios activos', '', 'visitas'))
+      + kpi('Clics desde Google', fmt(A.gsc.c), fmt(A.gsc.i) + ' impresiones', '', 'vieron')
+      + kpi('Interacción', inter + '%', interAnt == null ? 'visitas con interacción' : (inter >= interAnt ? '▲ ' : '▼ ') + Math.abs(inter - interAnt) + ' pts', interAnt == null ? '' : inter >= interAnt ? 'up' : 'dn', 'visitas') + '</div></div>';
+    const capas = ms.map(m => ({ nombre: nomM(m), color: color(m), val: Object.fromEntries(Object.entries(((ana.marcas[m].ga4 || {}).diario) || {}).map(([d, v]) => [d, v.s])) }));
+    h += '<div class="cols-a"><div><div class="sec-tit sin"><h2>Visitas por día</h2>' + leyenda(capas) + '</div><div class="tocable" data-det="visitas">' + grafica(dias, capas, null, 'visitas') + '</div></div>'
+      + '<div><div class="sec-tit sin"><h2>De dónde llegan</h2><span>sesiones · vs. anterior</span></div>' + canalesHtml(A) + '</div></div>';
+    const evs = Object.entries(A.eventos).filter(([k]) => !AUTO.has(k)).sort((a, b) => b[1][0] - a[1][0]).slice(0, 5);
+    const leadsN = new Set(ms.map(m => (ana.marcas[m].lead || {}).nombre));
+    const enlaces = ms.map(m => '<a class="btn" href="' + esc(ana.marcas[m].ga4_url) + '" target="_blank" rel="noopener">GA4' + (ms.length > 1 ? ' · ' + esc(nomM(m)) : '') + '</a>').join('') + ms.map(m => '<a class="btn" href="' + esc(ana.marcas[m].gsc_url) + '" target="_blank" rel="noopener">Search Console' + (ms.length > 1 ? ' · ' + esc(nomM(m)) : '') + '</a>').join('');
+    const verP = verTodo.paginas;
+    h += '<div class="cols-a"><div><div class="sec-tit"><h2>Por dónde entran</h2><span>página de entrada · sesiones</span></div>' + paginasHtml(A, verP ? 30 : 5) + (A.paginas.length > 5 ? '<button class="enlace-n" data-ver="paginas">' + (verP ? 'Ver menos' : 'Ver las ' + A.paginas.length + ' páginas →') + '</button>' : '') + '</div>'
+      + '<div><div class="sec-tit"><h2>Lo que hicieron</h2><span>eventos de GA4</span></div>' + (evs.length ? evs.map(([k, v]) => '<div class="evento' + (leadsN.has(k) ? ' resalta' : '') + '"><span>' + esc(EVENTO[k] || k) + '</span><b>' + fmt(v[0]) + '</b></div>').join('') : '<div class="vacio">Sin eventos propios en el periodo. Crea eventos en GA4 (p. ej. generate_lead) para verlos aquí.</div>')
+      + '<p class="sm mu" style="margin:14px 0 16px">Se omiten los eventos automáticos de GA4 (vistas de página, scroll, inicio de sesión).</p><div class="fila-btn">' + enlaces + '</div></div></div>';
+    return h;
+  }
+  const EVENTO = { generate_lead: 'Dejaron sus datos', form_submit: 'Enviaron un formulario', contacto_click: 'Tocaron un contacto', click_whatsapp: 'Tocaron WhatsApp', sign_up: 'Se registraron', purchase: 'Compraron', begin_checkout: 'Empezaron a pagar', add_to_cart: 'Agregaron al carrito' };
+
+  // ---------- Pantalla de detalle (Visitas y Nos vieron) ----------
+  function detalle() {
+    const A = agg(), ms = marcasAna(), dias = DIASR();
+    const quien = marca ? nomM(marca) : ms.map(nomM).join(' y ');
+    const cab = '<div class="det-cab"><div class="envoltura"><button class="atras" data-cerrar-det>‹ ' + (det === 'vieron' && tab === 'resultados' ? 'Resultados' : tab === 'resultados' ? 'Resultados' : 'Analytics') + '</button><span class="mono mu">' + esc(quien.toUpperCase()) + ' · ' + rangoTxt(ana.desde, ana.hasta).toUpperCase() + ' · VS. ' + rangoTxt(ana.ant_desde, ana.ant_hasta).toUpperCase() + '</span><button class="btn" data-cerrar-det>Cerrar</button></div></div>';
+    const filas = verTodo.dias ? dias.slice().reverse() : dias.slice(-3).reverse();
+    const DIA = d => { const f = fecha(d); return DSEM[f.getDay()] + ' ' + f.getDate() + ' ' + MESC[f.getMonth()]; };
+    let h;
+    if (det === 'vieron') {
+      const capas = [{ nombre: 'Google · impresiones', color: 'var(--ink)', val: Object.fromEntries(Object.entries(A.gsc.diario).map(([d, v]) => [d, v.i])) }, { nombre: 'Redes · alcance de la página', color: 'var(--accent)', val: A.meta.pagina }, { nombre: 'Anuncios · impresiones', color: '#BDBDBD', val: A.meta.anuncios }];
+      const de100 = A.vieron ? Math.round(A.ses / A.vieron * 100) : 0;
+      const fuentes = [];
+      for (const m of ms) { const M = ana.marcas[m]; fuentes.push({ t: 'Google · ' + nomM(m), n: (M.gsc || {}).impresiones || 0, nota: 'impresiones en Search Console', c: color(m) }); const r = sum(Object.values((M.meta || {}).pagina || {}), x => x); if (r) fuentes.push({ t: 'Redes · ' + nomM(m), n: r, nota: 'alcance de la página (suma por día)', c: color(m) }); const an = sum(Object.values((M.meta || {}).anuncios || {}), x => x); if (an) fuentes.push({ t: 'Anuncios · ' + nomM(m), n: an, nota: 'impresiones en Meta', c: color(m) }); }
+      fuentes.sort((a, b) => b.n - a.n);
+      const maxF = Math.max(1, ...fuentes.map(x => x.n)), Q = A.gsc.consultas.slice(0, 5), maxQ = Math.max(1, ...Q.map(q => q.i));
+      h = '<div class="heroe-a"><div class="izq"><div class="ceja-s">Nos vieron · Google, redes y anuncios · ' + rangoTxt(ana.desde, ana.hasta) + '</div><div class="grande"><div class="n1">' + fmt(A.vieron) + '</div><div class="sitios"><div><span class="punto" style="background:var(--ink)"></span><b>' + fmt(A.gsc.i) + '</b> en Google</div><div><span class="punto" style="background:var(--accent)"></span><b>' + fmt(A.alcance) + '</b> en redes · ' + fmt(A.anuncios) + ' en anuncios</div></div></div>' + badge(A.gsc.i, A.gsc.i_ant, 'Search Console aún no tiene un periodo anterior completo.') + '</div>'
+        + '<div class="kpis">' + kpi('Google', fmt(A.gsc.i), 'impresiones en búsquedas') + kpi('Redes', fmt(A.alcance), 'alcance de la página') + kpi('Anuncios', fmt(A.anuncios), A.anuncios ? 'impresiones en Meta' : 'sin campañas en Meta') + kpi('Luego visitaron', fmt(de100), 'de cada 100 (' + fmt(A.ses) + ' visitas)') + '</div></div>'
+        + '<div class="bloque">' + leyenda(capas) + grafica(dias, capas, null, 'veces') + '</div>'
+        + '<div class="cols-d"><div><div class="sec-tit sin"><h2>Por fuente y marca</h2><span>veces que nos vieron</span></div>' + fuentes.map(x => '<div class="canal"><div class="fila-c"><span>' + esc(x.t) + '</span><b>' + fmt(x.n) + '</b></div><div class="riel"><i style="width:' + Math.max(1.5, x.n / maxF * 100) + '%;background:' + x.c + '"></i></div><div class="mono mu sm">' + x.nota + '</div></div>').join('') + '</div>'
+        + '<div><div class="sec-tit sin"><h2>Qué buscaban</h2><span>top por impresiones</span></div>' + (Q.length ? Q.map(q => '<div class="canal"><div class="fila-c"><span>' + esc(q.q) + '</span><b>' + fmt(q.i) + '</b></div><div class="riel"><i style="width:' + Math.max(1.5, q.i / maxQ * 100) + '%;background:var(--ink)"></i></div></div>').join('') : '<div class="vacio">Sin búsquedas todavía.</div>') + '</div></div>'
+        + '<div class="bloque">' + tituloSec('Día por día', 'lo más reciente primero') + '<table class="tabla-d"><tr><th>Día</th><th class="r">Google</th><th class="r">Redes</th><th class="r">Anuncios</th><th class="r">Total</th><th class="r">Visitaron</th><th class="r">De cada 100</th></tr>' + filas.map(d => { const g = (A.gsc.diario[d] || {}).i || 0, r = A.meta.pagina[d] || 0, an = A.meta.anuncios[d] || 0, t = g + r + an, v = A.diario[d] || 0; return '<tr><td>' + DIA(d) + '</td><td class="r mono">' + fmt(g) + '</td><td class="r mono">' + fmt(r) + '</td><td class="r mono">' + fmt(an) + '</td><td class="r tot">' + fmt(t) + '</td><td class="r mono">' + fmt(v) + '</td><td class="r mono">' + (t ? Math.round(v / t * 100) : '—') + '</td></tr>'; }).join('') + '</table><button class="enlace-n" data-ver="dias">' + (verTodo.dias ? 'Ver menos' : 'Ver los ' + dias.length + ' días →') + '</button></div>'
+        + '<div class="como"><div class="ceja-m">Cómo se mide</div><div><p>Suma de tres cosas distintas: impresiones en los resultados de Google (Search Console), alcance de la página de Facebook (personas distintas por día, según Meta) e impresiones de anuncios de Meta. Una misma persona puede contar varias veces: es una medida de visibilidad, no de personas.</p><p>Search Console publica con 2 a 3 días de retraso.</p><div class="fila-btn">' + ms.map(m => '<a class="btn" href="' + esc(ana.marcas[m].gsc_url) + '" target="_blank" rel="noopener">Search Console' + (ms.length > 1 ? ' · ' + esc(nomM(m)) : '') + ' ↗</a>').join('') + '<a class="btn" href="https://business.facebook.com/latest/insights" target="_blank" rel="noopener">Meta Business Suite ↗</a></div></div></div>';
+    } else {
+      const capas = ms.map(m => ({ nombre: nomM(m), color: color(m), val: Object.fromEntries(Object.entries(((ana.marcas[m].ga4 || {}).diario) || {}).map(([d, v]) => [d, v.s])) }));
+      const linea = dias.map((d, i) => A.diario_ant[i] || 0);
+      const tot = dias.map(d => A.diario[d] || 0), mejor = tot.indexOf(Math.max(...tot));
+      const inter = A.ses ? Math.round(A.eng / A.ses * 100) : 0;
+      h = '<div class="heroe-a"><div class="izq"><div class="ceja-s">Visitas a ' + esc(ceja2()) + ' · GA4 · ' + rangoTxt(ana.desde, ana.hasta) + '</div><div class="grande"><div class="n1">' + fmt(A.ses) + '</div>' + sitios(m => (ana.marcas[m].ga4 || {}).sesiones || 0) + '</div>' + badge(A.ses, A.ses_ant) + '</div>'
+        + '<div class="kpis">' + kpi('Personas', fmt(A.usu), 'usuarios activos') + kpi('Al día', fmt(Math.round(A.ses / Math.max(1, dias.length))), 'visitas en promedio') + kpi('Mejor día', fmt(tot[mejor] || 0), tot[mejor] ? DIA(dias[mejor]) : '—') + kpi('Se quedaron', inter + '%', 'visitas con interacción') + '</div></div>'
+        + '<div class="bloque">' + leyenda(capas, true) + grafica(dias, capas, linea, 'visitas') + '</div>'
+        + '<div class="cols-d"><div><div class="sec-tit sin"><h2>De dónde llegan</h2><span>vs. periodo anterior</span></div>' + canalesHtml(A, true) + '</div><div><div class="sec-tit sin"><h2>Páginas de entrada</h2><span>donde empezó la visita</span></div>' + paginasHtml(A, 6, true) + '</div></div>'
+        + '<div class="bloque">' + tituloSec('Día por día', 'lo más reciente primero') + '<table class="tabla-d"><tr><th>Día</th>' + ms.map(m => '<th class="r">' + esc(nomM(m)) + '</th>').join('') + '<th class="r">Total</th><th class="r">Antes</th><th class="r">Cambio</th></tr>' + filas.map(d => { const i = dias.indexOf(d), t = A.diario[d] || 0, a = A.diario_ant[i] || 0; return '<tr><td>' + DIA(d) + '</td>' + ms.map(m => '<td class="r mono">' + fmt((A.porDia[d] || {})[m] || 0) + '</td>').join('') + '<td class="r tot">' + fmt(t) + '</td><td class="r mono">' + fmt(a) + '</td><td class="r">' + flecha(t, a) + '</td></tr>'; }).join('') + '</table><button class="enlace-n" data-ver="dias">' + (verTodo.dias ? 'Ver menos' : 'Ver los ' + dias.length + ' días →') + '</button></div>'
+        + '<div class="como"><div class="ceja-m">Cómo se mide</div><div><p>Una visita es una sesión de GA4: alguien entra al sitio y navega hasta que se va o pasan 30 minutos sin actividad. La misma persona puede contar varias visitas.</p><p>La línea punteada es el mismo número de días justo antes del periodo.</p><div class="fila-btn">' + ms.map(m => '<a class="btn" href="' + esc(ana.marcas[m].ga4_url) + '" target="_blank" rel="noopener">GA4 de ' + esc(nomM(m)) + ' ↗</a>').join('') + '</div></div></div>';
+    }
+    return cab + '<div class="envoltura det-cuerpo">' + h + '</div>';
   }
 
   function vistaContenido() {
@@ -421,15 +834,47 @@
     return pedir('agencia-paid-campanas', { method: 'POST', body: JSON.stringify(cuerpo) });
   }
 
+  // ---------- SEO (Search Console + pestañas SEO del Sheet) ----------
+  let seoRes = '';
+  const ruta = u => { try { return new URL(u).pathname || '/'; } catch (e) { return String(u || ''); } };
+  const TIPO = { titulo: 'título', descripcion: 'descripción', h1: 'H1', contenido: 'contenido', enlace_interno: 'enlace interno', tecnico: 'técnico' };
   function vistaSeo() {
+    if (!ana) return sinAna('SEO') + blog();
+    const A = agg(), ms = marcasAna(), S = ana.seo || {};
+    const pos = (S.posiciones || []).filter(deMarca), pags = (S.paginas || []).filter(deMarca), props = (S.propuestas || []).filter(deMarca);
+    const top10 = pos.filter(p => p.posicion && p.posicion <= 10).length;
+    const entraron = pos.filter(p => p.posicion && p.posicion <= 10 && (!p.anterior || p.anterior > 10)).length;
+    const fuera = pos.filter(p => !p.posicion).length;
+    const altas = pags.filter(p => p.prioridad === 'alta').length;
+    const posM = ms.map(m => { const s = ana.marcas[m].gsc || {}; return s.posicion ? fmt1(s.posicion) + (ms.length > 1 ? ' en ' + esc(nomM(m)) : '') : ''; }).filter(Boolean);
+    const ctr = A.gsc.i ? fmt1(A.gsc.c / A.gsc.i * 100) + '% de clics' : 'sin impresiones todavía';
+    let h = errores(A) + '<div class="heroe-a"><div class="izq"><div class="ceja-s">Google · ' + (S.fecha_pos ? 'medición del ' + corta(S.fecha_pos) : rangoTxt(ana.desde, ana.hasta)) + '</div><div class="grande"><div class="n1 tocable" data-det="vieron">' + fmt(A.gsc.i) + '</div><div class="frase-lado">veces nos<br>mostró Google</div></div><div class="comp"><span class="pill">' + fmt(A.gsc.c) + ' clics</span><span>' + ctr + (posM.length ? ' · posición promedio ' + posM.join(', ') : '') + '</span></div></div>'
+      + '<div class="kpis">' + kpi('En el top 10', fmt(top10), entraron ? '▲ ' + entraron + ' esta semana' : pos.length ? 'keywords' : 'sin medir aún', entraron ? 'up' : '')
+      + kpi('Keywords medidas', fmt(pos.length), pos.length ? fmt(fuera) + ' aún fuera del top 30' : 'corre «SEO posiciones»')
+      + kpi('Páginas por arreglar', fmt(pags.length), altas ? altas + ' de prioridad alta' : S.fecha_onpage ? 'revisión del ' + corta(S.fecha_onpage) : 'sin revisión aún', altas ? 'dn' : '')
+      + kpi('Por aprobar', fmt(props.length), props.length ? [...new Set(props.map(p => TIPO[p.cambio] || p.cambio))].slice(0, 2).join(' y ') : 'nada pendiente') + '</div></div>';
+    if (S.error) h += '<div class="aviso" style="margin:0 0 32px">' + esc(S.error) + '</div>';
+    // Por aprobar
+    h += '<div class="bloque"><div class="sec-tit sin"><h2>Por aprobar</h2><span class="der-btn">Al aprobar queda marcada en el Sheet para aplicarla en el sitio. Las páginas legales no se tocan.' + (props.length > 1 ? ' <button class="btn negro" data-seo="aprobar" data-filas="' + props.map(p => p.fila).join(',') + '">Aprobar las ' + props.length + '</button>' : '') + '</span></div>'
+      + (props.length ? '<div class="props">' + props.slice(0, verTodo.props ? 30 : 3).map(p => '<div class="prop-seo"><div class="ceja-m"><span class="punto" style="background:' + color(p.marca) + '"></span> ' + esc(nomM(p.marca)) + ' · ' + esc(ruta(p.url)) + ' · ' + esc(TIPO[p.cambio] || p.cambio) + '</div>' + (p.actual ? '<div class="antes">' + esc(p.actual) + '</div>' : '<div class="mu sm">Hoy no tiene ' + esc(TIPO[p.cambio] || 'este dato') + '.</div>') + '<div class="nuevo">' + esc(p.propuesta) + '</div><div class="mu sm">' + esc(p.por_que) + '</div><div class="fila-btn"><button class="btn amarillo" data-seo="aprobar" data-filas="' + p.fila + '">Aprobar</button><button class="btn" data-seo="descartar" data-filas="' + p.fila + '">Descartar</button></div></div>').join('') + '</div>' + (props.length > 3 ? '<button class="enlace-n" data-ver="props">' + (verTodo.props ? 'Ver menos' : 'Ver las ' + props.length + ' →') + '</button>' : '') : '<div class="vacio">Nada por aprobar. Las propuestas llegan cada dos semanas con la revisión on-page.</div>')
+      + (seoRes ? '<div style="margin-top:14px">' + seoRes + '</div>' : '') + '</div>';
+    // Keywords + Páginas por arreglar
+    const kws = pos.slice().sort((a, b) => (a.posicion || 999) - (b.posicion || 999) || (b.volumen || 0) - (a.volumen || 0));
+    const cambio = c => { const s = String(c || ''); if (/^▲/.test(s) || s === 'entró') return '<span class="dt up">' + (s === 'entró' ? 'entró' : '▲ ' + s.slice(1)) + '</span>'; if (/^▼/.test(s) || s === 'salió') return '<span class="dt dn">' + (s === 'salió' ? 'salió' : '▼ ' + s.slice(1)) + '</span>'; if (s === '=') return '<span class="dt mu">=</span>'; if (s === 'sigue fuera') return '<span class="dt mu">fuera</span>'; return '<span class="dt mu">nueva</span>'; };
+    const media = pags.filter(p => p.prioridad !== 'alta');
+    h += '<div class="cols-a"><div><div class="sec-tit"><h2>Keywords</h2><span>posición en Google · cambio vs. lunes pasado</span></div>'
+      + (kws.length ? '<table class="kw"><tr><th>Keyword</th><th class="r">Búsquedas/mes</th><th class="r">Posición</th><th class="r">Cambio</th></tr>' + kws.slice(0, verTodo.kw ? 200 : 6).map(k => '<tr><td><span class="punto" style="background:' + color(k.marca) + '"></span> ' + esc(k.keyword) + '</td><td class="r mono">' + (k.volumen == null ? '—' : fmt(k.volumen)) + '</td><td class="r tot">' + (k.posicion || '<span class="raya"></span>') + '</td><td class="r">' + cambio(k.cambio) + '</td></tr>').join('') + '</table>' + (kws.length > 6 ? '<button class="enlace-n" data-ver="kw">' + (verTodo.kw ? 'Ver menos' : 'Ver las ' + kws.length + ' →') + '</button>' : '') : '<div class="vacio">Todavía no hay posiciones. Corre «SEO posiciones y on-page» (Probar).</div>') + '</div>'
+      + '<div><div class="sec-tit sin"><h2>Páginas por arreglar</h2><span>revisión cada dos semanas</span></div>'
+      + (pags.length ? pags.filter(p => p.prioridad === 'alta').slice(0, verTodo.pags ? 50 : 3).map(p => '<div class="por-arreglar"><div><span class="etiq arreglar">Alta</span> <span class="mono">' + esc((ana.marcas[p.marca] || {}).dominio || '') + ' ' + esc(ruta(p.url)) + '</span></div><p>' + esc(p.problemas) + '</p></div>').join('')
+        + (media.length ? (verTodo.pags ? media.map(p => '<div class="por-arreglar"><div><span class="etiq hacer">' + esc(p.prioridad) + '</span> <span class="mono">' + esc(ruta(p.url)) + '</span></div><p>' + esc(p.problemas) + '</p></div>').join('') : '<div class="por-arreglar"><div><span class="etiq hacer">Media</span> <span class="mono">+ ' + media.length + ' página' + (media.length === 1 ? '' : 's') + '</span></div><p>' + esc([...new Set(media.flatMap(p => String(p.problemas).split('; ').map(x => x.replace(/ \(.*\)$/, ''))))].slice(0, 2).join(', ')) + '.</p></div>') : '')
+        + '<div class="fila-btn" style="margin-top:18px"><a class="btn negro" href="' + esc(ana.sheet_url) + '" target="_blank" rel="noopener">Abrir el Sheet</a><button class="btn" data-ver="pags">' + (verTodo.pags ? 'Ver menos' : 'Ver historial') + '</button></div>' : '<div class="vacio">Sin páginas por arreglar' + (S.fecha_onpage ? ' en la revisión del ' + corta(S.fecha_onpage) : '') + '.</div>') + '</div></div>';
+    return h + blog();
+  }
+  // Artículos del blog (flujos 40 y 41): no están en el diseño de SEO, se dejan al final para no perderlos.
+  function blog() {
     const a = (datos.articulos || []).filter(deMarca);
-    const por = a.filter(x => x.estado === 'por aprobar').length;
-    const pub = a.filter(x => x.estado === 'publicado').length;
-    const porMarca = {};
-    for (const x of a) { porMarca[x.marca] = porMarca[x.marca] || { pub: 0, total: 0 }; porMarca[x.marca].total++; if (x.estado === 'publicado') porMarca[x.marca].pub++; }
-    return heroe('Blog · artículos del plan', por ? por + ' por aprobar' : pub + ' publicados', 'Los borradores llegan a Telegram los martes y jueves; se publican al tocar ✅ Publicar.', !!por)
-      + '<div class="cols"><div>' + tituloSec('Artículos', 'tabla seo_articulos') + (a.length ? '<table><tr><th>#</th><th>Keyword</th><th>Título</th><th>Volumen</th><th>Estado</th></tr>' + a.map(x => '<tr><td class="mono">' + esc(x.id) + '</td><td class="mono">' + esc(x.keyword) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + (x.url && x.estado === 'publicado' ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.titulo) + '</a>' : esc(x.titulo || '—')) + '</td><td class="mono">' + esc(x.volumen ?? '') + '</td><td><span class="etiq ' + (x.estado === 'por aprobar' ? 'aprobar' : x.estado === 'publicado' ? 'ok' : 'hacer') + '">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>' : '<div class="vacio">Agrega temas «planeado» en la tabla seo_articulos de n8n.</div>')
-      + '</div><div>' + tituloSec('Avance', 'publicados de los planeados') + (Object.keys(porMarca).length ? Object.entries(porMarca).map(([m, v]) => '<div class="barra"><span>' + esc(nombreMarca(m)) + '</span><div class="riel"><i style="width:' + (v.total ? v.pub / v.total * 100 : 0) + '%;background:' + color(m) + '"></i></div><span class="v">' + v.pub + ' de ' + v.total + '</span></div>').join('') : '<div class="vacio">Sin artículos.</div>') + '</div></div>';
+    if (!a.length) return '';
+    return '<div class="bloque">' + tituloSec('Artículos del blog', 'tabla seo_articulos · se aprueban en Telegram') + '<table><tr><th>Keyword</th><th>Título</th><th class="r">Volumen</th><th>Estado</th></tr>' + a.slice(0, verTodo.blog ? 200 : 8).map(x => '<tr><td class="mono">' + esc(x.keyword) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + (x.url && x.estado === 'publicado' ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.titulo) + '</a>' : esc(x.titulo || '—')) + '</td><td class="r mono">' + esc(x.volumen ?? '') + '</td><td><span class="etiq ' + (x.estado === 'por aprobar' ? 'aprobar' : x.estado === 'publicado' ? 'ok' : 'hacer') + '">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>' + (a.length > 8 ? '<button class="enlace-n" data-ver="blog">' + (verTodo.blog ? 'Ver menos' : 'Ver los ' + a.length + ' →') + '</button>' : '') + '</div>';
   }
 
   function vistaResearch() {
@@ -438,50 +883,94 @@
       + '<div class="cols"><div>' + tituloSec('Del Research', 'más recientes primero') + (h.length ? h.map(x => '<div class="hall"><div class="ceja">' + esc(x.tipo) + ' · ' + esc(nombreMarca(x.marca)) + ' · ' + esc(x.fecha) + '</div><p>' + esc(x.hallazgo) + (x.fuente ? ' <a href="' + esc(x.fuente) + '" target="_blank" rel="noopener" style="color:var(--muted)">fuente</a>' : '') + '</p>' + (x.accion ? '<div class="acc">→ ' + esc(x.accion) + '</div>' : '') + '</div>').join('') : '<div class="vacio">Sin hallazgos en el periodo.</div>') + '</div><div></div></div>';
   }
 
-  // Agentes de la agencia: «incluido» = flujo en n8n/flujos del repo; «por armar» = lógica en docs/agentes-por-portar.md.
-  const AGENTES = [
-    ['Contenido', 'Preparar posts', 'Diario 10:07 / 12:07', 'Redacta el post con la ficha de la marca, hace la pieza con GPT Image y la manda a Telegram para aprobar.', '10-preparar-posts-marca-a/b', 'incluido'],
-    ['Contenido', 'Aprobaciones en Telegram', 'Al tocar un botón', 'Aprobar, pedir cambios, reintentar una publicación y aprobar artículos.', '12-telegram-respuestas', 'incluido'],
-    ['Contenido', 'Nueva versión', 'Al pedir cambios', 'Rehace solo lo necesario: copy, textos de la imagen o pieza nueva.', '13-nueva-version-de-post', 'incluido'],
-    ['Contenido', 'Publicar posts', 'Cada hora', 'Publica en Facebook e Instagram lo aprobado cuya hora llegó. Nunca dos veces.', '11-publicar-posts-marca-a/b', 'incluido'],
-    ['Contenido', 'Ideas semanales', 'Lunes 9:00', 'Escribe el brief de cada post con research, temporada y voz del público.', '21-ideas-semanales', 'incluido'],
-    ['Research', 'Research semanal', 'Lunes 8:00', 'Noticias, anuncios de la competencia y keywords → hallazgos.', '20-research-semanal', 'incluido'],
-    ['SEO', 'Borradores del blog', 'Martes y jueves', 'Artículo + portada → borrador en Webflow → aprobar en Telegram.', '40-seo-borradores', 'incluido'],
-    ['SEO', 'Publicar artículos', 'Al aprobar', 'Publica en Webflow o rehace con los cambios pedidos.', '41-seo-acciones', 'incluido'],
-    ['SEO', 'Posiciones y on-page', 'Semanal / quincenal', 'Posición de keywords y revisión on-page con propuestas.', 'docs/agentes-por-portar.md', 'por armar'],
-    ['Leads', 'Leads', 'Al llegar + cada 30 min', 'Formularios del sitio y de Meta → Sheet → Telegram; Conversions API.', '30-leads', 'incluido'],
-    ['Paid', 'Campañas de Meta', 'Desde la pestaña Paid', 'Escribes la campaña, Claude arma la propuesta y al aprobarla se crea en pausa (7 objetivos).', '50 y 52-paid', 'incluido'],
-    ['Paid', 'Optimizador de Meta Ads', 'Diario 10:40', 'Pausa campañas del agente que rompen las reglas de costo por lead y propone lo demás.', '51-meta-ads-optimizador', 'incluido'],
-    ['Paid', 'Audiencias de Meta', 'A pedido', 'Audiencias base y similares por marca, sin listas de clientes.', 'docs/agentes-por-portar.md', 'por armar'],
-    ['Análisis', 'Analista semanal', 'Lunes', 'GA4, Search Console y Meta Ads: semana contra la anterior y 3 recomendaciones.', 'docs/agentes-por-portar.md', 'por armar'],
-    ['Análisis', 'BigQuery (embudo)', 'Diario / cada hora', 'Métricas de posts, anuncios y leads en BigQuery para el embudo completo.', 'docs/agentes-por-portar.md', 'por armar'],
-    ['Atención', 'Agente de WhatsApp', 'Siempre', 'Responde, captura leads y escala a una persona.', 'docs/agentes-por-portar.md', 'por armar'],
-    ['Operación', 'Vigilante', 'Cada hora :40', 'Posts atorados, caídas de n8n y recordatorios antes de la hora de publicación.', '14-vigilante', 'incluido'],
-    ['Operación', 'Alertas de error y reinicio', 'Al fallar / al arrancar n8n', 'Avisan en Telegram qué flujo falló o que n8n se reinició.', '01 y 02', 'incluido'],
-    ['Panel', 'Panel (lectura y acciones)', 'Al abrir el panel', 'Los dos webhooks que usa esta pantalla.', '60 y 61', 'incluido'],
+  // ---------- Agentes ----------
+  // [nombre en el panel, qué hace, nombre del flujo en n8n, cron (o texto si no corre por horario), etiqueta]
+  const GRUPOS = [
+    ['Investigar', [['Research semanal', 'Noticias, competencia y keywords', 'Agencia · Research semanal', '0 8 * * 1', 'lun 8:00'], ['Analista semanal', 'Reporte por marca a Telegram', 'Agencia · Analista semanal', '30 8 * * 1', 'lun 8:30']]],
+    ['Planear y producir', [['Ideas semanales', 'Tema de los posts de 8 días', 'Agencia · Ideas semanales', '0 9 * * 1', 'lun 9:00'], ['Preparar Marca A', 'Redacta, crea imagen, manda a aprobar', 'Agencia · Preparar posts (Marca A)', '7 10 * * *', '10:07'], ['Preparar Marca B', 'Igual, con la voz de la marca B', 'Agencia · Preparar posts (Marca B)', '7 12 * * *', '12:07']]],
+    ['Aprobar y publicar', [['Telegram (respuestas)', 'Aprueba o pide cambios', 'Agencia · Telegram (respuestas)', '', 'al tocar'], ['Publicar Marca A', 'FB e IG, lo aprobado', 'Agencia · Publicar posts (Marca A)', '2 * * * *', 'cada hora'], ['Publicar Marca B', 'FB e IG, lo aprobado', 'Agencia · Publicar posts (Marca B)', '2 * * * *', 'cada hora']]],
+    ['Medir', [['BigQuery diario', 'Métricas de posts y anuncios; avisa si falla', 'Agencia · BigQuery diario', '0 10 * * *', '10:00'], ['Leads a BigQuery', 'Copia los leads sin datos de contacto', 'Agencia · Leads a BigQuery', '17 * * * *', 'cada hora'], ['Optimizador de Meta Ads', 'Pausa lo que rompe reglas; propone lo demás', 'Agencia · Meta Ads optimizador', '40 10 * * *', '10:40']]],
+    ['Blog y SEO', [['SEO posiciones y on-page', 'Mide y propone cambios', 'Agencia · SEO posiciones y on-page', '43 7 * * 1', 'lun 7:43'], ['Borradores del blog', 'Borrador para aprobar', 'Agencia · SEO (borradores)', '37 8 * * 2,4', 'mar y jue'], ['SEO acciones', 'Publica lo aprobado', 'Agencia · SEO acciones', '', 'al aprobar']]],
+    ['Atención', [['Leads', 'Sitio y formularios de Meta → Sheet → Telegram', 'Agencia · Leads', '', 'al llegar'], ['Vigilante', 'Posts atorados y recordatorios', 'Agencia · Vigilante', '40 * * * *', 'cada hora']]],
   ];
+  const DEL_PANEL = ['Agencia · Panel (lectura)', 'Agencia · Panel acciones', 'Agencia · Panel analytics (lectura)', 'Agencia · Panel SEO (aprobar propuestas)', 'Agencia · Panel agentes (lectura y encargos)', 'Agencia · Paid campañas (Meta)', 'Agencia · Paid propuesta', 'Agencia · Audiencias de Meta', 'Agencia · Meta Ads acciones (botones)'];
+  // Siguiente corrida de un cron sencillo «m h * * dow» (m y h pueden ser * o número; dow lista).
+  function siguiente(cron, desde) {
+    const [mi, ho, , , dw] = cron.split(' ');
+    const d = new Date(desde); d.setSeconds(0, 0); d.setMinutes(d.getMinutes() + 1);
+    const dias = dw === '*' ? null : dw.split(',').map(Number);
+    for (let k = 0; k < 8 * 24 * 60; k++) {
+      if ((mi === '*' || d.getMinutes() === +mi) && (ho === '*' || d.getHours() === +ho) && (!dias || dias.includes(d.getDay()))) return d;
+      d.setMinutes(d.getMinutes() + 1);
+    }
+    return null;
+  }
+  const hhmm = s => { const d = new Date(s); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  function estadoAgente(nombreFlujo) {
+    if (!ag || ag.error_n8n) return { est: 'sin', txt: '' };
+    const w = (ag.flujos || []).find(x => x.nombre === nombreFlujo);
+    if (!w) return { est: 'falta' };
+    const cs = (ag.corridas || []).filter(c => c.flujo === w.id).sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)));
+    const ult = cs[0];
+    if (ult && ult.estado === 'error') return { est: 'error', ult, n: cs.length, w };
+    if (!w.activo) return { est: 'apagado', ult, n: cs.length, w };
+    return { est: 'ok', ult, n: cs.length, w };
+  }
   function vistaAgentes() {
-    const inc = AGENTES.filter(a => a[5] === 'incluido').length;
-    return heroe('Agentes de la agencia', inc + ' de ' + AGENTES.length, 'Agentes listos para importar en tu n8n. Los «por armar» tienen su lógica en docs/agentes-por-portar.md.')
-      + '<div class="bloque">' + tituloSec('Agentes', 'n8n/flujos') + '<table><tr><th>Área</th><th>Agente</th><th>Cuándo</th><th>Flujo</th><th>Estado</th></tr>' + AGENTES.map(a => '<tr><td>' + esc(a[0]) + '</td><td><b>' + esc(a[1]) + '</b><div style="color:var(--muted);font-size:13px">' + esc(a[3]) + '</div></td><td>' + esc(a[2]) + '</td><td class="mono">' + esc(a[4]) + '</td><td><span class="etiq ' + (a[5] === 'incluido' ? 'ok' : 'hacer') + '">' + esc(a[5]) + '</span></td></tr>').join('') + '</table></div>'
-      + '<div class="resumen" style="margin-bottom:64px"><b style="font-size:20px">Cómo subir los flujos a tu n8n</b><ol style="margin:14px 0 0;padding-left:20px;line-height:1.9">'
+    const todos = GRUPOS.flatMap(g => g[1]);
+    const E = todos.map(a => ({ a, s: estadoAgente(a[2]) }));
+    const conN8n = ag && !ag.error_n8n;
+    const bien = E.filter(x => x.s.est === 'ok').length, apagados = E.filter(x => x.s.est === 'apagado'), errs = E.filter(x => x.s.est === 'error');
+    const corridas = conN8n ? (ag.corridas || []).length : 0, fallas = conN8n ? (ag.corridas || []).filter(c => c.estado === 'error').length : 0;
+    const ahora = new Date();
+    const prox = todos.filter(a => a[3] && a[3].split(' ')[1] !== '*').map(a => ({ a, d: siguiente(a[3], ahora) })).filter(x => x.d).sort((x, y) => x.d - y.d)[0];
+    const falta = prox ? Math.round((prox.d - ahora) / 60000) : 0;
+    const enc = conN8n || (ag && !ag.error_github) ? (ag.encargos || []) : [];
+    const abiertos = enc.filter(e => e.estado === 'open');
+    const esperan = abiertos.filter(e => e.etiquetas.includes('espera-ok')).length;
+    let h = '<div class="heroe-ag"><div><div class="ceja">La operación · últimas 24 h</div><div class="grande"><div class="n1">' + (conN8n ? bien : '—') + '</div><div class="frase-lado">de ' + todos.length + ' agentes<br>' + (conN8n ? 'trabajando bien' : 'sin conectar') + '</div></div><div class="comp">'
+      + (conN8n ? ((apagados.length || errs.length) ? '<span class="pill suave">' + (errs.length ? errs.length + ' con error · ' + esc(errs[0].a[0]) : apagados.length + ' apagado' + (apagados.length > 1 ? 's' : '') + ' · ' + esc(apagados[0].a[0])) + '</span>' : '') + '<span>' + fallas + (fallas === 1 ? ' error · ' : ' errores · ') + corridas + (corridas === 1 ? ' corrida' : ' corridas') + '</span>' : '<span>Activa «Panel agentes» (64) y crea la credencial «n8n API» para ver el estado real.' + (agErr ? ' n8n respondió: ' + esc(agErr) : '') + '</span>') + '</div></div>'
+      + '<div class="lado"><div><div class="t">Lo siguiente</div><div class="sig">' + (prox ? esc(prox.a[0]) : '—') + '</div><div class="mono mu">' + (prox ? (prox.d.toDateString() === ahora.toDateString() ? 'hoy ' : DSEM[prox.d.getDay()] + ' ') + hhmm(prox.d) + ' · en ' + (falta >= 60 ? Math.floor(falta / 60) + ' h ' + (falta % 60) : falta + ' min') : '') + '</div></div>'
+      + '<div><div class="t">Encargos abiertos</div><div class="n2">' + fmt(abiertos.length) + '</div><div class="mono mu">' + (esperan ? esperan + ' espera' + (esperan > 1 ? 'n' : '') + ' tu OK' : 'en GitHub') + '</div></div></div></div>';
+    h += '<div class="sec-tit sin"><h2>Cómo trabajan, en orden</h2><span>Punto verde: corrió bien o está activo · rojo: su última corrida falló · amarillo: apagado · gris: no está en tu n8n</span></div><div class="grupos">' + GRUPOS.map(([g, lista], i) => '<div class="grupo"><div class="g-cab"><span class="num">' + String(i + 1).padStart(2, '0') + '</span><b>' + esc(g) + '</b></div>' + lista.map(a => {
+      const s = estadoAgente(a[2]);
+      const pt = { ok: 'var(--up)', error: 'var(--down)', apagado: 'var(--accent)', falta: '#BDBDBD', sin: '#BDBDBD' }[s.est];
+      const hoy = s.ult && new Date(s.ult.inicio).toDateString() === ahora.toDateString();
+      const der = s.est === 'error' ? '<span class="mono dn">✕ ' + hhmm(s.ult.inicio) + '</span>' : (hoy && a[3] && !/\*/.test(a[3].split(' ')[1]) ? '<span class="mono up">✓ ' + hhmm(s.ult.inicio) + '</span>' : '<span class="mono mu">' + esc(s.est === 'falta' ? 'no está' : s.est === 'apagado' ? 'apagado' : a[4]) + '</span>');
+      return '<div class="ag" title="' + esc(a[2]) + '"><span class="punto" style="background:' + pt + '"></span><div><b>' + esc(a[0]) + '</b><div class="mu sm">' + esc(a[1]) + '</div></div>' + der + '</div>';
+    }).join('') + '</div>').join('') + '</div>';
+    const etiq = e => e.estado !== 'open' ? '<span class="cerrado">✓ Cerrado</span>' : e.etiquetas.includes('espera-ok') ? '<span class="pill">Espera tu OK</span>' : e.etiquetas.includes('en-curso') ? '<span class="pill suave">Lo están haciendo</span>' : '<span class="pill gris">Abierto</span>';
+    const nuestros = new Set([...todos.map(a => a[2]), ...DEL_PANEL]);
+    const detras = conN8n ? (ag.flujos || []).filter(w => !nuestros.has(w.nombre)) : [];
+    h += '<div class="cols-a"><div><div class="sec-tit"><h2>Encargos</h2><span>issues con la etiqueta «encargo» en tu repo</span></div>'
+      + (enc.length ? enc.slice(0, verTodo.enc ? 30 : 4).map(e => '<div class="encargo' + (e.estado !== 'open' ? ' viejo' : '') + '"><span class="mono mu">#' + e.numero + '</span><a href="' + esc(e.url) + '" target="_blank" rel="noopener">' + esc(e.titulo) + '</a>' + etiq(e) + '</div>').join('') + (enc.length > 4 ? '<button class="enlace-n" data-ver="enc">' + (verTodo.enc ? 'Ver menos' : 'Ver los ' + enc.length + ' →') + '</button>' : '') : '<div class="vacio">' + (ag && ag.error_github ? 'GitHub: ' + esc(ag.error_github) : 'Sin encargos todavía.') + '</div>')
+      + '<div class="fila-btn" style="margin-top:20px"><button class="btn negro" id="nuevoEncargo">Encargar algo nuevo</button></div></div>'
+      + '<div><div class="sec-tit sin"><h2>Detrás del panel</h2><span>' + (conN8n ? detras.length + ' flujos' : '') + '</span></div>' + (conN8n ? (detras.length ? detras.slice(0, verTodo.detras ? 100 : 3).map(w => '<div class="detras"><span>' + esc(w.nombre) + '</span><span class="mono ' + (w.activo ? 'up' : 'mu') + '">' + (w.activo ? 'activo' : 'manual') + '</span></div>').join('') + (detras.length > 3 ? '<button class="enlace-n" data-ver="detras">' + (verTodo.detras ? 'Ver menos' : 'Ver los ' + detras.length + ' →') + '</button>' : '') : '<div class="vacio">Solo están los flujos de la agencia.</div>') : '<div class="vacio">Sin conexión con n8n.</div>') + '</div></div>';
+    h += '<div class="resumen" style="margin-bottom:64px"><b style="font-size:20px">Cómo subir los flujos a tu n8n</b><ol style="margin:14px 0 0;padding-left:20px;line-height:1.9">'
       + '<li>Crea en n8n las credenciales con los nombres de <code>docs/instalacion.md</code> (paso 5).</li>'
       + '<li>Crea las tablas <code>seo_articulos</code>, <code>paid_campanas</code> y <code>meta_ads_decisiones</code> en n8n → Data tables.</li>'
       + '<li>Copia <code>n8n/config.ejemplo.json</code> como <code>n8n/config.json</code>, llénalo y corre <code>python3 n8n/configurar.py</code>.</li>'
       + '<li>Importa <code>n8n/listos/</code>: <code>n8n import:workflow --separate --input=n8n/listos</code> o uno por uno en Workflows → Import from file.</li>'
-      + '<li>Si importaste uno por uno, corre <code>python3 n8n/configurar.py --ids</code> y reconecta los nodos que lista.</li>'
+      + '<li>Corre una vez «SEO preparar pestañas» y «BigQuery preparar».</li>'
       + '<li>Activa primero Alertas de error, Telegram (respuestas) y Vigilante; luego el resto.</li>'
-      + '</ol><div class="insight" style="margin-top:16px">Atajo: dale a Claude acceso a tu n8n (MCP) y pídele «sube los flujos de n8n/listos y asigna mis credenciales».</div></div>';
+      + '</ol></div>';
+    return h;
   }
 
   function pintar() {
     if (!datos && tab !== 'agentes') return;
-    const vistas = { hoy: vistaHoy, resultados: vistaResultados, paid: vistaPaid, contenido: vistaContenido, seo: vistaSeo, research: vistaResearch, agentes: vistaAgentes };
+    const vistas = { hoy: vistaHoy, resultados: vistaResultados, analytics: vistaAnalytics, paid: vistaPaid, contenido: vistaContenido, seo: vistaSeo, research: vistaResearch, agentes: vistaAgentes };
     $('#contenido').innerHTML = vistas[tab]();
     const n = datos ? pendientes().length : 0;
     $('#badgeHoy').hidden = !n; $('#badgeHoy').textContent = n;
+    const d = $('#detalle');
+    if (det && ana) { d.innerHTML = detalle(); d.hidden = false; document.body.classList.add('con-det'); } else { d.hidden = true; d.innerHTML = ''; document.body.classList.remove('con-det'); }
   }
-  function irA(t) { tab = t; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('activa', x.dataset.tab === t)); pintar(); window.scrollTo(0, 0); }
+  let scrollAntes = 0;
+  function abrirDet(k) { if (!ana) return; scrollAntes = window.scrollY; det = k; verTodo.dias = false; pintar(); window.scrollTo(0, 0); try { history.pushState({ det: k }, ''); } catch (e) {} }
+  function cerrarDet() { if (!det) return; det = ''; pintar(); window.scrollTo(0, scrollAntes); }
+  window.addEventListener('popstate', () => { if (det) cerrarDet(); });
+  function irA(t) { tab = t; det = ''; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('activa', x.dataset.tab === t)); pintar(); window.scrollTo(0, 0); }
 
   async function accion(acc, id, version, texto) {
     try {
@@ -571,7 +1060,36 @@
       }
     } catch (e) { paidRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; pintar(); }
   });
-  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && abierto) { abierto = ''; pintar(); } });
+  document.addEventListener('keydown', ev => { if (ev.key !== 'Escape') return; if (det) { if (history.state && history.state.det) history.back(); else cerrarDet(); } else if (abierto) { abierto = ''; pintar(); } });
+  // Detalle, «ver todos», filtro de marca desde Resultados, SEO y encargos.
+  document.addEventListener('click', async ev => {
+    const d = ev.target.closest('[data-det]');
+    if (d) { ev.preventDefault(); abrirDet(d.dataset.det); return; }
+    if (ev.target.closest('[data-cerrar-det]')) { ev.preventDefault(); if (history.state && history.state.det) history.back(); else cerrarDet(); return; }
+    const v = ev.target.closest('[data-ver]');
+    if (v) { ev.preventDefault(); verTodo[v.dataset.ver] = !verTodo[v.dataset.ver]; pintar(); return; }
+    const mk = ev.target.closest('[data-marca]');
+    if (mk) { ev.preventDefault(); marca = mk.dataset.marca; pintarMarcas(); pintar(); window.scrollTo(0, 0); return; }
+    const sb = ev.target.closest('button[data-seo]');
+    if (sb) {
+      const filas = sb.dataset.filas.split(',').map(Number), acc = sb.dataset.seo;
+      if (acc === 'aprobar' && filas.length > 1 && !confirm('¿Aprobar las ' + filas.length + ' propuestas?')) return;
+      document.querySelectorAll('button[data-seo]').forEach(b => { b.disabled = true; });
+      try { const r = await pedir('agencia-panel-seo', { method: 'POST', body: JSON.stringify({ accion: acc, filas }) }); seoRes = '<div class="aviso' + (r.ok ? '' : ' error') + '" style="margin:0">' + esc(r.mensaje || 'Listo.') + '</div>'; if (r.ok && ana && ana.seo) ana.seo.propuestas = (ana.seo.propuestas || []).filter(p => !filas.includes(p.fila)); }
+      catch (e) { seoRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; }
+      pintar(); return;
+    }
+    if (ev.target.closest('#nuevoEncargo')) {
+      $('#encTitulo').value = ''; $('#encDetalle').value = '';
+      const dl = $('#dlgEncargo');
+      dl.onclose = async () => {
+        if (dl.returnValue !== 'ok' || $('#encTitulo').value.trim().length < 5) return;
+        try { const r = await pedir('agencia-panel-encargo', { method: 'POST', body: JSON.stringify({ titulo: $('#encTitulo').value.trim(), detalle: $('#encDetalle').value.trim() }) }); $('#contenido').insertAdjacentHTML('afterbegin', '<div class="aviso' + (r.ok ? '' : ' error') + '">' + esc(r.mensaje) + '</div>'); if (r.ok) setTimeout(cargar, 800); }
+        catch (e) { $('#contenido').insertAdjacentHTML('afterbegin', '<div class="aviso error">' + esc(e.message) + '</div>'); }
+      };
+      dl.showModal();
+    }
+  });
   $('#tabs').onclick = ev => { const b = ev.target.closest('button[data-tab]'); if (b) irA(b.dataset.tab); };
   $('#recargar').onclick = cargar;
   $('#dias').onchange = cargar;

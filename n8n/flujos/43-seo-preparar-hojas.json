@@ -1,0 +1,142 @@
+{
+  "name": "Agencia · SEO preparar pestañas (manual)",
+  "nodes": [
+    {
+      "id": "1760c2e8-5239-50cc-8bdc-c3964cef538c",
+      "name": "Ejecutar una vez",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "0ca91915-9620-50ff-add3-0d5529413d61",
+      "name": "Pestañas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const T = {\n  'SEO posiciones': ['fecha', 'semana', 'marca', 'keyword', 'origen', 'volumen', 'posicion', 'posicion_anterior', 'cambio', 'url', 'top1', 'top2', 'top3', 'competencia_top10', 'gsc_clics', 'gsc_impresiones', 'gsc_posicion'],\n  'SEO on-page': ['fecha', 'semana', 'marca', 'url', 'status', 'score', 'titulo', 'largo_titulo', 'largo_descripcion', 'h1', 'palabras', 'segundos', 'problemas', 'prioridad', 'impresiones_28d'],\n  'SEO propuestas': ['fecha', 'semana', 'marca', 'url', 'cambio', 'actual', 'propuesta', 'por_que', 'estado', 'decidido'],\n  'SEO reportes': ['fecha', 'semana', 'marca', 'reporte', 'costo_usd'],\n};\nreturn [{ json: {\n  crear: { requests: Object.keys(T).map(title => ({ addSheet: { properties: { title } } })) },\n  encabezados: { valueInputOption: 'RAW', data: Object.entries(T).map(([t, cols]) => ({ range: \"'\" + t + \"'!A1\", values: [cols] })) },\n} }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "b04d3fe2-d7af-5aa0-afcb-bd9a370d7f2f",
+      "name": "Crear pestañas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.crear) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "47ba5ad0-9b91-59e3-ab25-4147e75c1e91",
+      "name": "Encabezados",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Pestañas').first().json.encabezados) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar una vez": {
+      "main": [
+        [
+          {
+            "node": "Pestañas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pestañas": {
+      "main": [
+        [
+          {
+            "node": "Crear pestañas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear pestañas": {
+      "main": [
+        [
+          {
+            "node": "Encabezados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 120,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Una vez: crea en el Sheet las pestañas SEO posiciones, SEO on-page, SEO propuestas y SEO reportes con sus encabezados."
+  },
+  "pinData": {},
+  "active": false
+}

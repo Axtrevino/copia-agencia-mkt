@@ -1,0 +1,217 @@
+{
+  "name": "Agencia · Panel SEO (aprobar propuestas)",
+  "nodes": [
+    {
+      "id": "8a25a7cb-1168-5055-8bcf-7bdebf37be9e",
+      "name": "Panel SEO",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencia-panel-seo",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      },
+      "webhookId": "28ecdeac-87a4-5571-bde9-b0b3caedaf64"
+    },
+    {
+      "id": "f78d9931-c854-5d39-b342-88f0760c69ef",
+      "name": "Leer propuestas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/%27SEO%20propuestas%27!A:J",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a9819312-5a3b-5c4b-a90f-6ebec4b92f76",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Solo cambia filas que siguen «propuesto». aprobar → «aprobado» (se aplica a mano en el sitio); descartar → «descartado».\nconst b = ($('Panel SEO').first().json.body || {});\nconst accion = String(b.accion || '');\nif (!['aprobar', 'descartar'].includes(accion)) return [{ json: { ok: false, mensaje: 'Acción no válida.' } }];\nconst filas = [...new Set((Array.isArray(b.filas) ? b.filas : [b.fila]).map(Number).filter(n => Number.isInteger(n) && n >= 2))];\nconst v = ($input.first().json.values || []);\nconst vigentes = filas.filter(n => (v[n - 1] || [])[8] === 'propuesto');\nif (!vigentes.length) return [{ json: { ok: false, mensaje: 'Esas propuestas ya no están por aprobar.' } }];\nconst estado = accion === 'aprobar' ? 'aprobado' : 'descartado';\nconst cuando = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm');\nreturn [{ json: { ok: true, estado, n: vigentes.length, cuerpo: { valueInputOption: 'RAW', data: vigentes.map(n => ({ range: \"'SEO propuestas'!I\" + n + ':J' + n, values: [[estado, cuando]] })) } } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "77bf2a1e-5209-54a0-bee2-1cda59f072e9",
+      "name": "Escribir",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.cuerpo || { data: [] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "2a03fba6-d75d-5ab4-973a-5884d50ed348",
+      "name": "Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const V = $('Validar').first().json;\nconst r = $input.first().json || {};\nif (!V.ok) return [{ json: V }];\nif (r.error) return [{ json: { ok: false, mensaje: 'El Sheet no aceptó el cambio: ' + (r.error.message || '') } }];\nreturn [{ json: { ok: true, mensaje: V.n + (V.n === 1 ? ' propuesta ' : ' propuestas ') + (V.estado === 'aprobado' ? 'aprobada' : 'descartada') + (V.n === 1 ? '' : 's') + (V.estado === 'aprobado' ? '. Quedan en el Sheet para aplicarlas en el sitio.' : '.') } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "49d9302a-5ec4-5e15-b874-1fa5f83e8d7a",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Panel SEO": {
+      "main": [
+        [
+          {
+            "node": "Leer propuestas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer propuestas": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "Escribir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escribir": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 60,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lo llama el panel (pestaña SEO): marca propuestas como aprobadas o descartadas en la pestaña «SEO propuestas». No cambia el sitio."
+  },
+  "pinData": {},
+  "active": false
+}

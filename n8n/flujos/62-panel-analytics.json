@@ -1,0 +1,439 @@
+{
+  "name": "Agencia · Panel analytics (lectura)",
+  "nodes": [
+    {
+      "id": "a81b15ce-d1b6-556b-8886-c045a4dff33b",
+      "name": "Panel analytics",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "agencia-panel-analytics",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      },
+      "webhookId": "68abef32-9ffb-5f60-bac7-c3f83c131273"
+    },
+    {
+      "id": "5081cde5-bfaf-5204-af51-3a013d76f397",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Qué mide el panel por marca. Edita aquí los eventos de GA4:\n// lead: el evento que cuenta como «dejó sus datos»; medio: un paso intermedio del embudo (o null si no tienes).\nconst MARCAS = {\n  'marca-a': { nombre: 'Marca A', dominio: '__DOMINIO_A__', ga4: '__GA4_PROPIEDAD_A__', gsc: '__GSC_SITIO_A__',\n    lead: { nombre: 'generate_lead', etiqueta: 'Dejaron sus datos' }, medio: { nombre: 'form_start', etiqueta: 'Empezaron el formulario' } },\n  'marca-b': { nombre: 'Marca B', dominio: '__DOMINIO_B__', ga4: '__GA4_PROPIEDAD_B__', gsc: '__GSC_SITIO_B__',\n    lead: { nombre: 'generate_lead', etiqueta: 'Dejaron sus datos' }, medio: { nombre: 'form_start', etiqueta: 'Empezaron el formulario' } },\n};\nconst q = ($('Panel analytics').first().json.query || {});\nconst dias = Math.min(90, Math.max(7, Number(q.dias) || 28));\nconst hoy = $now.setZone('America/Mexico_City').startOf('day');\nconst f = n => hoy.minus({ days: n }).toISODate();\nconst R = { dias, desde: f(dias), hasta: f(1), ant_desde: f(dias * 2), ant_hasta: f(dias + 1) };\nconst rangos = [{ startDate: R.desde, endDate: R.hasta, name: 'actual' }, { startDate: R.ant_desde, endDate: R.ant_hasta, name: 'anterior' }];\nconst out = [];\nfor (const [marca, c] of Object.entries(MARCAS)) {\n  const ga = 'https://analyticsdata.googleapis.com/v1beta/properties/' + c.ga4 + ':batchRunReports';\n  out.push({ json: { marca, tipo: 'ga4', url: ga, body: { requests: [\n    { dateRanges: rangos, dimensions: [{ name: 'date' }], metrics: [{ name: 'sessions' }, { name: 'engagedSessions' }], limit: 400 },\n    { dateRanges: rangos, metrics: [{ name: 'sessions' }, { name: 'engagedSessions' }, { name: 'activeUsers' }] },\n    { dateRanges: rangos, dimensions: [{ name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'sessions' }, { name: 'engagedSessions' }], limit: 30 },\n    { dateRanges: [rangos[0]], dimensions: [{ name: 'landingPage' }], metrics: [{ name: 'sessions' }], orderBys: [{ metric: { metricName: 'sessions' }, desc: true }], limit: 30 },\n    { dateRanges: rangos, dimensions: [{ name: 'eventName' }], metrics: [{ name: 'eventCount' }], limit: 60 },\n  ] } } });\n  // Atribución aparte: si GA4 rechaza la combinación, lo demás sigue funcionando.\n  out.push({ json: { marca, tipo: 'atribucion', url: ga, body: { requests: [\n    { dateRanges: [rangos[0]], dimensions: [{ name: 'firstUserDefaultChannelGroup' }, { name: 'sessionDefaultChannelGroup' }], metrics: [{ name: 'eventCount' }],\n      dimensionFilter: { filter: { fieldName: 'eventName', stringFilter: { matchType: 'EXACT', value: c.lead.nombre } } }, limit: 100 },\n  ] } } });\n  const sc = 'https://www.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(c.gsc) + '/searchAnalytics/query';\n  out.push({ json: { marca, tipo: 'gsc_dia', url: sc, body: { startDate: R.ant_desde, endDate: R.hasta, dimensions: ['date'], rowLimit: 400 } } });\n  out.push({ json: { marca, tipo: 'gsc_q', url: sc, body: { startDate: R.desde, endDate: R.hasta, dimensions: ['query'], rowLimit: 30 } } });\n  out.push({ json: { marca, tipo: 'gsc_p', url: sc, body: { startDate: R.desde, endDate: R.hasta, dimensions: ['page'], rowLimit: 30 } } });\n}\nreturn out.map(o => ({ json: Object.assign(o.json, { R, MARCAS }) }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "a0efb5fd-c9a4-5068-8407-b4b49e4664e4",
+      "name": "Google",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "bb457425-6aa0-56d3-aae6-6e35b7cfea9f",
+      "name": "Anuncios A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_A__/insights?level=account&time_increment=1&limit=200&fields=impressions,reach,spend&time_range=' + encodeURIComponent(JSON.stringify({ since: $('Configuración').first().json.R.desde, until: $('Configuración').first().json.R.hasta })) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "eff152b5-816f-52d1-a2a6-ac67ecc7a668",
+      "name": "Anuncios B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_B__/insights?level=account&time_increment=1&limit=200&fields=impressions,reach,spend&time_range=' + encodeURIComponent(JSON.stringify({ since: $('Configuración').first().json.R.desde, until: $('Configuración').first().json.R.hasta })) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "e9cfb76b-ed5f-511b-90bb-4ebd2ae12a80",
+      "name": "Página A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/me/insights?metric=page_total_media_view_unique&period=day&since=' + $('Configuración').first().json.R.desde + '&until=' + $('Configuración').first().json.R.hasta }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "e8f78df5-02ed-50ac-b6af-ba7554acd689",
+      "name": "Página B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v26.0/me/insights?metric=page_total_media_view_unique&period=day&since=' + $('Configuración').first().json.R.desde + '&until=' + $('Configuración').first().json.R.hasta }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "867f08f8-f30c-55c2-b1fb-c5107ab71f9b",
+      "name": "Pestañas SEO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values:batchGet?ranges=%27SEO%20posiciones%27!A:Q&ranges=%27SEO%20on-page%27!A:O&ranges=%27SEO%20propuestas%27!A:J",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ec6e94a9-60db-5a64-a071-403f376ac958",
+      "name": "Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "29c3fae5-5f3e-5d1e-bf03-0e06622dbe0a",
+      "name": "Resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Lo que leen Resultados, Analytics y SEO. Sin datos de contacto.\nconst C = $('Configuración').all().map(i => i.json);\nconst G = $('Google').all().map(i => i.json || {});\nconst { R, MARCAS } = C[0];\nconst err = j => (j && j.error) ? String(j.error.message || j.error.status || JSON.stringify(j.error)).slice(0, 300) : '';\nconst iso = s => s.length === 8 ? s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6) : s;\nconst leer = n => { try { return $(n).first().json || {}; } catch (e) { return { error: { message: 'no corrió' } }; } };\nconst out = { generado: $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm'), dias: R.dias, desde: R.desde, hasta: R.hasta, ant_desde: R.ant_desde, ant_hasta: R.ant_hasta,\n  sheet_url: 'https://docs.google.com/spreadsheets/d/__SHEET_ID__/edit', marcas: {}, seo: {} };\nfor (const [m, c] of Object.entries(MARCAS)) {\n  out.marcas[m] = { nombre: c.nombre, dominio: c.dominio, lead: c.lead, medio: c.medio,\n    ga4_url: 'https://analytics.google.com/analytics/web/#/p' + c.ga4 + '/reports/intelligenthome',\n    gsc_url: 'https://search.google.com/search-console/performance/search-analytics?resource_id=' + encodeURIComponent(c.gsc),\n    ga4: { error: '' }, gsc: { error: '' }, meta: {}, leads_sheet: { total: 0, clientes: 0, medido: false } };\n}\nC.forEach((p, i) => {\n  const j = G[i] || {}, M = out.marcas[p.marca]; if (!M) return;\n  const e = err(j);\n  if (p.tipo === 'ga4') {\n    if (e || !j.reports) { M.ga4.error = e || 'GA4 no devolvió reportes'; return; }\n    const [dia, tot, can, pag, ev] = j.reports;\n    const rango = r => r.dimensionValues.at(-1).value;\n    const g = M.ga4;\n    g.diario = {}; g.diario_ant = {};\n    for (const r of dia.rows || []) (rango(r) === 'actual' ? g.diario : g.diario_ant)[iso(r.dimensionValues[0].value)] = { s: +r.metricValues[0].value, e: +r.metricValues[1].value };\n    const T = { actual: [0, 0, 0], anterior: [0, 0, 0] };\n    for (const r of tot.rows || []) T[rango(r)] = r.metricValues.map(x => +x.value);\n    [g.sesiones, g.enganchadas, g.usuarios] = T.actual; [g.sesiones_ant, g.enganchadas_ant, g.usuarios_ant] = T.anterior;\n    const ch = {};\n    for (const r of can.rows || []) { const k = r.dimensionValues[0].value; const x = ch[k] = ch[k] || { canal: k, s: 0, s_ant: 0, e: 0 }; if (rango(r) === 'actual') { x.s += +r.metricValues[0].value; x.e += +r.metricValues[1].value; } else x.s_ant += +r.metricValues[0].value; }\n    g.canales = Object.values(ch).sort((a, b) => b.s - a.s);\n    g.paginas = (pag.rows || []).map(r => ({ pagina: r.dimensionValues[0].value, s: +r.metricValues[0].value }));\n    g.eventos = {};\n    for (const r of ev.rows || []) { const k = r.dimensionValues[0].value; g.eventos[k] = g.eventos[k] || [0, 0]; g.eventos[k][rango(r) === 'actual' ? 0 : 1] += +r.metricValues[0].value; }\n  } else if (p.tipo === 'atribucion') {\n    if (e || !j.reports) { M.ga4.atribucion_error = e || 'sin datos'; M.ga4.atribucion = []; return; }\n    M.ga4.atribucion = (j.reports[0].rows || []).map(r => ({ primero: r.dimensionValues[0].value, ultimo: r.dimensionValues[1].value, n: +r.metricValues[0].value }));\n  } else if (p.tipo === 'gsc_dia') {\n    if (e) { M.gsc.error = e; return; }\n    const s = M.gsc; s.diario = {}; s.clics = s.impresiones = s.clics_ant = s.impresiones_ant = 0; let pw = 0;\n    for (const r of j.rows || []) {\n      const d = r.keys[0];\n      if (d >= R.desde) { s.diario[d] = { c: r.clicks, i: r.impressions }; s.clics += r.clicks; s.impresiones += r.impressions; pw += r.position * r.impressions; }\n      else { s.clics_ant += r.clicks; s.impresiones_ant += r.impressions; }\n    }\n    s.posicion = s.impresiones ? Math.round(pw / s.impresiones * 10) / 10 : null;\n  } else if (p.tipo === 'gsc_q') {\n    M.gsc.consultas = e ? [] : (j.rows || []).map(r => ({ q: r.keys[0], c: r.clicks, i: r.impressions, pos: Math.round(r.position * 10) / 10 }));\n  } else if (p.tipo === 'gsc_p') {\n    M.gsc.paginas = e ? [] : (j.rows || []).map(r => ({ url: r.keys[0], c: r.clicks, i: r.impressions, pos: Math.round(r.position * 10) / 10 }));\n  }\n});\n// Meta: impresiones de anuncios y alcance de la página por día.\nfor (const [m, L] of [['marca-a', 'A'], ['marca-b', 'B']]) {\n  const M = out.marcas[m]; if (!M) continue;\n  const a = leer('Anuncios ' + L), p = leer('Página ' + L);\n  M.meta = { anuncios: {}, pagina: {}, error_anuncios: err(a), error_pagina: err(p) };\n  for (const r of a.data || []) M.meta.anuncios[r.date_start] = +r.impressions || 0;\n  for (const s of p.data || []) for (const v of s.values || []) { const d = String(v.end_time || '').slice(0, 10); if (d) M.meta.pagina[d] = (+v.value || 0); }\n}\n// Leads del Sheet: total y clientes (columna estado = cliente, ganado o venta).\nlet leads = []; try { leads = $('Leads').all().map(i => i.json || {}); } catch (e) {}\nfor (const l of leads) {\n  const M = out.marcas[l.marca]; if (!M || !l.lead_id || String(l.fecha || '').slice(0, 10) < R.desde || l.estado === 'descartado') continue;\n  M.leads_sheet.total++;\n  if (/cliente|ganad|venta|vendid|cerrad/i.test(String(l.estado || ''))) M.leads_sheet.clientes++;\n}\nfor (const l of leads) { const M = out.marcas[l.marca]; if (M && /cliente|ganad|venta|vendid|cerrad/i.test(String(l.estado || ''))) M.leads_sheet.medido = true; }\n// Pestañas SEO del Sheet (las escribe «SEO posiciones y on-page»).\nconst S = leer('Pestañas SEO');\nif (err(S) || !S.valueRanges) out.seo = { error: err(S) || 'Faltan las pestañas SEO: corre «SEO preparar pestañas (manual)».', posiciones: [], paginas: [], propuestas: [] };\nelse {\n  const [pos, onp, prop] = S.valueRanges.map(v => (v.values || []).slice(1));\n  const fp = pos.reduce((a, r) => r[0] > a ? r[0] : a, '');\n  out.seo.fecha_pos = fp;\n  out.seo.posiciones = pos.filter(r => r[0] === fp).map(r => ({ marca: r[2], keyword: r[3], volumen: r[5] === '' || r[5] == null ? null : +r[5], posicion: r[6] === '' || r[6] == null ? null : +r[6], anterior: r[7] === '' || r[7] == null ? null : +r[7], cambio: r[8] || '', url: r[9] || '' }));\n  const fo = onp.reduce((a, r) => r[0] > a ? r[0] : a, '');\n  out.seo.fecha_onpage = fo;\n  out.seo.paginas = onp.filter(r => r[0] === fo && r[13] && r[13] !== 'ok').map(r => ({ marca: r[2], url: r[3], prioridad: r[13], problemas: r[12] || '' }));\n  out.seo.propuestas = prop.map((r, k) => ({ fila: k + 2, fecha: r[0], marca: r[2], url: r[3], cambio: r[4], actual: r[5] || '', propuesta: r[6] || '', por_que: r[7] || '', estado: r[8] || '' })).filter(x => x.estado === 'propuesto');\n}\nreturn [{ json: out }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "410fa857-5629-5de9-861b-323d519d8560",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Panel analytics": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google": {
+      "main": [
+        [
+          {
+            "node": "Anuncios A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anuncios A": {
+      "main": [
+        [
+          {
+            "node": "Anuncios B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anuncios B": {
+      "main": [
+        [
+          {
+            "node": "Página A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página A": {
+      "main": [
+        [
+          {
+            "node": "Página B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página B": {
+      "main": [
+        [
+          {
+            "node": "Pestañas SEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pestañas SEO": {
+      "main": [
+        [
+          {
+            "node": "Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leads": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 120,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Solo lectura. Lo llama el panel (Resultados, Analytics, SEO): GA4, Search Console, alcance de Meta, leads del Sheet y pestañas SEO del periodo."
+  },
+  "pinData": {},
+  "active": false
+}

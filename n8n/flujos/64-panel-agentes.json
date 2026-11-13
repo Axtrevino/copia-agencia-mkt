@@ -1,0 +1,397 @@
+{
+  "name": "Agencia · Panel agentes (lectura y encargos)",
+  "nodes": [
+    {
+      "id": "ab9ef437-8dfc-5dd2-b047-d0b3c35e87f2",
+      "name": "Panel agentes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "agencia-panel-agentes",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      },
+      "webhookId": "6efd3de7-d176-5480-b857-690f403cfccd"
+    },
+    {
+      "id": "8b8bd9ab-f3ff-5103-bf1e-98f84b65b6c0",
+      "name": "Flujos",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "workflow",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "",
+          "name": "n8n API"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "5d7f1a75-013a-50c5-a711-84641d3c357e",
+      "name": "Corridas",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "execution",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 250,
+        "filters": {},
+        "options": {}
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "",
+          "name": "n8n API"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "8e8cf526-8fe3-5a05-b93e-040fe7d084bf",
+      "name": "Encargos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.github.com/repos/__GITHUB_REPO__/issues?labels=encargo&state=all&per_page=30&sort=updated",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "1a749126-5d66-5cb5-89e1-2e2c028f4d35",
+      "name": "Resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const err = j => (j && j.error) ? String(j.error.message || j.error) : '';\nconst flujos = $('Flujos').all().map(i => i.json || {});\nconst corridas = $('Corridas').all().map(i => i.json || {});\nconst gh = $('Encargos').all().map(i => i.json || {});\nconst hace24 = $now.toUTC().minus({ hours: 24 }).toISO();\nconst issues = gh.length === 1 && Array.isArray(gh[0]) ? gh[0] : gh;\nreturn [{ json: {\n  generado: $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm'),\n  error_n8n: err(flujos[0]) || (flujos.length && !flujos[0].id ? 'sin flujos' : ''),\n  flujos: flujos.filter(w => w.id).map(w => ({ id: w.id, nombre: w.name, activo: !!w.active, actualizado: w.updatedAt })),\n  corridas: corridas.filter(x => x.id && String(x.startedAt || '') >= hace24).map(x => ({ flujo: x.workflowId, estado: x.status || (x.finished ? 'success' : 'error'), modo: x.mode, inicio: x.startedAt, fin: x.stoppedAt })),\n  error_github: err(issues[0]) || (issues[0] && issues[0].message ? issues[0].message : ''),\n  encargos: issues.filter(x => x && x.number && !x.pull_request).map(x => ({ numero: x.number, titulo: x.title, estado: x.state, etiquetas: (x.labels || []).map(l => l.name), url: x.html_url, actualizado: x.updated_at })),\n} }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "d42f5f1c-a89d-50a6-8770-c920a89d8a55",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "41682e58-ee22-5875-ad5c-5829af213d75",
+      "name": "Nuevo encargo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencia-panel-encargo",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      },
+      "webhookId": "2a0dfecd-9cb9-5546-a6f2-492b90505443"
+    },
+    {
+      "id": "3ff08c09-4cd6-5835-ae70-9a62b586dd76",
+      "name": "Validar encargo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const b = ($json.body || {});\nconst titulo = String(b.titulo || '').trim().slice(0, 140), detalle = String(b.detalle || '').trim().slice(0, 4000);\nif (titulo.length < 5) throw new Error('Escribe un título de al menos 5 letras.');\nreturn [{ json: { titulo, cuerpo: { title: titulo, body: (detalle || 'Sin detalle.') + '\\n\\n_Encargo creado desde el panel._', labels: ['encargo'] } } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "ccd22e66-a258-560b-9a44-04289085629b",
+      "name": "Crear issue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/__GITHUB_REPO__/issues",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.cuerpo) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "githubApi": {
+          "id": "",
+          "name": "GitHub"
+        }
+      }
+    },
+    {
+      "id": "40c0e3e0-5f82-5b88-9196-34b8adc34f02",
+      "name": "Respuesta encargo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first().json || {};\nreturn [{ json: r.number ? { ok: true, mensaje: 'Encargo #' + r.number + ' creado.', url: r.html_url } : { ok: false, mensaje: 'GitHub no aceptó el encargo: ' + (r.message || 'sin respuesta') } }];",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "614dbeb1-760f-56fc-a031-ee311bfbdcd0",
+      "name": "Responder encargo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Panel agentes": {
+      "main": [
+        [
+          {
+            "node": "Flujos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flujos": {
+      "main": [
+        [
+          {
+            "node": "Corridas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corridas": {
+      "main": [
+        [
+          {
+            "node": "Encargos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encargos": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumen": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nuevo encargo": {
+      "main": [
+        [
+          {
+            "node": "Validar encargo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar encargo": {
+      "main": [
+        [
+          {
+            "node": "Crear issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear issue": {
+      "main": [
+        [
+          {
+            "node": "Respuesta encargo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta encargo": {
+      "main": [
+        [
+          {
+            "node": "Responder encargo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 120,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lo llama el panel (pestaña Agentes): flujos y corridas de las últimas 24 h de tu n8n y encargos (issues con etiqueta «encargo» de tu repo). «Encargar algo nuevo» abre un issue."
+  },
+  "pinData": {},
+  "active": false
+}

@@ -37,6 +37,22 @@ Corre una vez «Agencia · Leads (preparar hoja, manual)» para crear los encabe
 landing referrer utm_source utm_medium utm_campaign utm_content utm_term gclid fbclid fbp fbc
 event_id notas actualizado`.
 
+Columna `estado`: cuando un lead se vuelve cliente, escribe `cliente` (también sirven `ganado` o
+`venta`). Con eso el embudo de Resultados mide la última etapa; si nadie la llena, sale «sin medir».
+
+## Pestañas SEO
+
+Las crea «SEO preparar pestañas (manual)». Las llena «SEO posiciones y on-page»:
+
+- **SEO posiciones**: `fecha semana marca keyword origen volumen posicion posicion_anterior cambio
+  url top1 top2 top3 competencia_top10 gsc_clics gsc_impresiones gsc_posicion` (cada lunes).
+- **SEO on-page**: `fecha semana marca url status score titulo largo_titulo largo_descripcion h1
+  palabras segundos problemas prioridad impresiones_28d` (cada dos semanas).
+- **SEO propuestas**: `fecha semana marca url cambio actual propuesta por_que estado decidido`.
+  `estado` empieza en `propuesto`; el panel lo cambia a `aprobado` o `descartado`. Lo aprobado se
+  aplica a mano en el sitio (nada se cambia solo). Las páginas legales nunca se proponen.
+- **SEO reportes**: `fecha semana marca reporte costo_usd`.
+
 ## Hallazgos
 
 `fecha semana marca tipo hallazgo fuente accion confianza`
