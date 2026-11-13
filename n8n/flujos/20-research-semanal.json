@@ -1,0 +1,545 @@
+{
+  "name": "Agencia · Research semanal",
+  "nodes": [
+    {
+      "id": "5307cf74-d89d-4a45-bf4a-998ff165740e",
+      "name": "Cada lunes 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "62d5729d-07eb-4c83-911f-fe1215648d71",
+      "name": "Probar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "832bfa37-4294-4481-b73f-8508e0a0c7a5",
+      "name": "Marcas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configuración de Research por marca. Para agregar una marca o cliente, agrega un objeto.\n// competidores: nombres comerciales tal como aparecen en la Biblioteca de Anuncios de Meta.\n// noticias: búsquedas de la semana (Tavily). keywords: palabras a medir (DataForSEO, México).\nconst semana = $now.setZone('America/Mexico_City').toFormat(\"kkkk-'W'WW\");\nconst marcas = [\n  {\n    marca: 'marca-a',\n    nombre: 'Marca A',\n    competidores: ['Competidor 1', 'Competidor 2', 'Competidor 3'],\n    noticias: ['tendencias de la industria México', 'regulación de la industria México'],\n    keywords: ['producto principal', 'producto principal precio', 'mejor producto principal México'],\n  },\n  {\n    marca: 'marca-b',\n    nombre: 'Marca B',\n    competidores: ['Competidor 1', 'Competidor 2'],\n    noticias: ['tendencias de la industria B México'],\n    keywords: ['servicio principal', 'servicio principal para empresas'],\n  },\n];\nreturn marcas.map(m => ({ json: { ...m, semana } }));"
+      }
+    },
+    {
+      "id": "f5f4dee3-09c1-4c79-9b87-be834947e4d5",
+      "name": "Investigar cada marca",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "each",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "c1371113-a3b2-4cbb-881b-e21aa699450a",
+      "name": "Investigar marca",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        600
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "fc62bac7-1393-4dfe-b9ac-a3f6446cf8c4",
+      "name": "Consultas de noticias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const m = $('Investigar marca').first().json;\nreturn m.noticias.map(q => ({ json: { query: q } }));"
+      }
+    },
+    {
+      "id": "c708d8b4-18f2-49a5-b98c-8608e7629b39",
+      "name": "Tavily: noticias",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: $json.query, topic: \"general\", time_range: \"week\", country: \"mexico\", max_results: 5 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Tavily (Authorization: Bearer)"
+        }
+      }
+    },
+    {
+      "id": "ba1e1b56-de2b-405e-8607-1b4c374296eb",
+      "name": "Apify: anuncios de competencia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/apify~facebook-ads-scraper/run-sync-get-dataset-items?timeout=240",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ resultsLimit: 10, activeStatus: 'active', startUrls: $('Investigar marca').first().json.competidores.map(c => ({ url: 'https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=MX&media_type=all&search_type=keyword_exact_phrase&q=' + encodeURIComponent('\"' + c + '\"') })) }) }}",
+        "options": {
+          "timeout": 280000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Apify (Authorization: Bearer)"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "d187f4fa-4f50-4637-843e-25e1268da321",
+      "name": "DataForSEO: volumen de keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify([{ keywords: $('Investigar marca').first().json.keywords, location_code: 2484, language_code: 'es' }]) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "DataForSEO"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "75ef01c6-57d4-46ec-82b5-efb1e861fb1a",
+      "name": "Juntar datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const m = $('Investigar marca').first().json;\n// Corta por caracteres completos (no parte emojis) y quita surrogates sueltos, que rompen el JSON.\nconst limpio = s => String(s || '').replace(/[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/g, '');\nconst corto = (s, n) => Array.from(limpio(s).replace(/\\s+/g, ' ').trim()).slice(0, n).join('');\nconst sinAcentos = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();\nconst noticias = [];\nconst vistas = new Set();\nfor (const it of $('Tavily: noticias').all()) {\n  for (const r of (it.json.results || [])) {\n    if (!r.url || vistas.has(r.url)) continue;\n    vistas.add(r.url);\n    noticias.push({ titulo: corto(r.title, 160), url: r.url, fecha: r.published_date || '', extracto: corto(r.content, 300) });\n  }\n}\n// Solo anuncios de la competencia. Nombres cortos solo cuentan si son la página; términos largos\n// también cuentan si aparecen como palabra completa en el texto.\nconst escapar = s => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\nconst terminos = m.competidores.map(c => { const t = sinAcentos(c); return { re: new RegExp('(^|[^a-z0-9])' + escapar(t) + '($|[^a-z0-9])'), enTexto: t.length > 6 || t.includes(' ') }; });\nconst plantilla = t => !t || /\\{\\{.*\\}\\}/.test(t);\nconst anuncios = [];\nconst errores = [];\nfor (const it of $('Apify: anuncios de competencia').all()) {\n  const a = it.json;\n  if (!a) continue;\n  if (a.error) { errores.push('Apify: ' + (a.error.message || a.error.type || a.error)); continue; }\n  const snap = a.snapshot || {};\n  const pagina = a.pageName || snap.pageName || a.page_name || '';\n  const card = (snap.cards && snap.cards[0]) || {};\n  let texto = snap.body && snap.body.text;\n  if (plantilla(texto)) texto = [card.title, card.body].filter(t => t && !plantilla(t)).join(' · ');\n  if (!texto && !plantilla(snap.title)) texto = snap.title;\n  const id = a.adArchiveID || a.adArchiveId || a.ad_archive_id || '';\n  if (!pagina || !id) continue;\n  const p = sinAcentos(pagina), tx = sinAcentos(texto);\n  if (!terminos.some(x => x.re.test(p) || (x.enTexto && x.re.test(tx)))) continue;\n  anuncios.push({ pagina, inicio: (a.startDateFormatted || a.start_date_formatted || '').slice(0, 10), texto: corto(texto, 300), destino: card.linkUrl || snap.linkUrl || '', url: 'https://www.facebook.com/ads/library/?id=' + id });\n}\nconst d = $('DataForSEO: volumen de keywords').first().json;\nconst res = (d.tasks && d.tasks[0] && d.tasks[0].result) || [];\nconst keywords = res.map(k => ({ keyword: k.keyword, volumen: k.search_volume, cpc: k.cpc, competencia: k.competition }));\nif (d.status_code && d.status_code !== 20000) errores.push('DataForSEO: ' + d.status_message);\nreturn [{ json: { marca: m.marca, nombre: m.nombre, semana: m.semana, datos: { noticias, anuncios, keywords }, errores } }];\n"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "83c4cf24-5f45-4fb3-9bcd-860fc9aa9549",
+      "name": "GPT: hallazgos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/research",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ marca: $json.marca, semana: $json.semana, datos: $json.datos }) }}",
+        "options": {
+          "timeout": 200000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      },
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "232e9671-957e-498c-8626-f086235dd4f0",
+      "name": "Telegram: resumen",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        400
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ (() => { const r = $('GPT: hallazgos').first().json; const j = $('Juntar datos').first().json; const e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); let t = '📚 <b>Research semanal · ' + e(j.nombre) + '</b> (' + e(j.semana) + ')\\n\\n' + e(r.resumen) + '\\n\\n' + r.hallazgos.length + ' hallazgos y ' + r.keywords_nuevas.length + ' palabras clave nuevas en el Sheet.'; if (j.errores.length) t += '\\n⚠️ ' + e(j.errores.join(' · ')); return t; })() }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_REPORTES__",
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "8e350c72-9715-4366-b11d-0b2cf4e791fd",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "aca985d9-eb5b-44c9-965b-a799392e7ca6",
+      "name": "Filas de hallazgos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const r = $('GPT: hallazgos').first().json;\nconst j = $('Juntar datos').first().json;\nconst fecha = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd');\nreturn r.hallazgos.map(h => ({ json: { fecha, semana: j.semana, marca: r.marca, tipo: h.tipo, hallazgo: h.hallazgo, fuente: h.fuente, accion: h.accion, confianza: h.confianza } }));"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "5f0e05f9-49b6-47d1-9a47-781f1ae86be1",
+      "name": "Sheet: Hallazgos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        600
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Hallazgos"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "e0c04d96-0dc2-4afd-a78e-2125169b1276",
+      "name": "Filas de keywords",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        800
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const r = $('GPT: hallazgos').first().json;\nconst vol = {};\nfor (const k of $('Juntar datos').first().json.datos.keywords) vol[String(k.keyword).toLowerCase()] = k;\nconst fecha = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd');\nreturn r.keywords_nuevas.map(k => ({ json: { fecha, marca: r.marca, keyword: k.keyword, intencion: k.intencion, prioridad: k.prioridad, volumen: (vol[k.keyword] || {}).volumen ?? '', cpc: (vol[k.keyword] || {}).cpc ?? '', estado: 'nueva' } }));"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a7bfbd3e-faaa-4e55-9f30-a8e4cfbee319",
+      "name": "Sheet: Keywords",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        800
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Keywords"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada lunes 8:00": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcas": {
+      "main": [
+        [
+          {
+            "node": "Investigar cada marca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Investigar marca": {
+      "main": [
+        [
+          {
+            "node": "Consultas de noticias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultas de noticias": {
+      "main": [
+        [
+          {
+            "node": "Tavily: noticias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily: noticias": {
+      "main": [
+        [
+          {
+            "node": "Apify: anuncios de competencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: anuncios de competencia": {
+      "main": [
+        [
+          {
+            "node": "DataForSEO: volumen de keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DataForSEO: volumen de keywords": {
+      "main": [
+        [
+          {
+            "node": "Juntar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar datos": {
+      "main": [
+        [
+          {
+            "node": "GPT: hallazgos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT: hallazgos": {
+      "main": [
+        [
+          {
+            "node": "Telegram: resumen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filas de hallazgos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filas de keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filas de hallazgos": {
+      "main": [
+        [
+          {
+            "node": "Sheet: Hallazgos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filas de keywords": {
+      "main": [
+        [
+          {
+            "node": "Sheet: Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 3000,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Cada lunes 8:00 investiga por marca noticias (Tavily), anuncios de la competencia (Apify) y keywords (DataForSEO); GPT resume, manda a Telegram y guarda hallazgos y keywords en el Sheet."
+  },
+  "pinData": {}
+}

@@ -1,0 +1,100 @@
+{
+  "name": "Agencia · Leads (preparar hoja, manual)",
+  "nodes": [
+    {
+      "id": "afdeb2f3-281b-4b43-8166-871b58b3267f",
+      "name": "Crear encabezados",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "9bb2d690-b86e-4aba-be7f-9247cca473ca",
+      "name": "Fila vacía",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: {lead_id: '', fecha: '', marca: '', origen: '', estado: '', nombre: '', telefono: '', correo: '', empresa: '', mensaje: '', tipo: '', detalle: '', pagina: '', landing: '', referrer: '', utm_source: '', utm_medium: '', utm_campaign: '', utm_content: '', utm_term: '', gclid: '', fbclid: '', fbp: '', fbc: '', event_id: '', notas: '', actualizado: ''} }];"
+      }
+    },
+    {
+      "id": "637c3249-5d2d-4a31-b859-2669c3495f0b",
+      "name": "Sheet: encabezados",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Crear encabezados": {
+      "main": [
+        [
+          {
+            "node": "Fila vacía",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila vacía": {
+      "main": [
+        [
+          {
+            "node": "Sheet: encabezados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "meta": {
+    "descripcion": "Manual: crea los encabezados de la pestaña «Leads»."
+  },
+  "pinData": {}
+}

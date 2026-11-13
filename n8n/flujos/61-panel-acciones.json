@@ -1,0 +1,518 @@
+{
+  "name": "Agencia · Panel acciones",
+  "nodes": [
+    {
+      "id": "abb3f26c-5ae6-45e7-9f3b-a73137c6fc83",
+      "name": "Panel acciones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencia-panel-acciones",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "6149dcd4-2b23-4476-b947-d92d031121f0",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      }
+    },
+    {
+      "id": "be4da252-5637-4690-bd3f-6273717ee52c",
+      "name": "Leer post",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "post_id",
+              "lookupValue": "={{ String($json.body?.post_id || '') }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "df139fa1-2a67-47dc-8cbd-dcaddb7a0d5b",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Pedido del panel: { accion: aprobar | cambios | descartar, post_id, version, texto }.\nconst b = $('Panel acciones').first().json.body || {};\nconst accion = String(b.accion || '');\nif (!['aprobar', 'cambios', 'descartar'].includes(accion)) throw new Error('acción desconocida: ' + accion);\nconst post_id = String(b.post_id || '').trim();\nif (!post_id) throw new Error('falta post_id');\nconst texto = String(b.texto || '').trim().slice(0, 1000);\nif (accion === 'cambios' && !texto) throw new Error('escribe qué cambiar');\nconst r = $input.first().json || {};\nconst estado = String(r.estado || '').trim();\nconst publicado = !!(r.fb_url || r.ig_url) || ['publicado', 'publicando'].includes(estado);\nlet ok = true, motivo = '';\nif (!r.post_id) { ok = false; motivo = 'no existe ' + post_id; }\nelse if (publicado) { ok = false; motivo = 'ya se publicó; nunca se publica dos veces'; }\nelse if (accion === 'aprobar' && estado !== 'por aprobar') { ok = false; motivo = 'está «' + estado + '», no «por aprobar»'; }\nelse if (accion === 'aprobar' && b.version && String(b.version) !== String(r.version)) { ok = false; motivo = 'hay una versión más nueva (v' + r.version + ')'; }\nelse if (accion === 'cambios' && !['por aprobar', 'aprobado', 'cambios pedidos'].includes(estado)) { ok = false; motivo = 'está «' + estado + '»'; }\nreturn [{ json: { accion, post_id, texto, ok, motivo, ruta: !ok ? 3 : accion === 'aprobar' ? 0 : accion === 'cambios' ? 1 : 2 } }];"
+      }
+    },
+    {
+      "id": "66cbf8f5-5f1b-496c-824c-55c1a5dedbe9",
+      "name": "Por acción",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 4,
+        "output": "={{ $json.ruta }}"
+      }
+    },
+    {
+      "id": "27a05c38-81ec-45c3-a97e-e0fdd0be82bd",
+      "name": "Aprobar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $('Validar').first().json.post_id }}",
+            "estado": "aprobado",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "ded95671-f74a-41f8-b3f9-1c06545796b7",
+      "name": "Guardar cambios",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $('Validar').first().json.post_id }}",
+            "estado": "cambios pedidos",
+            "cambios_pedidos": "={{ $('Validar').first().json.texto }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cambios_pedidos",
+              "displayName": "cambios_pedidos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "f2a90bff-b332-407e-aa86-99fa58ea43ea",
+      "name": "Nueva versión",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__FLUJO_NUEVA_VERSION__"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "881d83fb-a3c0-4170-afcb-5b93ec492f64",
+      "name": "Descartar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        500
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $('Validar').first().json.post_id }}",
+            "estado": "descartado",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "bc441138-2bc9-45da-b061-461dcaef72bb",
+      "name": "Listo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, accion: $('Validar').first().json.accion, post_id: $('Validar').first().json.post_id }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "df79c5d7-fdb0-4bec-8e51-9b0eb403d8c3",
+      "name": "No se pudo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        700
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, motivo: $('Validar').first().json.motivo }) }}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Panel acciones": {
+      "main": [
+        [
+          {
+            "node": "Leer post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer post": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "Por acción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Por acción": {
+      "main": [
+        [
+          {
+            "node": "Aprobar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar cambios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Descartar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No se pudo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aprobar": {
+      "main": [
+        [
+          {
+            "node": "Listo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar cambios": {
+      "main": [
+        [
+          {
+            "node": "Nueva versión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nueva versión": {
+      "main": [
+        [
+          {
+            "node": "Listo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descartar": {
+      "main": [
+        [
+          {
+            "node": "Listo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 120,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Webhook del panel: aprobar, pedir cambios o descartar un post. Mismas reglas que Telegram (whichever llegue primero gana)."
+  },
+  "pinData": {}
+}

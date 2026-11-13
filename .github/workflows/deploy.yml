@@ -1,0 +1,22 @@
+name: Deploy a Modal
+# Se activa solo si el repo tiene los secretos MODAL_TOKEN_ID y MODAL_TOKEN_SECRET.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Deploy
+        if: env.MODAL_TOKEN_ID != ''
+        run: |
+          pip install -e .
+          modal deploy app/main.py

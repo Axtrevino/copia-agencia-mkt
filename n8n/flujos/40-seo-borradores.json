@@ -1,0 +1,1350 @@
+{
+  "name": "Agencia · SEO (borradores)",
+  "nodes": [
+    {
+      "id": "77049a8e-309f-42d9-a874-307adfeeea00",
+      "name": "Martes y jueves 8:37",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        240
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "37 8 * * 2,4"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "0fd61c9c-eee4-4af4-b4d9-36c1501c56c2",
+      "name": "Siguiente tema",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        240
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "planeado"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1,
+        "orderBy": true,
+        "orderByColumn": "orden",
+        "orderByDirection": "ASC"
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "63938645-ff4f-4257-bc7e-eb71cfd6de00",
+      "name": "¿Hay tema?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.id ?? \"\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "fc168686-d5e9-4132-9803-674b6f2ed812",
+      "name": "Avisar: sin temas",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        440
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "ℹ️ SEO: ya no hay temas «planeado» en la tabla seo_articulos. Agrega los siguientes.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "081d85a7-b284-47a5-a72b-8c0068f665c4",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "f704a309-33c3-4f93-b518-f85b6812c2f4",
+      "name": "Pedido de cambios",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        480
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "row_id",
+              "type": "number"
+            },
+            {
+              "name": "cambios",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "70a08e7e-1039-47b8-b1da-bb13b2991add",
+      "name": "Leer artículo",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        480
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      }
+    },
+    {
+      "id": "3e97780c-dfc3-48bf-97c1-680ae91609d6",
+      "name": "Preparar pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const fila = $input.first().json;\nlet cambios = '';\ntry { cambios = String($('Pedido de cambios').first().json.cambios || '').trim(); } catch (e) { cambios = ''; }\n// CONFIGURA cada marca con blog en Webflow (Site ID y Collection ID del blog en Webflow → Settings).\n// Los nombres de campo (fieldData) son los de la plantilla de blog de Webflow; cámbialos si tu\n// colección usa otros.\nconst MARCAS = {\n  'marca-a': {\n    nombre: 'Marca A',\n    siteId: '__WEBFLOW_SITE_ID_A__',\n    collectionId: '__WEBFLOW_COLLECTION_ID_A__',\n    dominio: 'https://www.__DOMINIO_A__',\n    rutaPost: '/post/',\n    enlaces_internos: ['https://www.__DOMINIO_A__/', 'https://www.__DOMINIO_A__/contacto', 'https://www.__DOMINIO_A__/blog'],\n    campos: { resumen: 'post-summary', cuerpo: 'post-body', imagen: 'main-image', miniatura: 'thumbnail-image', fecha: 'date-published', destacado: 'featured' },\n  },\n};\nconst cfg = MARCAS[fila.marca];\nif (!cfg) throw new Error('La marca ' + fila.marca + ' no tiene configuración de SEO en «Preparar pedido»');\nreturn [{ json: { ...fila, row_id: fila.id, cambios, cfg, version_nueva: (Number(fila.version) || 0) + 1 } }];"
+      }
+    },
+    {
+      "id": "54c676fe-9ace-4d47-beb0-e79b48dae092",
+      "name": "Marcar preparando",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        240
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Preparar pedido').first().json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "preparando",
+            "error": "",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "18e343a5-8e89-4184-8bb8-eac5c52f863d",
+      "name": "Volumen (DataForSEO)",
+      "type": "n8n-nodes-dataforseo.dataForSeo",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        240
+      ],
+      "parameters": {
+        "resource": "keywords_data",
+        "operation": "get-google-search-volume",
+        "keywords": {
+          "values": [
+            {
+              "value": "={{ $('Preparar pedido').first().json.keyword }}"
+            }
+          ]
+        },
+        "location_name": "Mexico",
+        "language_name": "Spanish"
+      },
+      "credentials": {
+        "dataForSeoApi": {
+          "id": "",
+          "name": "DataForSEO"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "f479f5f6-6bf5-40d5-9fa3-36c66ec8d330",
+      "name": "Dificultad (DataForSEO)",
+      "type": "n8n-nodes-dataforseo.dataForSeo",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        240
+      ],
+      "parameters": {
+        "resource": "labs",
+        "operation": "get-keyword-difficulty",
+        "keywords": {
+          "values": [
+            {
+              "value": "={{ $('Preparar pedido').first().json.keyword }}"
+            }
+          ]
+        },
+        "location_name_required": "Mexico",
+        "language_name_required": "Spanish"
+      },
+      "credentials": {
+        "dataForSeoApi": {
+          "id": "",
+          "name": "DataForSEO"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "4ffe1372-57b0-40e3-97ad-ccd226699a79",
+      "name": "Ya publicados",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        240
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "marca",
+              "condition": "eq",
+              "keyValue": "={{ $('Preparar pedido').first().json.marca }}"
+            },
+            {
+              "keyName": "estado",
+              "condition": "eq",
+              "keyValue": "publicado"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "a97ee173-7092-487b-ab87-de0c98d0d1db",
+      "name": "Armar pedido a GPT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        240
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const p = $('Preparar pedido').first().json;\nfunction buscar(valor, llave) {\n  if (valor === null || valor === undefined) return null;\n  if (Array.isArray(valor)) { for (const v of valor) { const r = buscar(v, llave); if (r !== null) return r; } return null; }\n  if (typeof valor === 'object') {\n    if (valor[llave] !== undefined && valor[llave] !== null && typeof valor[llave] !== 'object') return valor[llave];\n    for (const v of Object.values(valor)) { const r = buscar(v, llave); if (r !== null) return r; }\n  }\n  return null;\n}\nlet vol = null, cpc = null, kd = null;\ntry { const d = $('Volumen (DataForSEO)').all().map(i => i.json); vol = buscar(d, 'search_volume'); cpc = buscar(d, 'cpc'); } catch (e) {}\ntry { kd = buscar($('Dificultad (DataForSEO)').all().map(i => i.json), 'keyword_difficulty'); } catch (e) {}\nlet titulos = [];\ntry { titulos = $('Ya publicados').all().map(i => i.json.titulo).filter(Boolean); } catch (e) {}\nlet tema = p.tema;\nif (p.cambios) tema += '\\n\\nEsta es una versión corregida. Título de la versión anterior: «' + (p.titulo || '') + '». Cambios que pidió el aprobador y que debes aplicar al pie de la letra: ' + p.cambios;\nconst cuerpo = { marca: p.marca, tema, keyword: p.keyword, enlaces_internos: p.cfg.enlaces_internos, publicados: titulos };\nif (p.intencion) cuerpo.intencion = p.intencion;\nreturn [{ json: { cuerpo, volumen: vol === null ? null : Number(vol), cpc: cpc === null ? null : Number(cpc), dificultad: kd === null ? null : Number(kd) } }];"
+      }
+    },
+    {
+      "id": "f453dd38-7333-4e71-a85d-e74518b0e5b0",
+      "name": "Redactar artículo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1980,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/articulo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.cuerpo) }}",
+        "options": {
+          "timeout": 420000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "a8034add-8ddc-410b-94a6-64f8cc3c9af2",
+      "name": "Hacer portada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2200,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/portada",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ marca: $json.marca, slug: $json.slug, titulo: $json.titulo, version: $('Preparar pedido').first().json.version_nueva }) }}",
+        "options": {
+          "timeout": 360000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "6a7d66f0-21d6-4359-b485-75a208111186",
+      "name": "Registrar imagen en Webflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.webflow.com/v2/sites/' + $('Preparar pedido').first().json.cfg.siteId + '/assets' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "webflowApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fileName: $json.archivo, fileHash: $json.md5 }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "webflowApi": {
+          "id": "",
+          "name": "Webflow"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "0077edec-f4c7-449e-a6bb-8fb45e0837e6",
+      "name": "Juntar imagen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        140
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b64",
+              "name": "b64",
+              "value": "={{ $('Hacer portada').item.json.portada_jpeg_b64 }}",
+              "type": "string"
+            },
+            {
+              "id": "archivo",
+              "name": "archivo",
+              "value": "={{ $('Hacer portada').item.json.archivo }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3707f822-1db9-48e4-8a68-6cd8dd5c4c88",
+      "name": "Imagen a archivo",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2860,
+        140
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "b64",
+        "options": {
+          "fileName": "={{ $json.archivo }}",
+          "mimeType": "image/jpeg"
+        }
+      }
+    },
+    {
+      "id": "e5c54367-9240-432f-9c3c-8ffad16eb2c2",
+      "name": "Subir imagen a Webflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        140
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Registrar imagen en Webflow').item.json.uploadUrl }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formData",
+              "name": "acl",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['acl'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "bucket",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['bucket'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "X-Amz-Algorithm",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['X-Amz-Algorithm'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "X-Amz-Credential",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['X-Amz-Credential'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "X-Amz-Date",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['X-Amz-Date'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "key",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['key'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "Policy",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['Policy'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "X-Amz-Signature",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['X-Amz-Signature'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "success_action_status",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['success_action_status'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "content-type",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['content-type'] }}"
+            },
+            {
+              "parameterType": "formData",
+              "name": "Cache-Control",
+              "value": "={{ $('Registrar imagen en Webflow').item.json.uploadDetails['Cache-Control'] }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "feac09ec-569b-4ee3-a935-32c30cccb34d",
+      "name": "Armar borrador",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        60
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const p = $('Preparar pedido').first().json;\nconst a = $('Redactar artículo').first().json;\nconst datos = $('Armar pedido a GPT').first().json;\nconst img = $('Registrar imagen en Webflow').first().json.hostedUrl;\nconst v = p.version_nueva;\nconst c = p.cfg.campos;\nconst e = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst faq = Array.isArray(a.faq) ? a.faq : [];\nconst faqHtml = faq.length ? '<h2>Preguntas frecuentes</h2>' + faq.map(f => '<h3>' + e(f.pregunta) + '</h3><p>' + e(f.respuesta) + '</p>').join('') : '';\nconst cuerpo = a.cuerpo_html + faqHtml;\nconst fieldData = { name: a.titulo, slug: a.slug };\nfieldData[c.resumen] = a.meta_descripcion;\nfieldData[c.cuerpo] = cuerpo;\nfieldData[c.imagen] = { url: img, alt: a.titulo };\nfieldData[c.miniatura] = { url: img, alt: a.titulo };\nfieldData[c.fecha] = new Date().toISOString();\nfieldData[c.destacado] = false;\nconst base = 'https://api.webflow.com/v2/collections/' + p.cfg.collectionId + '/items';\nconst existe = String(p.webflow_item_id || '').trim();\nconst url = p.cfg.dominio + p.cfg.rutaPost + a.slug;\nconst n = x => (x === null || x === undefined || Number.isNaN(x)) ? '—' : String(x);\nconst html = '<!doctype html><html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>' + e(a.titulo) + '</title>'\n  + '<style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:720px;margin:0 auto;padding:16px;line-height:1.6;color:#1a1a1a}'\n  + '.aviso{background:#fff4d6;border:1px solid #f0c36d;padding:10px 12px;border-radius:8px;font-size:14px}'\n  + '.meta{color:#555;font-size:14px}img{width:100%;border-radius:10px;margin:12px 0}h1{line-height:1.25}'\n  + 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:6px}</style></head><body>'\n  + '<div class=\"aviso\">BORRADOR v' + v + ' · ' + e(p.cfg.nombre) + ' · no publicado. Se publicará en ' + e(url) + '</div>'\n  + '<h1>' + e(a.titulo) + '</h1>'\n  + '<p class=\"meta\"><b>Meta descripción:</b> ' + e(a.meta_descripcion) + '<br><b>Keyword:</b> ' + e(p.keyword) + ' · ' + n(datos.volumen) + ' búsquedas/mes · dificultad ' + n(datos.dificultad) + '<br><b>Palabras:</b> ' + n(a.palabras) + '</p>'\n  + '<img src=\"' + e(img) + '\" alt=\"\">' + cuerpo + '</body></html>';\nconst caption = '<b>📰 SEO ' + e(p.cfg.nombre) + ' · #' + p.row_id + ' v' + v + '</b>\\n<b>' + e(a.titulo) + '</b>\\n\\n'\n  + 'Keyword: ' + e(p.keyword) + ' · ' + n(datos.volumen) + '/mes · dificultad ' + n(datos.dificultad) + '\\n'\n  + n(a.palabras) + ' palabras · ' + e(p.cfg.rutaPost + a.slug) + '\\n\\n<i>' + e(a.meta_descripcion) + '</i>\\n\\n'\n  + '📝 ' + e(String(a.notas || '').slice(0, 200)) + '\\n\\nArriba va el archivo con el artículo completo para leerlo.';\nreturn [{ json: { metodo: existe ? 'PATCH' : 'POST', endpoint: existe ? base + '/' + existe : base, item: { isDraft: true, isArchived: false, fieldData },\n  html_b64: Buffer.from(html, 'utf8').toString('base64'), archivo_html: a.slug + '-v' + v + '.html', caption: caption.slice(0, 1020), img, url, version: v } }];"
+      }
+    },
+    {
+      "id": "3c6909a5-6d74-4092-ad11-a35e141104ad",
+      "name": "Guardar borrador en Webflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3520,
+        60
+      ],
+      "parameters": {
+        "method": "={{ $json.metodo }}",
+        "url": "={{ $json.endpoint }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "webflowApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.item) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "webflowApi": {
+          "id": "",
+          "name": "Webflow"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "8e9eb267-40b9-493c-959b-50e7343de520",
+      "name": "Guardar estado: por aprobar",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3740,
+        20
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Preparar pedido').first().json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "por aprobar",
+            "version": "={{ $('Preparar pedido').first().json.version_nueva }}",
+            "titulo": "={{ $('Redactar artículo').first().json.titulo }}",
+            "slug": "={{ $('Redactar artículo').first().json.slug }}",
+            "meta": "={{ $('Redactar artículo').first().json.meta_descripcion }}",
+            "webflow_item_id": "={{ $json.id }}",
+            "imagen_url": "={{ $('Armar borrador').first().json.img }}",
+            "url": "={{ $('Armar borrador').first().json.url }}",
+            "volumen": "={{ $('Armar pedido a GPT').first().json.volumen }}",
+            "cpc": "={{ $('Armar pedido a GPT').first().json.cpc }}",
+            "dificultad": "={{ $('Armar pedido a GPT').first().json.dificultad }}",
+            "palabras": "={{ $('Redactar artículo').first().json.palabras }}",
+            "notas": "={{ $('Redactar artículo').first().json.notas }}",
+            "cambios": "",
+            "error": "",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "titulo",
+              "displayName": "titulo",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "slug",
+              "displayName": "slug",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "meta",
+              "displayName": "meta",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "webflow_item_id",
+              "displayName": "webflow_item_id",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "volumen",
+              "displayName": "volumen",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "cpc",
+              "displayName": "cpc",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "dificultad",
+              "displayName": "dificultad",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "palabras",
+              "displayName": "palabras",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "notas",
+              "displayName": "notas",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "cambios",
+              "displayName": "cambios",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ea208133-2be2-474a-a487-b4dbc9b3ed6d",
+      "name": "Vista previa",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3960,
+        20
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "h",
+              "name": "html_b64",
+              "value": "={{ $('Armar borrador').first().json.html_b64 }}",
+              "type": "string"
+            },
+            {
+              "id": "a",
+              "name": "archivo_html",
+              "value": "={{ $('Armar borrador').first().json.archivo_html }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "405419bb-7716-4b3a-9d86-e9dbd58ed72e",
+      "name": "Vista previa a archivo",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        4180,
+        20
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_b64",
+        "options": {
+          "fileName": "={{ $json.archivo_html }}",
+          "mimeType": "text/html"
+        }
+      }
+    },
+    {
+      "id": "0c3d6458-ce17-4a39-b427-895f9d0c7330",
+      "name": "Mandar artículo completo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4400,
+        20
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendDocument",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "caption": "={{ '📄 Borrador completo de #' + $('Preparar pedido').first().json.row_id + ' (ábrelo para leerlo)' }}",
+          "fileName": "={{ $json.archivo_html }}",
+          "message_thread_id": "__TEMA_APROBACIONES__",
+          "disable_notification": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "6808ab99-fe3a-4f32-9a98-1a68535ca018"
+    },
+    {
+      "id": "9b5c4d79-5688-4877-bc3f-ffaee7ef2986",
+      "name": "Mandar para aprobar",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4620,
+        20
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "binaryData": false,
+        "file": "={{ $('Armar borrador').first().json.img }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Publicar",
+                    "additionalFields": {
+                      "callback_data": "={{ 'seo|ok|' + $('Preparar pedido').first().json.row_id + '|' + $('Preparar pedido').first().json.version_nueva }}"
+                    }
+                  },
+                  {
+                    "text": "✏️ Cambios",
+                    "additionalFields": {
+                      "callback_data": "={{ 'seo|cambios|' + $('Preparar pedido').first().json.row_id + '|' + $('Preparar pedido').first().json.version_nueva }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "caption": "={{ $('Armar borrador').first().json.caption }}",
+          "parse_mode": "HTML",
+          "message_thread_id": "__TEMA_APROBACIONES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "7ca5d393-b6b0-40d3-a957-b74103d2aacd"
+    },
+    {
+      "id": "c4847259-14a5-4b2e-a154-4cb1fcd7aae1",
+      "name": "Avisar error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3740,
+        440
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '⚠️ SEO: no pude preparar el artículo #' + $('Preparar pedido').first().json.row_id + ' («' + $('Preparar pedido').first().json.keyword + '»): ' + String($json.error?.message || $json.error?.description || $json.message || JSON.stringify($json)).slice(0, 350) }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "447298a5-615f-48df-9fb4-3f0a6c949d33",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "1b322796-67f6-491f-ad0b-5e9eba0d7ee8",
+      "name": "Marcar error",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3960,
+        440
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Preparar pedido').first().json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "={{ $('Preparar pedido').first().json.cambios ? 'cambios pedidos' : 'planeado' }}",
+            "error": "={{ String($('Avisar error').first().json.result?.text ?? 'error').slice(0, 500) }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Martes y jueves 8:37": {
+      "main": [
+        [
+          {
+            "node": "Siguiente tema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siguiente tema": {
+      "main": [
+        [
+          {
+            "node": "¿Hay tema?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay tema?": {
+      "main": [
+        [
+          {
+            "node": "Preparar pedido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar: sin temas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido de cambios": {
+      "main": [
+        [
+          {
+            "node": "Leer artículo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer artículo": {
+      "main": [
+        [
+          {
+            "node": "Preparar pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar pedido": {
+      "main": [
+        [
+          {
+            "node": "Marcar preparando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar preparando": {
+      "main": [
+        [
+          {
+            "node": "Volumen (DataForSEO)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Volumen (DataForSEO)": {
+      "main": [
+        [
+          {
+            "node": "Dificultad (DataForSEO)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dificultad (DataForSEO)": {
+      "main": [
+        [
+          {
+            "node": "Ya publicados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ya publicados": {
+      "main": [
+        [
+          {
+            "node": "Armar pedido a GPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar pedido a GPT": {
+      "main": [
+        [
+          {
+            "node": "Redactar artículo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar artículo": {
+      "main": [
+        [
+          {
+            "node": "Hacer portada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hacer portada": {
+      "main": [
+        [
+          {
+            "node": "Registrar imagen en Webflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar imagen en Webflow": {
+      "main": [
+        [
+          {
+            "node": "Juntar imagen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar imagen": {
+      "main": [
+        [
+          {
+            "node": "Imagen a archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Imagen a archivo": {
+      "main": [
+        [
+          {
+            "node": "Subir imagen a Webflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir imagen a Webflow": {
+      "main": [
+        [
+          {
+            "node": "Armar borrador",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar borrador": {
+      "main": [
+        [
+          {
+            "node": "Guardar borrador en Webflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar borrador en Webflow": {
+      "main": [
+        [
+          {
+            "node": "Guardar estado: por aprobar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar estado: por aprobar": {
+      "main": [
+        [
+          {
+            "node": "Vista previa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vista previa": {
+      "main": [
+        [
+          {
+            "node": "Vista previa a archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vista previa a archivo": {
+      "main": [
+        [
+          {
+            "node": "Mandar artículo completo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mandar artículo completo": {
+      "main": [
+        [
+          {
+            "node": "Mandar para aprobar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar error": {
+      "main": [
+        [
+          {
+            "node": "Marcar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 2400,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Martes y jueves toma el siguiente tema «planeado» de seo_articulos, mide la keyword (DataForSEO), GPT redacta (/articulo) y hace portada (/portada), guarda borrador en Webflow y lo manda a Telegram con ✅/✏️. No publica: publica «SEO acciones» al aprobar."
+  },
+  "pinData": {}
+}

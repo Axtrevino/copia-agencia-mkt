@@ -1,0 +1,1438 @@
+{
+  "name": "Agencia · Telegram (respuestas)",
+  "nodes": [
+    {
+      "id": "24da620b-7a99-4e0c-9ad1-33da4dede06e",
+      "name": "Mensaje de Telegram",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        600
+      ],
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {
+          "userIds": "__TELEGRAM_USER_ID__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "579744f8-ef6d-40c3-a284-e04dbd2d6308"
+    },
+    {
+      "id": "a5c210be-7947-4237-b04f-bad9f2262320",
+      "name": "¿Qué llegó?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        220,
+        600
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_query?.data ?? \"\" }}",
+                    "rightValue": "ok|",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "aprobar"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_query?.data ?? \"\" }}",
+                    "rightValue": "cambios|",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "cambios"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message?.reply_to_message?.text ?? \"\" }}",
+                    "rightValue": "✏️",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "texto de cambios"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message?.text ?? \"\" }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "start"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_query?.data ?? \"\" }}",
+                    "rightValue": "reintentar|",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "reintentar"
+            },
+            {
+              "conditions": {
+                "combinator": "or",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_query?.data ?? \"\" }}",
+                    "rightValue": "seo|",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message?.reply_to_message?.text ?? \"\" }}",
+                    "rightValue": "📝",
+                    "operator": {
+                      "operation": "startsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "seo"
+            },
+            {
+              "conditions": {
+                "combinator": "and",
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message?.reply_to_message?.caption ?? \"\" }}",
+                    "rightValue": "^[A-Z]+-[A-Za-z0-9-]+ · v",
+                    "operator": {
+                      "operation": "regex",
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message?.text ?? \"\" }}",
+                    "rightValue": "",
+                    "operator": {
+                      "operation": "notEmpty",
+                      "singleValue": true,
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json.message?.text ?? \"\" }}",
+                    "rightValue": "/",
+                    "operator": {
+                      "operation": "notStartsWith",
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "outputKey": "cambios (respuesta a foto)"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7dca65c8-dc7b-404b-b061-c39739957d7f",
+      "name": "Leer post (aprobar)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "post_id",
+              "lookupValue": "={{ $('Mensaje de Telegram').item.json.callback_query.data.split('|')[1] }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "cc9aff21-8944-46cc-83e5-c3dc83a7b849",
+      "name": "¿Se puede aprobar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ['por aprobar', 'pieza lista'].includes(String($json.estado || '').trim()) && !String($json.fb_url || '') && !String($json.ig_url || '') && String($json.version || '') === String($('Mensaje de Telegram').item.json.callback_query.data.split('|')[2] || '') }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "99721815-b777-4af6-bd45-f8552e05db2b",
+      "name": "Aviso: aprobado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Mensaje de Telegram').item.json.callback_query.id }}",
+        "additionalFields": {
+          "text": "Aprobado ✅"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "717e3fc0-ecc7-44e6-ae2f-527cfbfa67dc"
+    },
+    {
+      "id": "43e4c57d-3927-4960-9d09-4a2052cf15c9",
+      "name": "Foto aprobada",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "binaryData": false,
+        "file": "={{ $('Mensaje de Telegram').item.json.callback_query.message.photo.slice(-1)[0].file_id }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_notification": true,
+          "message_thread_id": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_thread_id || undefined }}",
+          "caption": "={{ (() => { const q = $('Mensaje de Telegram').item.json.callback_query; const d = q.data.split('|'); const e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return e(String(q.message.caption || '').slice(0, 850)) + '\\n\\n<b>✅ Aprobado: ' + e(d[1]) + ' v' + e(d[2]) + '</b>\\nQueda listo para publicar en su fecha.<b></b>'; })() }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "974bb095-7582-4de4-b11f-fe4c137aabdf",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "321bf3f4-81af-42c9-873f-3e56d27fe8f2",
+      "name": "Quitar botones (aprobado)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "deleteMessage",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "messageId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_id }}"
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "4dc2a855-8583-44a2-824e-0360b8e96002",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "46198e10-1646-434b-9e0c-ae7e23da290a",
+      "name": "Sheet: aprobado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $('Mensaje de Telegram').item.json.callback_query.data.split('|')[1] }}",
+            "estado": "aprobado",
+            "version": "={{ $('Mensaje de Telegram').item.json.callback_query.data.split('|')[2] }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "8d4d8ca3-2b00-4445-a045-4fc19445eaba",
+      "name": "Aviso: ya no se puede",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Mensaje de Telegram').item.json.callback_query.id }}",
+        "additionalFields": {
+          "text": "={{ 'Ya no se puede aprobar: está «' + (String($json.estado || '').trim() || 'no encontrado') + '»' }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "69ea72a1-4c59-4f2a-a773-04455cc5bf00"
+    },
+    {
+      "id": "a0b12e4d-4fd1-49e5-a913-d47acfb69649",
+      "name": "Aviso: cambios",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        340
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.callback_query.id }}",
+        "additionalFields": {
+          "text": "Dime qué cambio"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "7593a492-87ce-4bb2-baaa-ce130563497d"
+    },
+    {
+      "id": "6726dd9c-c37a-485f-8f5d-acb693218bb3",
+      "name": "Foto con cambios pedidos",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        340
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "binaryData": false,
+        "file": "={{ $('Mensaje de Telegram').item.json.callback_query.message.photo.slice(-1)[0].file_id }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_notification": true,
+          "message_thread_id": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_thread_id || undefined }}",
+          "caption": "={{ (() => { const q = $('Mensaje de Telegram').item.json.callback_query; const d = q.data.split('|'); const e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return e(String(q.message.caption || '').slice(0, 850)) + '\\n\\n<b>✏️ Pediste cambios a ' + e(d[1]) + ' v' + e(d[2]) + '</b>\\nLa versión nueva llega aquí abajo.<b></b>'; })() }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "8c3a7f56-985d-417d-b7a2-b66258725198",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "a8f9828b-8223-4db7-bb82-6563fc3938e1",
+      "name": "Quitar botones (cambios)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        340
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "deleteMessage",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "messageId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_id }}"
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "10c5a610-6776-46c2-bc2d-b84a65b24636",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "7bbf2df4-c2b2-40cb-96ba-b9989dc5b454",
+      "name": "Preguntar cambios",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        340
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "text": "=✏️ Cambios para {{ $('Mensaje de Telegram').item.json.callback_query.data.split('|')[1] }} v{{ $('Mensaje de Telegram').item.json.callback_query.data.split('|')[2] }}\nResponde a este mensaje con lo que quieres cambiar (imagen, titular o copy).",
+        "replyMarkup": "forceReply",
+        "forceReply": {
+          "force_reply": true
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "f7c59c19-e070-4b84-b53d-1262280c1b1a"
+    },
+    {
+      "id": "b9904cb8-dd2e-4aae-9de4-f458e4fede7b",
+      "name": "Obtener post_id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        560
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// post_id desde «✏️ Cambios para ID vN» o desde el pie de la foto («ID · vN · …»).\nreturn $input.all().map(i => {\n  const r = (i.json.message || {}).reply_to_message || {};\n  const t = String(r.text || '');\n  let pid = '';\n  if (t.startsWith('✏️')) pid = t.split('\\n')[0].split(' ')[3] || '';\n  else { const c = String(r.caption || '').match(/^([A-Z]+-[A-Za-z0-9-]+) · v/); if (c) pid = c[1]; }\n  return { json: { ...i.json, post_id: pid } };\n});"
+      }
+    },
+    {
+      "id": "a829728e-95dd-4d93-b6b3-7d8aa990ffdb",
+      "name": "Leer post (cambios)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        560
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "post_id",
+              "lookupValue": "={{ $('Obtener post_id').item.json.post_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "1595bb4a-5f47-469c-a244-607ac2d8359e",
+      "name": "¿Se pueden pedir cambios?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        560
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ['por aprobar', 'pieza lista', 'aprobado', 'cambios pedidos'].includes(String($json.estado || '').trim()) && !String($json.fb_url || '') && !String($json.ig_url || '') }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "44cc815d-e622-41e3-acc8-4d6dde067559",
+      "name": "Confirmar cambios recibidos",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        520
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Obtener post_id').item.json.message.chat.id }}",
+        "text": "=Recibido 👍 Preparo la nueva versión con: «{{ $('Obtener post_id').item.json.message.text }}». Te llega aquí en unos 2 minutos.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Obtener post_id').item.json.message.message_thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "a6280980-62af-4964-a4a4-da55f8298d8e"
+    },
+    {
+      "id": "381f1c15-c4de-4a12-b1b7-840f270c8ce3",
+      "name": "Sheet: cambios pedidos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1320,
+        520
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $('Obtener post_id').item.json.post_id }}",
+            "estado": "cambios pedidos",
+            "cambios_pedidos": "={{ $('Obtener post_id').item.json.message.text }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cambios_pedidos",
+              "displayName": "cambios_pedidos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "72482fdc-0bb2-4e6f-a805-1dc31421cbb4",
+      "name": "Nueva versión (sub-flujo)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        520
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__FLUJO_NUEVA_VERSION__"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "7363e381-e48d-4126-8249-a376ff0cc62d",
+      "name": "No se pueden pedir cambios",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        680
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Obtener post_id').item.json.message.chat.id }}",
+        "text": "={{ 'ℹ️ ' + $('Obtener post_id').item.json.post_id + ' está «' + (String($json.estado || '').trim() || 'no encontrado') + '»: no le pido versión nueva (si ya se publicó, pídelo como post nuevo).' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Obtener post_id').item.json.message.message_thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "facba189-b797-463c-85d1-7723cd2f50ee"
+    },
+    {
+      "id": "ffa6825d-6d57-40ac-902e-4e39976d5359",
+      "name": "Saludo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        800
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Hola 👋 Ya estoy conectado. En este grupo te llegan las piezas para aprobar, los reportes, las alertas y los leads.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $json.message.message_thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "ffc33fed-a529-4cb3-a801-04eaba07533f"
+    },
+    {
+      "id": "fa865c9a-884e-4771-bdbf-97294a63542d",
+      "name": "Aviso: reintento",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        960
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.callback_query.id }}",
+        "additionalFields": {
+          "text": "Revisando…"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "1a5280d7-baf5-4e12-b2df-9fb47fd3772b"
+    },
+    {
+      "id": "6da42d34-1f2e-4862-b185-46944c69a2d0",
+      "name": "Leer post (reintento)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        960
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "post_id",
+              "lookupValue": "={{ $('Mensaje de Telegram').item.json.callback_query.data.split('|')[1] }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "6098f057-7fb5-4e90-a040-ae1642157601",
+      "name": "¿Se puede reintentar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        960
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ String($json.estado || '') }}",
+              "rightValue": "error al publicar",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              }
+            },
+            {
+              "leftValue": "={{ String($json.fb_url || '') + String($json.ig_url || '') }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "empty",
+                "singleValue": true,
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "dccdf300-6004-4bc6-bc58-a23859fb7db1",
+      "name": "Sheet: reintento",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1100,
+        920
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $json.post_id }}",
+            "estado": "aprobado",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "c0e162e6-7901-4540-8115-7acb0c161ac1",
+      "name": "Quitar botón (reintento)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        920
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "editMessageText",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "messageId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_id }}",
+        "messageType": "message",
+        "replyMarkup": "none",
+        "text": "={{ '🔁 Reintentando ' + $('Leer post (reintento)').item.json.post_id + '… te aviso aquí cómo salió en un minuto.' }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "d903fcd7-cf95-41d8-9171-fbfd80393189"
+    },
+    {
+      "id": "7a595378-fdf5-4775-953e-651a900d9328",
+      "name": "Publicar de nuevo",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        920
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ ({ 'marca-a': '__FLUJO_PUBLICAR_A__', 'marca-b': '__FLUJO_PUBLICAR_B__' })[$('Leer post (reintento)').item.json.marca] }}"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "18e587df-3a81-4427-91a8-12867879e433",
+      "name": "No se puede reintentar",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        1080
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Mensaje de Telegram').item.json.callback_query.message.chat.id }}",
+        "text": "={{ (() => { const r = $json; const id = r.post_id || $('Mensaje de Telegram').item.json.callback_query.data.split('|')[1]; if (r.estado === 'error al publicar' && r.fb_url) return 'ℹ️ ' + id + ': Facebook ya se publicó, así que no reintento para no duplicarlo. Falta Instagram.'; return 'ℹ️ ' + id + ' ya no está en error (estado: ' + (r.estado || 'no encontrado') + '). No hice nada.'; })() }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Mensaje de Telegram').item.json.callback_query.message.message_thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "438bbbd3-8495-4d96-a6e0-6c2014469428"
+    },
+    {
+      "id": "df0d4007-1720-437a-97b7-849a334d587c",
+      "name": "SEO: mandar a acciones",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        1240
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__FLUJO_SEO_ACCIONES__"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "¿Qué llegó?": {
+      "main": [
+        [
+          {
+            "node": "Leer post (aprobar)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso: cambios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Obtener post_id",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Saludo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso: reintento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SEO: mandar a acciones",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Obtener post_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer post (aprobar)": {
+      "main": [
+        [
+          {
+            "node": "¿Se puede aprobar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se puede aprobar?": {
+      "main": [
+        [
+          {
+            "node": "Aviso: aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso: ya no se puede",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso: aprobado": {
+      "main": [
+        [
+          {
+            "node": "Foto aprobada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Foto aprobada": {
+      "main": [
+        [
+          {
+            "node": "Quitar botones (aprobado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet: aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar botones (aprobado)": {
+      "main": [
+        [
+          {
+            "node": "Sheet: aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso: cambios": {
+      "main": [
+        [
+          {
+            "node": "Foto con cambios pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Foto con cambios pedidos": {
+      "main": [
+        [
+          {
+            "node": "Quitar botones (cambios)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preguntar cambios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar botones (cambios)": {
+      "main": [
+        [
+          {
+            "node": "Preguntar cambios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener post_id": {
+      "main": [
+        [
+          {
+            "node": "Leer post (cambios)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer post (cambios)": {
+      "main": [
+        [
+          {
+            "node": "¿Se pueden pedir cambios?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se pueden pedir cambios?": {
+      "main": [
+        [
+          {
+            "node": "Confirmar cambios recibidos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No se pueden pedir cambios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar cambios recibidos": {
+      "main": [
+        [
+          {
+            "node": "Sheet: cambios pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: cambios pedidos": {
+      "main": [
+        [
+          {
+            "node": "Nueva versión (sub-flujo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso: reintento": {
+      "main": [
+        [
+          {
+            "node": "Leer post (reintento)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer post (reintento)": {
+      "main": [
+        [
+          {
+            "node": "¿Se puede reintentar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se puede reintentar?": {
+      "main": [
+        [
+          {
+            "node": "Sheet: reintento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No se puede reintentar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: reintento": {
+      "main": [
+        [
+          {
+            "node": "Quitar botón (reintento)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar botón (reintento)": {
+      "main": [
+        [
+          {
+            "node": "Publicar de nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 1800,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Recibe botones y mensajes del bot: aprobar, pedir cambios, reintentar publicación, SEO y /start."
+  },
+  "pinData": {}
+}

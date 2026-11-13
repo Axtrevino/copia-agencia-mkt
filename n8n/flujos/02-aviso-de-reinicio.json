@@ -1,0 +1,72 @@
+{
+  "name": "Agencia · Aviso de reinicio de n8n",
+  "nodes": [
+    {
+      "id": "0c948b1f-2621-4b39-ab34-9f4cf258d19f",
+      "name": "n8n arrancó",
+      "type": "n8n-nodes-base.n8nTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "events": [
+          "init"
+        ]
+      }
+    },
+    {
+      "id": "f0da7aa2-0b8f-4023-916e-8ee0d4c9b07a",
+      "name": "Avisar",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '🔄 n8n se reinició a las ' + $now.setZone('America/Mexico_City').toFormat('dd/MM HH:mm') + '. Si fue una caída, el Vigilante dirá qué no corrió.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "cca4a202-cd70-4f4b-b8d2-fefb5ffeb939",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "n8n arrancó": {
+      "main": [
+        [
+          {
+            "node": "Avisar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Cada vez que n8n arranca avisa en Telegram (Alertas)."
+  },
+  "pinData": {}
+}

@@ -1,0 +1,354 @@
+{
+  "name": "Agencia · Vigilante",
+  "nodes": [
+    {
+      "id": "e54dad6e-8821-4e65-a1b9-7c58c5e1995c",
+      "name": "Cada hora :40",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 40
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "36ad9de1-fa6c-44f9-8c70-8640a4047eae",
+      "name": "Leer Calendario",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "cd678c1c-7a6d-4bf1-9db8-51af09016040",
+      "name": "Leer seo_articulos",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "returnAll": true
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "5ac8f32c-22af-45b2-a9ec-b07ad03b3642",
+      "name": "Revisar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const st = $getWorkflowStaticData('global');\nconst now = DateTime.now().setZone('America/Mexico_City');\nconst msgs = [];\nconst recs = [];\n// Hora a la que corre «Preparar posts» de cada marca (ajústala si la cambias allá).\nconst PREP = { 'marca-a': { h: 10, m: 7 }, 'marca-b': { h: 12, m: 7 } };\n// 1) ¿n8n estuvo detenido? Corre cada hora; si pasaron más de 2.5 h desde la última vez, hubo caída.\nif (st.ultima) {\n  const antes = DateTime.fromISO(st.ultima).setZone('America/Mexico_City');\n  const horas = now.diff(antes, 'hours').hours;\n  if (horas > 2.5) msgs.push('🛑 n8n estuvo detenido unas ' + Math.round(horas) + ' h (del ' + antes.toFormat('dd/MM HH:mm') + ' al ' + now.toFormat('dd/MM HH:mm') + '). Los flujos programados de ese lapso no corrieron.');\n}\nst.ultima = now.toISO();\n// 2) Posts\nconst hoy = now.toFormat('yyyy-MM-dd');\nconst manana = now.plus({ days: 1 }).toFormat('yyyy-MM-dd');\nst.avisados = st.avisados || {};\nfor (const [k, v] of Object.entries(st.avisados)) if (now.diff(DateTime.fromISO(v), 'days').days > 10) delete st.avisados[k];\nconst enTxt = min => { min = Math.max(1, Math.round(min)); return min < 60 ? min + ' min' : Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : ''); };\nfor (const r of $('Leer Calendario').all().map(i => i.json)) {\n  const id = String(r.post_id || '').trim(); if (!id) continue;\n  const estado = String(r.estado || '').trim();\n  const fecha = String(r.fecha || '').trim(); if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha)) continue;\n  const marca = String(r.marca || '').trim();\n  const cuando = DateTime.fromFormat(fecha + ' ' + (String(r.hora || '00:00').trim() || '00:00'), 'yyyy-MM-dd HH:mm', { zone: 'America/Mexico_City' });\n  if (!cuando.isValid || now.diff(cuando, 'days').days > 7) continue;\n  // Nada se publica sin aprobación: si sigue sin aprobar, recuerda ~3 h antes y en la última hora.\n  if (estado === 'por aprobar' || estado === 'cambios pedidos') {\n    const faltan = cuando.diff(now, 'minutes').minutes;\n    if (faltan > 0 && faltan <= 180) {\n      const etapa = faltan <= 60 ? 'ultimo' : 'primero';\n      const key = 'rec|' + id + '|' + String(r.version || '') + '|' + etapa;\n      if (!st.avisados[key]) {\n        st.avisados[key] = now.toISO();\n        const dia = fecha === hoy ? 'hoy' : fecha === manana ? 'mañana' : cuando.toFormat('dd/MM');\n        const que = estado === 'cambios pedidos' ? 'pediste cambios y la nueva versión todavía no está aprobada' : 'sigue sin aprobar';\n        recs.push({ json: { tipo: 'recordatorio', reply: String(r.tg_msg || '').trim(),\n          texto: (etapa === 'ultimo' ? '⏰ Última llamada: ' : '⏰ Recordatorio: ') + id + ' (' + marca + ') se publica ' + dia + ' a las ' + cuando.toFormat('HH:mm') + ' (en ' + enTxt(faltan) + ') y ' + que + '. Si no lo apruebas, no sale.' } });\n      }\n    }\n  }\n  const p = PREP[marca] || { h: 10, m: 7 };\n  const prepHoy = now.set({ hour: p.h, minute: p.m, second: 0 }).plus({ minutes: 45 });\n  let problema = '';\n  if (estado === 'planeado' && (fecha < hoy || ((fecha === hoy || fecha === manana) && now > prepHoy))) problema = 'no se preparó: no te llegó a Telegram';\n  else if (estado === 'error al preparar') problema = 'falló al prepararse';\n  else if (estado === 'error al publicar') problema = 'falló al publicarse';\n  else if (estado === 'aprobado' && !String(r.fb_url || '').trim() && now > cuando.plus({ minutes: 90 })) problema = 'está aprobado pero no se publicó';\n  else if ((estado === 'por aprobar' || estado === 'cambios pedidos') && now > cuando) problema = 'sigue «' + estado + '» y ya pasó su hora';\n  if (!problema) continue;\n  const key = id + '|' + estado + '|' + problema;\n  if (st.avisados[key]) continue;\n  st.avisados[key] = now.toISO();\n  msgs.push('• ' + id + ' (' + marca + ', ' + cuando.toFormat('dd/MM HH:mm') + '): ' + problema + '.');\n}\n// 3) Artículos del blog por aprobar: una vez al día (corrida de las 9:40) recuerda los que esperan más de 20 h.\nif (now.hour === 9) {\n  const arts = [];\n  for (const it of $('Leer seo_articulos').all()) {\n    const a = it.json || {};\n    if (!/aprobar/i.test(String(a.estado || ''))) continue;\n    const t = DateTime.fromFormat(String(a.actualizado || ''), 'yyyy-MM-dd HH:mm', { zone: 'America/Mexico_City' });\n    if (t.isValid && now.diff(t, 'hours').hours < 20) continue;\n    const key = 'art|' + a.id + '|' + String(a.version || '') + '|' + hoy;\n    if (st.avisados[key]) continue;\n    st.avisados[key] = now.toISO();\n    arts.push('• ' + a.marca + ': «' + String(a.titulo || a.keyword || a.tema || '').slice(0, 80) + '»');\n  }\n  if (arts.length) recs.push({ json: { tipo: 'recordatorio', reply: '', texto: '📝 Artículos del blog esperando tu aprobación (no se publican sin tu ✅):\\n' + arts.join('\\n') } });\n}\nconst out = [];\nif (msgs.length) out.push({ json: { tipo: 'alerta', texto: '👀 Vigilante\\n' + msgs.join('\\n') } });\nreturn out.concat(recs);\n"
+      }
+    },
+    {
+      "id": "b3f0dbe3-457b-4cf4-992f-18b29ef2dce8",
+      "name": "¿Recordatorio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.tipo }}",
+              "rightValue": "recordatorio",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d0a036ef-81f7-4fa1-8030-06f238505780",
+      "name": "¿Responder al mensaje?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.reply }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "notEmpty",
+                "singleValue": true,
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a236cfd4-8abd-4caf-8dda-cc1ecc1f9acd",
+      "name": "Recordar (respuesta)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_APROBACIONES__",
+          "reply_to_message_id": "={{ Number($json.reply) }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "2b95b456-2542-4882-bda9-e93ab1792179",
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "5d644cc7-4f4c-4b6c-a5ba-fddbab78cbbd",
+      "name": "Recordar",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_APROBACIONES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "00c9140e-3ced-40a8-9288-906ab47a12c8",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "01a7b9fb-a060-43f6-8aec-aaac77357769",
+      "name": "Avisar en Alertas",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        420
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "cc21e4df-3669-4231-8ce7-4effdbe9c5bf",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Cada hora :40": {
+      "main": [
+        [
+          {
+            "node": "Leer Calendario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Calendario": {
+      "main": [
+        [
+          {
+            "node": "Leer seo_articulos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer seo_articulos": {
+      "main": [
+        [
+          {
+            "node": "Revisar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar": {
+      "main": [
+        [
+          {
+            "node": "¿Recordatorio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Recordatorio?": {
+      "main": [
+        [
+          {
+            "node": "¿Responder al mensaje?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar en Alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Responder al mensaje?": {
+      "main": [
+        [
+          {
+            "node": "Recordar (respuesta)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Recordar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recordar (respuesta)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Recordar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 300,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Cada hora (:40): alerta si un post no se preparó, no se publicó o pasó su hora sin aprobar; detecta caídas de n8n; recuerda los por aprobar ~3 h y 1 h antes y, a las 9:40, los artículos."
+  },
+  "pinData": {}
+}

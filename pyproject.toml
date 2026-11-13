@@ -1,0 +1,33 @@
+[project]
+name = "agencia-marketing"
+version = "0.1.0"
+description = "Servicio de contenido de la agencia de marketing (Modal): piezas, copy, ideas, research y SEO"
+requires-python = ">=3.12"
+dependencies = [
+  "modal>=1.0",
+  "pillow>=11",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.5",
+]
+
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

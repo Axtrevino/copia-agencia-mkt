@@ -1,0 +1,605 @@
+{
+  "name": "Agencia · Ideas semanales",
+  "nodes": [
+    {
+      "id": "5681a80e-a604-4039-9b58-b73edf536e93",
+      "name": "Cada lunes 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6e957842-3e7e-44ab-899c-b50a43baa210",
+      "name": "Probar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "87595eb9-a4b7-4af9-844c-6008bb6302bc",
+      "name": "Marcas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Por marca: búsqueda de la voz del público y páginas de Facebook de la competencia (posts y\n// comentarios recientes con Apify). Agrega o quita marcas aquí.\nreturn [{ json: { marcas: [\n  { marca: 'marca-a', nombre: 'Marca A', paginas: ['https://www.facebook.com/competidor1', 'https://www.facebook.com/competidor2'] },\n  { marca: 'marca-b', nombre: 'Marca B', paginas: ['https://www.facebook.com/competidor3'] },\n] } }];"
+      }
+    },
+    {
+      "id": "11c47aee-bca8-4a1e-8c94-50b880246d16",
+      "name": "Calendario",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "b257e63f-400b-409e-ba56-83683411869c",
+      "name": "Hallazgos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Hallazgos"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "f2f882f2-536c-4f4c-b31d-cd281043fa16",
+      "name": "Armar pedidos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Por marca: posts por afilar (planeado, de hoy a 8 días, cuyo tema aún no es un brief «Insight: ...»),\n// hallazgos de 3 semanas y lo ya escrito. Un tema que empieza con «Insight:» no se toca.\nconst hoy = $now.setZone('America/Mexico_City');\nconst desde = hoy.toFormat('yyyy-MM-dd');\nconst hasta = hoy.plus({ days: 8 }).toFormat('yyyy-MM-dd');\nconst corte = hoy.minus({ days: 21 }).toFormat('yyyy-MM-dd');\nconst esBrief = t => /^\\s*Insight:/i.test(String(t || ''));\nconst filas = $('Calendario').all().map(i => i.json).filter(r => r && r.post_id);\nconst hallazgos = $('Hallazgos').all().map(i => i.json).filter(h => h && h.hallazgo);\nconst salida = [];\nfor (const m of $('Marcas').first().json.marcas) {\n  const todas = filas.filter(r => r.marca === m.marca);\n  const posts = todas\n    .filter(r => String(r.estado).trim() === 'planeado' && !esBrief(r.tema))\n    .filter(r => String(r.fecha) >= desde && String(r.fecha) <= hasta)\n    .sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))\n    .map(r => ({ post_id: r.post_id, fecha: String(r.fecha), tipo: r.tipo || '', tema_previo: String(r.tema || '').trim() }));\n  if (!posts.length) continue;\n  const ids = new Set(posts.map(p => p.post_id));\n  const publicados = todas\n    .filter(r => !ids.has(r.post_id) && (r.titular || String(r.tema || '').trim()))\n    .sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))\n    .slice(0, 15)\n    .map(r => ({ fecha: String(r.fecha), tipo: r.tipo || '', tema: String(r.tema || '').slice(0, 200), titular: r.titular || '' }));\n  const hs = hallazgos\n    .filter(h => h.marca === m.marca && String(h.fecha) >= corte && h.tipo !== 'keywords')\n    .slice(-25)\n    .map(h => ({ tipo: h.tipo, hallazgo: h.hallazgo, fuente: h.fuente || '', accion: h.accion || '' }));\n  salida.push({ json: { ...m, posts, publicados, hallazgos: hs } });\n}\nreturn salida;"
+      }
+    },
+    {
+      "id": "60cf720b-7655-487e-b008-8d8922a999a4",
+      "name": "Ideas de cada marca",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        100
+      ],
+      "parameters": {
+        "mode": "each",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $workflow.id }}"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "05eb91de-5225-4bfc-8615-f3ad19e1b068",
+      "name": "Ideas de una marca",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        600
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "03f1faef-6ba6-4629-95b3-dc310570ac50",
+      "name": "Apify: posts competencia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        600
+      ],
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://api.apify.com/v2/acts/apify~facebook-posts-scraper/run-sync-get-dataset-items?timeout=280",
+        "jsonBody": "={{ JSON.stringify({ startUrls: $json.paginas.map(u => ({ url: u })), resultsLimit: 3, onlyPostsNewerThan: '14 days' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Apify (Authorization: Bearer)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "57a18d81-8419-41ac-92c7-43b31cb0bd50",
+      "name": "Posts con comentarios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const posts = $input.all().map(i => i.json).filter(p => p && p.url && !p.error);\nconst con = posts.filter(p => Number(p.comments) > 0).sort((a, b) => Number(b.comments) - Number(a.comments)).slice(0, 15).map(p => p.url);\nreturn [{ json: { con } }];"
+      }
+    },
+    {
+      "id": "da0b8c71-69a6-41b3-82b7-468ee3b20008",
+      "name": "Apify: comentarios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        600
+      ],
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "https://api.apify.com/v2/acts/apify~facebook-comments-scraper/run-sync-get-dataset-items?timeout=280",
+        "jsonBody": "={{ JSON.stringify({ startUrls: $json.con.map(u => ({ url: u })), resultsLimit: 20, includeNestedComments: false }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Apify (Authorization: Bearer)"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e60d3fd3-13fa-44d4-854a-6aea610c1f36",
+      "name": "Pedido con voz",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Voz del público: comentarios en los posts de la competencia; sus posts orgánicos entran como hallazgos.\nconst m = $('Ideas de una marca').first().json;\nconst corto = (s, n) => String(s || '').replace(/\\s+/g, ' ').trim().slice(0, n);\nconst nombre = u => { const x = String(u || '').match(/facebook\\.com\\/([^/?]+)/); return x ? x[1] : ''; };\nconst posts = $('Apify: posts competencia').all().map(i => i.json).filter(p => p && p.url && p.text);\nconst organicos = posts.map(p => ({ tipo: 'competencia', hallazgo: 'Post orgánico de ' + (p.pageName || nombre(p.facebookUrl || p.url)) + ' (' + String(p.time || '').slice(0, 10) + '): ' + corto(p.text, 300), fuente: p.url, accion: 'contenido' }));\nconst basura = /^(informaci[oó]n|info|me interesa|amen|amén|gracias|muchas gracias|felicidades|excelente|jaja.*|\\W*)$/i;\nconst voz = $('Apify: comentarios').all().map(i => i.json)\n  .filter(c => c && c.text && !c.error && corto(c.text, 400).length >= 15 && !basura.test(corto(c.text, 400)))\n  .slice(0, 80)\n  .map(c => ({ comentario: corto(c.text, 300), sobre: corto(c.postTitle, 120), pagina: nombre(c.facebookUrl || c.inputUrl), url: c.commentUrl || c.facebookUrl }));\nreturn [{ json: { ...m, hallazgos: [...m.hallazgos, ...organicos].slice(0, 60), voz } }];"
+      }
+    },
+    {
+      "id": "df52274a-9223-4fc4-8676-d6060b66d0f7",
+      "name": "Modal: ideas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1100,
+        600
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/ideas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ marca: $json.marca, posts: $json.posts, hallazgos: $json.hallazgos, voz: $json.voz, publicados: $json.publicados }) }}",
+        "options": {
+          "timeout": 200000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "cee9bc67-7451-4fe6-b2e8-2084851b600a",
+      "name": "Filas de tema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        600
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const salida = [];\nfor (const it of $input.all()) {\n  for (const i of (it.json.ideas || [])) {\n    const fuente = i.fuente ? ' | Fuente: ' + i.fuente : '';\n    salida.push({ json: { post_id: i.post_id, tema: i.tema + fuente } });\n  }\n}\nreturn salida;"
+      }
+    },
+    {
+      "id": "e23cba0e-1a5d-4f37-bbfa-fafe920dc6fa",
+      "name": "Sheet: tema",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1540,
+        600
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $json.post_id }}",
+            "tema": "={{ $json.tema }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tema",
+              "displayName": "tema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "22efd929-76ce-4ea0-9cea-b21f1b8f0561",
+      "name": "Telegram: ideas de la semana",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        400
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ (() => { const e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); const P = $('Pedido con voz').first().json; const fechas = {}; P.posts.forEach(x => { fechas[x.post_id] = x.fecha + ' · ' + x.tipo; }); const r = $('Modal: ideas').first().json; let t = '💡 <b>Ideas de la semana · ' + e(P.nombre) + '</b>\\nYa están en la columna «tema» del Sheet; cámbialas ahí si quieres antes de que se preparen.\\n\\n' + e(r.resumen) + '\\n'; for (const i of (r.ideas || [])) { const g = (String(i.tema).split('Gancho:')[1] || '').split('|')[0].trim(); t += '• ' + e(fechas[i.post_id] || i.post_id) + ' [' + e(i.fuente_tipo) + ']: ' + e(g) + '\\n'; } return t.slice(0, 4000); })() }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_REPORTES__",
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "7fab8455-dc87-4153-8362-79dffa9179cf",
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "3dbe4902-3f4e-4c28-91ed-68148e8644f9",
+      "name": "Telegram: error de ideas",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        800
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '⚠️ No pude generar las ideas de ' + $('Pedido con voz').first().json.nombre + ': ' + String($json.error && ($json.error.message || $json.error.description) || 'error').slice(0, 300) + '. Los posts se preparan igual con la ficha.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "79dad929-a7ca-4d6e-bccd-3389d9b5650e",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Cada lunes 9:00": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcas": {
+      "main": [
+        [
+          {
+            "node": "Calendario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendario": {
+      "main": [
+        [
+          {
+            "node": "Hallazgos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hallazgos": {
+      "main": [
+        [
+          {
+            "node": "Armar pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar pedidos": {
+      "main": [
+        [
+          {
+            "node": "Ideas de cada marca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ideas de una marca": {
+      "main": [
+        [
+          {
+            "node": "Apify: posts competencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: posts competencia": {
+      "main": [
+        [
+          {
+            "node": "Posts con comentarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posts con comentarios": {
+      "main": [
+        [
+          {
+            "node": "Apify: comentarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify: comentarios": {
+      "main": [
+        [
+          {
+            "node": "Pedido con voz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido con voz": {
+      "main": [
+        [
+          {
+            "node": "Modal: ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modal: ideas": {
+      "main": [
+        [
+          {
+            "node": "Filas de tema",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram: ideas de la semana",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: error de ideas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filas de tema": {
+      "main": [
+        [
+          {
+            "node": "Sheet: tema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 3000,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Cada lunes 9:00 escribe el tema (brief) de cada post planeado de los próximos 8 días con Research, temporada y voz del público (comentarios en la competencia). Avisa en Telegram."
+  },
+  "pinData": {}
+}

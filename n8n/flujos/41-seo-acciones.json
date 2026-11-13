@@ -1,0 +1,944 @@
+{
+  "name": "Agencia · SEO acciones",
+  "nodes": [
+    {
+      "id": "a8658e08-9447-4dc1-83c8-8dcbe857d437",
+      "name": "Desde Telegram (respuestas)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        480
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "c25d5b51-9805-49ec-adc4-436317bb1582",
+      "name": "Leer acción",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        480
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const u = $input.first().json;\nconst cq = u.callback_query;\nif (cq && String(cq.data || '').startsWith('seo|')) {\n  const d = String(cq.data).split('|');\n  const fotos = cq.message.photo || [];\n  return [{ json: { accion: d[1], row_id: Number(d[2]), version: Number(d[3]), query_id: cq.id,\n    chat_id: cq.message.chat.id, thread_id: cq.message.message_thread_id || null, texto: '',\n    msg_id: cq.message.message_id, foto_id: fotos.length ? fotos[fotos.length - 1].file_id : '',\n    pie: String(cq.message.caption || cq.message.text || '').slice(0, 900) } }];\n}\nconst m = u.message || {};\nconst previo = String(m.reply_to_message?.text || '').split('\\n')[0];\nconst r = previo.match(/#(\\d+) v(\\d+)/);\nif (!r) throw new Error('No entendí a qué artículo responde: ' + previo);\nreturn [{ json: { accion: 'texto', row_id: Number(r[1]), version: Number(r[2]), query_id: null,\n  chat_id: m.chat.id, thread_id: m.message_thread_id || null, texto: String(m.text || '').trim(), msg_id: null, foto_id: '', pie: '' } }];"
+      }
+    },
+    {
+      "id": "f0eb0ac3-0bce-4142-971f-9ed2af8aa922",
+      "name": "Leer artículo",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        480
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.row_id }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "7525d5ed-f876-46e7-b3af-2be7ea19e14a",
+      "name": "¿Sigue por aprobar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.estado ?? \"\" }}",
+              "rightValue": "por aprobar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ String($json.version ?? \"\") }}",
+              "rightValue": "={{ String($('Leer acción').first().json.version) }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "844f240c-d0d1-4071-890a-865bdcf0feac",
+      "name": "¿Qué pidió?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        280
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "publicar",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Leer acción').first().json.accion }}",
+                    "rightValue": "ok",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "cambios",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Leer acción').first().json.accion }}",
+                    "rightValue": "cambios",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "texto",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Leer acción').first().json.accion }}",
+                    "rightValue": "texto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "85b9efc8-4acf-4826-81aa-9db3f79cc121",
+      "name": "Contestar: publicando",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        100
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Leer acción').first().json.query_id || '0' }}",
+        "additionalFields": {
+          "text": "Publicando…"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "77f6a52b-0e35-4e8b-a874-9afbcb429687",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "fb46c9a2-7550-4f51-bbd3-541f5a9a554c",
+      "name": "Publicar en Webflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://api.webflow.com/v2/collections/' + ({ 'marca-a': '__WEBFLOW_COLLECTION_ID_A__' })[$('Leer artículo').first().json.marca] + '/items/publish' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "webflowApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ itemIds: [$('Leer artículo').first().json.webflow_item_id] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "webflowApi": {
+          "id": "",
+          "name": "Webflow"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "bcfc1ca2-81c3-4546-b7ae-44e2836a48be",
+      "name": "Guardar: publicado",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Leer acción').first().json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "publicado",
+            "error": "",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "899f646b-7323-44c9-942d-55761ece2eed",
+      "name": "Avisar: publicado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '✅ Publicado en el blog: ' + $('Leer artículo').first().json.titulo + '\\n' + $('Leer artículo').first().json.url + '\\n(Puede tardar 1–3 minutos en verse.)' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_REPORTES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "52f9f873-c4b9-4483-af35-e9ea18efb84c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "37757e6d-1cc2-4dd5-a70d-e8d8224258eb",
+      "name": "Confirmar en Aprobaciones",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Leer acción').first().json.chat_id }}",
+        "text": "={{ '✅ #' + $('Leer acción').first().json.row_id + ' v' + $('Leer acción').first().json.version + ' publicado. Lo avisé en Reportes.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Leer acción').first().json.thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "9839cf75-c49d-4d1a-986d-8e38ec4e6c61"
+    },
+    {
+      "id": "894f50a6-a0d3-4fd5-a93a-420d027d3443",
+      "name": "Avisar: no se publicó",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '⚠️ No pude publicar #' + $('Leer acción').first().json.row_id + ': ' + String($json.error?.message || $json.error?.description || JSON.stringify($json)).slice(0, 300) + '\\nSigue como borrador; puedes volver a tocar ✅.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "ffe90077-243a-4635-ac19-497c81480e99",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "2c283ddc-372b-427d-9e1d-389aba5dfa3f",
+      "name": "Contestar: dime qué cambio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Leer acción').first().json.query_id || '0' }}",
+        "additionalFields": {
+          "text": "Dime qué cambio"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "3022bafe-8540-4761-a61c-f96f7dc3eeef",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "325c7dcd-eed8-44ee-b23d-303aa269703e",
+      "name": "Preguntar cambios",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Leer acción').first().json.chat_id }}",
+        "text": "={{ '📝 Cambios SEO #' + $('Leer acción').first().json.row_id + ' v' + $('Leer acción').first().json.version + '\\nResponde a este mensaje con lo que quieres cambiar del artículo (título, enfoque, secciones, tono, largo…).' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Leer acción').first().json.thread_id || undefined }}"
+        },
+        "replyMarkup": "forceReply",
+        "forceReply": {
+          "force_reply": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "ce481473-faa6-4cde-af4e-cbab697bf6c9"
+    },
+    {
+      "id": "a7054abb-c185-4069-98e3-c779d973cfc1",
+      "name": "Guardar: cambios pedidos",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        480
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Leer acción').first().json.row_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "cambios pedidos",
+            "cambios": "={{ $('Leer acción').first().json.texto }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "cambios",
+              "displayName": "cambios",
+              "type": "string",
+              "display": true,
+              "required": false
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "type": "string",
+              "display": true,
+              "required": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9833cb36-6fe3-4147-a1de-ac63bcbaab7d",
+      "name": "Confirmar cambios recibidos",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        480
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Leer acción').first().json.chat_id }}",
+        "text": "={{ 'Recibido 👍 Preparo la versión nueva de #' + $('Leer acción').first().json.row_id + '. Llega aquí en unos 5 minutos.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Leer acción').first().json.thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "5e042742-dc97-41fb-bd13-1953825d207c"
+    },
+    {
+      "id": "a13fecf2-98fa-450f-9dab-69ac1bb2273b",
+      "name": "Rehacer borrador",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        480
+      ],
+      "parameters": {
+        "mode": "once",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__FLUJO_SEO_BORRADORES__"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_id": "={{ $('Leer acción').first().json.row_id }}",
+            "cambios": "={{ $('Leer acción').first().json.texto }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "row_id",
+              "displayName": "row_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "cambios",
+              "displayName": "cambios",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "6fd5dab5-ff38-43e9-98b5-14faf3a92b74",
+      "name": "Contestar botón viejo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        680
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Leer acción').first().json.query_id || '0' }}",
+        "additionalFields": {
+          "text": "Ya no aplica"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "38f9cc09-956c-4329-8324-dc38c5c2a04c",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "7750d8e6-63a6-47e0-acf4-26a3f2b7cf76",
+      "name": "Avisar: ya no aplica",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        680
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Leer acción').first().json.chat_id }}",
+        "text": "={{ 'ℹ️ #' + $('Leer acción').first().json.row_id + ' v' + $('Leer acción').first().json.version + ' ya no está por aprobar (estado: ' + ($('Leer artículo').first().json.estado || 'no encontrado') + ', versión actual: ' + ($('Leer artículo').first().json.version ?? '—') + '). No hice nada.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "={{ $('Leer acción').first().json.thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "af59b06c-6390-4c08-8414-618f0b872bfa"
+    },
+    {
+      "id": "1e715858-0690-4971-bf40-f664965b7ea0",
+      "name": "Pie: estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const a = $('Leer acción').first().json;\nif (!a.msg_id || !a.foto_id) return [];\nconst estados = { ok: '✅ Publicado', cambios: '✏️ Pediste cambios' };\nconst estado = estados[a.accion] || 'ℹ️ Esta versión ya no está por aprobar';\nreturn [{ json: { chat_id: a.chat_id, thread_id: a.thread_id, msg_id: a.msg_id, foto_id: a.foto_id, pie: (a.pie + '\\n\\n' + estado).slice(0, 1024) } }];"
+      }
+    },
+    {
+      "id": "fcc91795-2474-4e47-a2e3-2ab60459795e",
+      "name": "Foto sin botones",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "={{ $json.chat_id }}",
+        "binaryData": false,
+        "file": "={{ $json.foto_id }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "caption": "={{ $json.pie }}",
+          "message_thread_id": "={{ $json.thread_id || undefined }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "aa078078-222c-41cf-a673-7bd0f0441316"
+    },
+    {
+      "id": "60ab14d9-cee8-46de-b730-684b1d69f0ac",
+      "name": "Borrar mensaje con botones",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2640,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "deleteMessage",
+        "chatId": "={{ $('Pie: estado').first().json.chat_id }}",
+        "messageId": "={{ $('Pie: estado').first().json.msg_id }}"
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "9c8deea2-09ef-4924-9813-ee3c973fa931",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Desde Telegram (respuestas)": {
+      "main": [
+        [
+          {
+            "node": "Leer acción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer acción": {
+      "main": [
+        [
+          {
+            "node": "Leer artículo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer artículo": {
+      "main": [
+        [
+          {
+            "node": "¿Sigue por aprobar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sigue por aprobar?": {
+      "main": [
+        [
+          {
+            "node": "¿Qué pidió?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contestar botón viejo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Qué pidió?": {
+      "main": [
+        [
+          {
+            "node": "Contestar: publicando",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contestar: dime qué cambio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar: cambios pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contestar: publicando": {
+      "main": [
+        [
+          {
+            "node": "Publicar en Webflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar en Webflow": {
+      "main": [
+        [
+          {
+            "node": "Guardar: publicado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar: no se publicó",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar: publicado": {
+      "main": [
+        [
+          {
+            "node": "Avisar: publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar: publicado": {
+      "main": [
+        [
+          {
+            "node": "Confirmar en Aprobaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar en Aprobaciones": {
+      "main": [
+        [
+          {
+            "node": "Pie: estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contestar: dime qué cambio": {
+      "main": [
+        [
+          {
+            "node": "Preguntar cambios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preguntar cambios": {
+      "main": [
+        [
+          {
+            "node": "Pie: estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar: cambios pedidos": {
+      "main": [
+        [
+          {
+            "node": "Confirmar cambios recibidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar cambios recibidos": {
+      "main": [
+        [
+          {
+            "node": "Rehacer borrador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contestar botón viejo": {
+      "main": [
+        [
+          {
+            "node": "Avisar: ya no aplica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar: ya no aplica": {
+      "main": [
+        [
+          {
+            "node": "Pie: estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pie: estado": {
+      "main": [
+        [
+          {
+            "node": "Foto sin botones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Foto sin botones": {
+      "main": [
+        [
+          {
+            "node": "Borrar mensaje con botones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 2400,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lo llama «Telegram (respuestas)». ✅ publica el borrador en Webflow (solo si sigue por aprobar en esa versión); ✏️ pide cambios y rehace el borrador."
+  },
+  "pinData": {}
+}

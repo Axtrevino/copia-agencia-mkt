@@ -1,0 +1,560 @@
+{
+  "name": "Agencia · Leads",
+  "nodes": [
+    {
+      "id": "bf21884c-115d-4dee-9baf-af3843267667",
+      "name": "Lead del sitio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencia-leads",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "f6a606da-1728-486e-85e8-bfac796f1111"
+    },
+    {
+      "id": "f2709a80-0d6a-4499-a724-413200e2c00a",
+      "name": "Normalizar lead del sitio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Llega de los sitios (navigator.sendBeacon o fetch; campo d = JSON). Solo dominios propios.\n// CONFIGURA: qué dominio es de qué marca y qué correos son de prueba.\nconst DOMINIOS = { '__DOMINIO_A__': 'marca-a', '__DOMINIO_B__': 'marca-b' };\nconst PRUEBAS = /@(__DOMINIO_A__|__DOMINIO_B__)$/;\nconst j = $input.first().json || {};\nconst h = j.headers || {};\nconst b = j.body || {};\nlet d = {};\ntry { d = typeof b.d === 'string' ? JSON.parse(b.d) : (b.d || b); } catch (e) { return []; }\nconst origen = String(h.origin || h.referer || d.pagina || '').toLowerCase();\nconst dom = Object.keys(DOMINIOS).find(k => origen.includes(k));\nif (!dom) return [];\nconst marca = d.marca && Object.values(DOMINIOS).includes(d.marca) ? d.marca : DOMINIOS[dom];\nconst f = {};\nfor (const [k, v] of Object.entries(d.campos || {})) {\n  const key = String(k).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');\n  if (v !== '' && v != null) f[key] = String(v).slice(0, 2000);\n}\nif (f._gotcha || f.gotcha) return [];\nconst take = (...ks) => { for (const k of ks) if (f[k]) { const v = f[k]; delete f[k]; return v; } return ''; };\nconst nombre = take('nombre', 'nombre_y_apellido', 'name');\nconst correo = take('email', 'correo').toLowerCase();\nconst telefono = take('telefono', 'tel', 'phone').replace(/[^0-9+]/g, '');\nconst empresa = take('empresa', 'company');\nconst mensaje = take('mensaje', 'comentarios', 'message');\nconst tipo = take('tipo');\n['sitio', '_subject', 'subject'].forEach(k => delete f[k]);\nconst a = d.atribucion || {};\nconst texto = [nombre, correo, empresa, mensaje].join(' ');\nconst prueba = !!d.prueba || /\\bprueba\\b|\\btest\\b|no contactar/i.test(texto) || PRUEBAS.test(correo);\nconst eid = String(d.event_id || '').slice(0, 80);\nconst ahora = $now.setZone('America/Mexico_City');\nconst xff = String(h['x-forwarded-for'] || h['x-real-ip'] || '').split(',')[0].trim();\nreturn [{ json: {\n  lead_id: marca + '-' + (eid || ahora.toMillis()),\n  fecha: ahora.toFormat('yyyy-MM-dd HH:mm:ss'), marca, origen: 'web_form',\n  estado: prueba ? 'descartado' : 'nuevo',\n  nombre, telefono, correo, empresa, mensaje, tipo,\n  detalle: Object.keys(f).length ? JSON.stringify(f).slice(0, 2000) : '',\n  pagina: String(d.pagina || '').slice(0, 500), landing: String(a.landing || '').slice(0, 500), referrer: String(a.referrer || '').slice(0, 500),\n  utm_source: a.utm_source || '', utm_medium: a.utm_medium || '', utm_campaign: a.utm_campaign || '', utm_content: a.utm_content || '', utm_term: a.utm_term || '',\n  gclid: a.gclid || '', fbclid: a.fbclid || '', fbp: d.fbp || '', fbc: d.fbc || '', event_id: eid,\n  notas: prueba ? 'prueba (excluida)' : '', actualizado: ahora.toFormat('yyyy-MM-dd HH:mm:ss'),\n  _ip: xff, _ua: String(h['user-agent'] || '').slice(0, 400), _ts: Math.floor(ahora.toSeconds()), _prueba: prueba\n} }];\n"
+      }
+    },
+    {
+      "id": "2b700a1f-9ed9-441c-80c2-ba99f0fc75c2",
+      "name": "Unir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all();"
+      }
+    },
+    {
+      "id": "73ab7df6-737b-496a-b03f-a40e594b29b9",
+      "name": "Cada 30 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "dcf81098-6be8-4090-992b-bd29a5445a7d",
+      "name": "Leer Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "f08204e0-cbad-4704-8b3a-7d92ab4cac32",
+      "name": "Meta: formularios A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v26.0/__META_PAGE_ID_A__/leadgen_forms?fields=id,name,leads.limit(50){id,created_time,field_data,ad_name,campaign_name,platform,is_organic}&limit=50",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "4c8e4536-2e78-4e33-a25c-ca5e501a5cc8",
+      "name": "Meta: formularios B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v26.0/__META_PAGE_ID_B__/leadgen_forms?fields=id,name,leads.limit(50){id,created_time,field_data,ad_name,campaign_name,platform,is_organic}&limit=50",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página B"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "1797d104-e0c8-4075-8594-683c23b90ed6",
+      "name": "Normalizar formularios Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Leads de los formularios instantáneos de Meta (uno por marca). Se guardan con origen meta_form.\n// No se mandan a Conversions API (Meta ya los tiene); sí avisan si son de las últimas 24 h.\nconst PRUEBAS = /@(__DOMINIO_A__|__DOMINIO_B__)$/;\nconst z = 'America/Mexico_City', ahora = $now.setZone(z);\nconst ya = new Set($('Leer Leads').all().map(i => String((i.json || {}).lead_id || '')));\nconst out = [], errores = [];\nconst norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');\nfor (const [nodo, marca] of [['Meta: formularios A', 'marca-a'], ['Meta: formularios B', 'marca-b']]) {\n  let j = {};\n  try { j = $(nodo).first().json || {}; } catch (e) { continue; }\n  if (j.error) { errores.push(marca + ': ' + (j.error.message || JSON.stringify(j.error)).slice(0, 200)); continue; }\n  for (const f of j.data || []) {\n    for (const l of ((f.leads || {}).data || [])) {\n      const id = marca + '-mf-' + l.id;\n      if (ya.has(id)) continue;\n      const c = {};\n      for (const x of l.field_data || []) c[norm(x.name)] = (x.values || []).join(', ').slice(0, 1000);\n      const take = (...ks) => { for (const k of ks) if (c[k]) { const v = c[k]; delete c[k]; return v; } return ''; };\n      const nombre = take('full_name', 'nombre_completo', 'nombre') || [take('first_name'), take('last_name')].filter(Boolean).join(' ');\n      const telefono = take('phone_number', 'telefono', 'celular').replace(/[^0-9+]/g, '');\n      const correo = take('email', 'correo', 'work_email').toLowerCase();\n      const empresa = take('company_name', 'empresa');\n      const texto = JSON.stringify(l.field_data || []);\n      const prueba = /<test lead|dummy data|\\bprueba\\b|\\btest\\b/i.test(texto) || PRUEBAS.test(correo);\n      const dt = DateTime.fromISO(String(l.created_time || '').replace(/\\+0000$/, 'Z')).setZone(z);\n      const reciente = dt.isValid && ahora.diff(dt, 'hours').hours < 24;\n      out.push({ json: {\n        lead_id: id, fecha: (dt.isValid ? dt : ahora).toFormat('yyyy-MM-dd HH:mm:ss'), marca, origen: 'meta_form',\n        estado: prueba ? 'descartado' : 'nuevo', nombre, telefono, correo, empresa, mensaje: '', tipo: 'formulario de Meta',\n        detalle: JSON.stringify(Object.assign({ formulario: f.name, form_id: f.id }, l.ad_name ? { anuncio: l.ad_name } : {}, l.campaign_name ? { campana: l.campaign_name } : {}, c)).slice(0, 2000),\n        pagina: '', landing: '', referrer: '', utm_source: 'meta', utm_medium: 'formulario', utm_campaign: String(l.campaign_name || ''), utm_content: String(l.ad_name || ''), utm_term: '',\n        gclid: '', fbclid: '', fbp: '', fbc: '', event_id: '',\n        notas: prueba ? 'prueba (excluida)' : (reciente ? '' : 'formulario de Meta, llegó con retraso'),\n        actualizado: ahora.toFormat('yyyy-MM-dd HH:mm:ss'), _ip: '', _ua: '', _ts: Math.floor((dt.isValid ? dt : ahora).toSeconds()), _prueba: prueba || !reciente\n      } });\n    }\n  }\n}\nif (errores.length) { const st = $getWorkflowStaticData('global'); const k = 'mf_err_' + ahora.toFormat('yyyy-MM-dd'); if (!st[k]) { st[k] = 1; throw new Error('No pude leer los formularios de Meta: ' + errores.join(' | ')); } }\nreturn out.sort((a, b) => a.json._ts - b.json._ts);\n"
+      }
+    },
+    {
+      "id": "a08eedbf-9937-44b9-95de-1e23019f8acf",
+      "name": "Sheet: agregar a Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Leads"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "abcb8fd3-826c-44af-8f35-129442ef7cac",
+      "name": "Preparar avisos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Solo leads reales y recientes: aviso en Telegram y, si vienen del sitio con event_id, Conversions API.\nconst NOMBRES = { 'marca-a': 'Marca A', 'marca-b': 'Marca B' };\nconst e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst out = [];\nfor (const it of $('Unir').all()) {\n  const l = it.json;\n  if (l._prueba) continue;\n  const fuente = l.gclid ? 'Google Ads' : (l.fbclid || l.fbc) ? 'Meta' : l.utm_source ? (l.utm_source + (l.utm_medium ? ' / ' + l.utm_medium : '')) : (l.referrer ? 'referido: ' + l.referrer.replace(/^https?:\\/\\//, '').split('/')[0] : 'directo o sin dato');\n  const texto = '🧲 <b>Lead nuevo · ' + e(NOMBRES[l.marca] || l.marca) + '</b>\\n' + e(l.nombre) + (l.empresa ? ' · ' + e(l.empresa) : '') + (l.tipo ? '\\nTipo: ' + e(l.tipo) : '') + (l.mensaje ? '\\n«' + e(l.mensaje.slice(0, 200)) + '»' : '') + '\\nFuente: ' + e(fuente) + (l.notas ? '\\n<i>' + e(l.notas) + '</i>' : '') + '\\nDatos de contacto en el Sheet, pestaña Leads.';\n  const capi = !!l.event_id;\n  const evento = { event_name: 'Lead', event_time: l._ts, event_id: l.event_id, action_source: 'website', event_source_url: l.pagina || undefined,\n    user_data: Object.fromEntries(Object.entries({ client_ip_address: l._ip, client_user_agent: l._ua, fbp: l.fbp, fbc: l.fbc }).filter(([, v]) => v)) };\n  out.push({ json: { lead_id: l.lead_id, marca: l.marca, capi, texto, capi_body: { data: [evento] } } });\n}\nreturn out;\n"
+      }
+    },
+    {
+      "id": "7b00dc23-b473-46c4-b5c3-fa8ea99117bd",
+      "name": "¿Conversions API?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "marca-a",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.capi && $json.marca === 'marca-a' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "marca-b",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.capi && $json.marca === 'marca-b' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Sin CAPI"
+        }
+      }
+    },
+    {
+      "id": "ce83f08f-d97a-4bef-aa26-b2816096d24d",
+      "name": "Meta CAPI: A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/__META_PIXEL_ID_A__/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.capi_body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "968fb094-3a68-4677-8e3f-20063a568f7c",
+      "name": "Meta CAPI: B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/__META_PIXEL_ID_B__/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.capi_body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    },
+    {
+      "id": "b21f4837-58e7-4dde-ba48-a54a2367d6eb",
+      "name": "Telegram: lead nuevo",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ (() => { const p = $('Preparar avisos').item.json; let t = p.texto; if (p.capi) { t += $json.events_received ? '\\nMeta CAPI: ✅' : '\\nMeta CAPI: ⚠️ ' + String(($json.error && $json.error.message) || 'sin respuesta').slice(0, 150).replace(/</g, '&lt;'); } return t; })() }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_REPORTES__",
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "11533574-6a7a-4a48-9cb6-fb499c235272",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Lead del sitio": {
+      "main": [
+        [
+          {
+            "node": "Normalizar lead del sitio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar lead del sitio": {
+      "main": [
+        [
+          {
+            "node": "Unir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cada 30 min": {
+      "main": [
+        [
+          {
+            "node": "Leer Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Leads": {
+      "main": [
+        [
+          {
+            "node": "Meta: formularios A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta: formularios A": {
+      "main": [
+        [
+          {
+            "node": "Meta: formularios B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta: formularios B": {
+      "main": [
+        [
+          {
+            "node": "Normalizar formularios Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar formularios Meta": {
+      "main": [
+        [
+          {
+            "node": "Unir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir": {
+      "main": [
+        [
+          {
+            "node": "Sheet: agregar a Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: agregar a Leads": {
+      "main": [
+        [
+          {
+            "node": "Preparar avisos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar avisos": {
+      "main": [
+        [
+          {
+            "node": "¿Conversions API?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Conversions API?": {
+      "main": [
+        [
+          {
+            "node": "Meta CAPI: A",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Meta CAPI: B",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: lead nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta CAPI: A": {
+      "main": [
+        [
+          {
+            "node": "Telegram: lead nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta CAPI: B": {
+      "main": [
+        [
+          {
+            "node": "Telegram: lead nuevo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 600,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Leads de los sitios (webhook agencia-leads) y de los formularios instantáneos de Meta cada 30 min → pestaña Leads → Telegram; Conversions API solo para leads del sitio con event_id."
+  },
+  "pinData": {}
+}

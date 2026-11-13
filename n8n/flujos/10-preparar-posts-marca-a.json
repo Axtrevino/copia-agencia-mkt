@@ -1,0 +1,839 @@
+{
+  "name": "Agencia · Preparar posts (Marca A)",
+  "nodes": [
+    {
+      "id": "e5a5c8cc-5b18-4117-b0eb-ecb64a16bcbf",
+      "name": "Diario 10:07",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 10,
+              "triggerAtMinute": 7
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ce9e8d53-0435-43ee-a71d-eca4e1b1942c",
+      "name": "Preparar ahora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "4e29e6a9-c962-4220-9bf1-51ee1677e3ce",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configuración de la marca de ESTE flujo. Para otra marca: duplica el flujo y cambia aquí.\nreturn [{ json: {\n  marca: 'marca-a',            // carpeta marcas/<marca> del servicio\n  nombre: 'Marca A',\n  page_id: '__META_PAGE_ID_A__', // página de Facebook\n  ig_id: '__META_IG_ID_A__',     // cuenta de Instagram ligada a la página\n} }];"
+      }
+    },
+    {
+      "id": "9bfa15b2-9f02-47b3-b76e-cad3f6ae5d46",
+      "name": "Historial",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "e85c13e7-10d9-4b10-8e3a-dec865a6a6b0",
+      "name": "Planeados",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "estado",
+              "lookupValue": "planeado"
+            },
+            {
+              "lookupColumn": "marca",
+              "lookupValue": "={{ $('Config').first().json.marca }}"
+            }
+          ]
+        },
+        "combineFilters": "AND"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "3b1991eb-2637-4f2f-80d6-f104a0e0807e",
+      "name": "Se publica hoy o mañana",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ String($json.fecha) <= $now.setZone('America/Mexico_City').plus({ days: 1 }).toFormat('yyyy-MM-dd') && String($json.fecha) >= $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "74b64478-8a90-4b4d-84af-a109b9497c79",
+      "name": "Máximo 3",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "maxItems": 3
+      }
+    },
+    {
+      "id": "4522a245-994a-49c3-82c8-e1ea56d22234",
+      "name": "Marcar preparando",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $json.post_id }}",
+            "estado": "preparando"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "687f53a7-d161-46a5-9899-c3ad703cc027",
+      "name": "Redactar post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/redactar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ marca: $(\"Máximo 3\").item.json.marca, post_id: $(\"Máximo 3\").item.json.post_id, fecha: $(\"Máximo 3\").item.json.fecha, version: Number($(\"Máximo 3\").item.json.version) || 0, tipo: $(\"Máximo 3\").item.json.tipo, tema: $(\"Máximo 3\").item.json.tema || \"\", recientes: ((rows, pid, marca) => { const ok = [\"publicado\", \"aprobado\", \"por aprobar\"]; const k = r => String(r.fecha || \"\") + \" \" + String(r.hora || \"\").padStart(5, \"0\"); return rows.filter(r => String(r.marca || '') === String(marca || '') && ok.includes(String(r.estado || \"\").trim().toLowerCase()) && String(r.post_id || \"\") !== String(pid || \"\") && String(r.titular || \"\").trim()).sort((a, b) => k(b).localeCompare(k(a))).slice(0, 8).map(r => ({ fecha: r.fecha, sistema: r.sistema, titular: r.titular, escena: String(r.escena || \"\").slice(0, 200), copy: String(r.copy || \"\").slice(0, 300), kicker: r.kicker, subtitulo: r.subtitulo })); })($(\"Historial\").all().map(i => i.json), $(\"Máximo 3\").item.json.post_id, $(\"Máximo 3\").item.json.marca) }) }}",
+        "options": {
+          "timeout": 200000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "0459b453-64ac-45e4-87e4-eaf8aa06d1eb",
+      "name": "Crear pieza",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ marca: $json.marca, post_id: $json.post_id, version: $json.version, sistema: $json.sistema, escena: $json.escena, textos: $json.textos }) }}",
+        "options": {
+          "timeout": 360000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "98a3003c-9831-4386-b8db-ae31da98a694",
+      "name": "Pasar a JPEG",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "pieza_jpeg_b64",
+        "options": {
+          "fileName": "={{ $json.archivo }}",
+          "mimeType": "image/jpeg"
+        }
+      }
+    },
+    {
+      "id": "102171c0-d323-4d95-81ac-bf2ec604dea8",
+      "name": "Mandar para aprobar",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ Aprobar",
+                    "additionalFields": {
+                      "callback_data": "={{ \"ok|\" + $(\"Redactar post\").item.json.post_id + \"|\" + $(\"Redactar post\").item.json.version }}"
+                    }
+                  },
+                  {
+                    "text": "✏️ Cambios",
+                    "additionalFields": {
+                      "callback_data": "={{ \"cambios|\" + $(\"Redactar post\").item.json.post_id + \"|\" + $(\"Redactar post\").item.json.version }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "fileName": "={{ $json.archivo }}",
+          "message_thread_id": "__TEMA_APROBACIONES__",
+          "caption": "={{ (() => { const R = $(\"Redactar post\").item.json; const P = $(\"Máximo 3\").item.json; const e = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); return '<b>' + R.post_id + ' · v' + R.version + '</b> · ' + e($('Config').first().json.nombre) + ' · sale ' + e(P.fecha) + ' ' + e(P.hora) + '\\n<i>' + e(R.notas).slice(0, 100) + '</i>\\n\\n' + e(R.copy); })() }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "515e13fe-6d28-4b7f-961b-72e778cb2a82"
+    },
+    {
+      "id": "4c376e62-4fbb-4f37-a3b7-60fe4cc9e987",
+      "name": "Sheet: por aprobar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $(\"Redactar post\").item.json.post_id }}",
+            "version": "={{ $(\"Redactar post\").item.json.version }}",
+            "estado": "por aprobar",
+            "sistema": "={{ $(\"Redactar post\").item.json.sistema }}",
+            "escena": "={{ $(\"Redactar post\").item.json.escena }}",
+            "copy": "={{ $(\"Redactar post\").item.json.copy }}",
+            "imagen_url": "={{ \"tg:\" + ($json.result?.photo ?? $json.photo).slice(-1)[0].file_id }}",
+            "costo_usd": "={{ $(\"Crear pieza\").item.json.costo_usd }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}",
+            "tg_msg": "={{ String($json.result?.message_id ?? $json.message_id ?? \"\") }}",
+            "kicker": "={{ $(\"Redactar post\").item.json.textos.kicker }}",
+            "titular": "={{ $(\"Redactar post\").item.json.textos.titular }}",
+            "palabra_acento": "={{ $(\"Redactar post\").item.json.textos.palabra_acento }}",
+            "subtitulo": "={{ $(\"Redactar post\").item.json.textos.subtitulo }}",
+            "cta": "={{ $(\"Redactar post\").item.json.textos.cta }}",
+            "url": "={{ $(\"Redactar post\").item.json.textos.url }}",
+            "disclaimer": "={{ $(\"Redactar post\").item.json.textos.disclaimer }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sistema",
+              "displayName": "sistema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "escena",
+              "displayName": "escena",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "copy",
+              "displayName": "copy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "costo_usd",
+              "displayName": "costo_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tg_msg",
+              "displayName": "tg_msg",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "kicker",
+              "displayName": "kicker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "titular",
+              "displayName": "titular",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "palabra_acento",
+              "displayName": "palabra_acento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtitulo",
+              "displayName": "subtitulo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cta",
+              "displayName": "cta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "disclaimer",
+              "displayName": "disclaimer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "bdca3e89-d5d6-4a23-830c-76343f085346",
+      "name": "Sheet: error al preparar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1980,
+        560
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $(\"Máximo 3\").item.json.post_id }}",
+            "estado": "error al preparar"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "cf0d1c47-315e-4a72-8852-0875965006fd",
+      "name": "Avisar error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2200,
+        560
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '⚠️ No pude preparar ' + $(\"Máximo 3\").item.json.post_id + '. Quedó como «error al preparar»; para reintentar, cambia su estado a «planeado» en el Sheet.' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "51bb327a-8b54-4974-b7c1-b449d5fa5e8f",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Diario 10:07": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar ahora": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Historial": {
+      "main": [
+        [
+          {
+            "node": "Planeados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Planeados": {
+      "main": [
+        [
+          {
+            "node": "Se publica hoy o mañana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Se publica hoy o mañana": {
+      "main": [
+        [
+          {
+            "node": "Máximo 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Máximo 3": {
+      "main": [
+        [
+          {
+            "node": "Marcar preparando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar preparando": {
+      "main": [
+        [
+          {
+            "node": "Redactar post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar post": {
+      "main": [
+        [
+          {
+            "node": "Crear pieza",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet: error al preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear pieza": {
+      "main": [
+        [
+          {
+            "node": "Pasar a JPEG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheet: error al preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pasar a JPEG": {
+      "main": [
+        [
+          {
+            "node": "Mandar para aprobar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mandar para aprobar": {
+      "main": [
+        [
+          {
+            "node": "Sheet: por aprobar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheet: error al preparar": {
+      "main": [
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 2400,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Diario: toma los posts «planeado» de hoy o mañana de la marca, GPT los redacta, GPT Image crea la pieza y llega a Telegram para aprobar. Duplicar por marca."
+  },
+  "pinData": {}
+}

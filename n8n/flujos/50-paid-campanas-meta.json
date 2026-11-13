@@ -1,0 +1,2004 @@
+{
+  "name": "Agencia · Paid campañas (Meta)",
+  "nodes": [
+    {
+      "id": "33035126-cbf2-4dd3-a7eb-7398a64f27c6",
+      "name": "Pedido",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        720
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencia-paid-campanas",
+        "options": {}
+      },
+      "webhookId": "3d71dc2f-64b6-40ba-bc85-a28c0a19c9f8"
+    },
+    {
+      "id": "580007c0-dfdf-4087-8a24-0d691ca6e7b9",
+      "name": "Validar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        720
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Pedido del Panel de marketing (pestaña Paid). Valida antes de gastar o tocar Meta.\nconst b = ($json.body || $json) || {};\nconst accion = String(b.accion || '').trim();\nconst ahora = $now.setZone('America/Mexico_City');\nconst TOPE = 300; // MXN al día por campaña (cámbialo aquí; es el límite de gasto que se acepta desde el panel).\n// Objetivos de campaña que se pueden crear.\nconst OBJETIVOS = ['reconocimiento', 'trafico', 'visitas_ig', 'interaccion', 'seguidores_fb', 'leads_sitio', 'leads_formulario'];\nconst conSitio = ['trafico', 'leads_sitio']; // necesitan landing del sitio de la marca\nif (accion === 'crear' || accion === 'probar') {\n  const p = b.propuesta || {};\n  const marca = String(p.marca || '');\n  if (!['marca-a', 'marca-b'].includes(marca)) throw new Error('Marca inválida: usa marca-a o marca-b.');\n  const medio = String(p.medio || 'meta').toLowerCase();\n  if (!['meta', 'google'].includes(medio)) throw new Error('Medio inválido: meta o google.');\n  const presupuesto = Math.round(Number(p.presupuesto_diario));\n  if (!(presupuesto >= 30)) throw new Error('El presupuesto diario mínimo es MXN 30.');\n  if (presupuesto > TOPE) throw new Error('El tope es MXN ' + TOPE + ' al día por campaña; esta pide ' + presupuesto + '.');\n  const nombre = String(p.nombre || '').trim().slice(0, 100);\n  if (!nombre) throw new Error('Falta el nombre de la campaña.');\n  let objetivo = String(p.objetivo || 'leads_sitio');\n  if (objetivo === 'leads') objetivo = 'leads_sitio';\n  if (!OBJETIVOS.includes(objetivo)) throw new Error('Objetivo no válido. Usa: ' + OBJETIVOS.join(', ') + '.');\n  if (medio === 'google' && accion === 'probar') throw new Error('Google todavía no se puede probar: no hay conexión por API.');\n  const dominio = marca === 'marca-a' ? /^https:\\/\\/(www\\.)?marca-a\\.com\\.mx(\\/|$|\\?)/ : /^https:\\/\\/(www\\.)?marca-b\\.mx(\\/|$|\\?)/;\n  let landing = String(p.landing || '').trim();\n  if (medio === 'meta' && conSitio.includes(objetivo) && !dominio.test(landing)) throw new Error('La landing debe ser una página del sitio de la marca, con https.');\n  if (landing && !dominio.test(landing)) throw new Error('La landing debe ser una página del sitio de la marca, con https.');\n  if (!landing) landing = marca === 'marca-a' ? 'https://www.__DOMINIO_A__/' : 'https://www.__DOMINIO_B__/';\n  // Interacción: se promociona un post que ya se publicó (no se crea anuncio nuevo).\n  let post = null;\n  if (objetivo === 'interaccion') {\n    const fb = String(p.post_fb || '').trim();\n    // Acepta la liga del post de Instagram o solo su código.\n    const igTxt = String(p.post_ig || '').trim(), igM = igTxt.match(/instagram\\.com\\/(?:[^/]+\\/)?(?:p|reel|tv)\\/([A-Za-z0-9_-]+)/);\n    const ig = igM ? igM[1] : igTxt;\n    const red = p.red === 'instagram' || (p.red !== 'facebook' && ig && !fb) ? 'instagram' : 'facebook';\n    if (red === 'facebook' && !/^\\d+_\\d+$/.test(fb)) throw new Error('Para interacción en Facebook elige un post publicado (falta su id de Facebook).');\n    if (red === 'instagram' && !/^[A-Za-z0-9_-]{5,}$/.test(ig)) throw new Error('Para interacción en Instagram elige un post publicado (falta su liga de Instagram).');\n    post = { red, fb, ig, post_id: String(p.post_id || '') };\n  }\n  const form_id = String(p.form_id || '').trim();\n  if (objetivo === 'leads_formulario' && !/^\\d+$/.test(form_id)) throw new Error('Para leads con formulario de Meta elige un formulario.');\n  const ids = v => (Array.isArray(v) ? v : []).map(String).filter(x => /^\\d+$/.test(x)).slice(0, 20);\n  const incluir = ids(p.audiencias_incluir), excluir = ids(p.audiencias_excluir);\n  const campana_id = (marca === 'marca-a' ? 'PAID-MA-' : 'PAID-MB-') + ahora.toFormat('yyMMdd-HHmmss');\n  const probar = accion === 'probar';\n  return [{ json: { accion, probar, campana_id, marca, medio, nombre, objetivo, presupuesto, landing, post, form_id, incluir, excluir, propuesta: p, propuesta_txt: JSON.stringify(p).slice(0, 8000), estado: medio === 'meta' ? 'creando' : 'encargada', actualizado: ahora.toFormat('yyyy-MM-dd HH:mm'), ruta: probar ? 3 : 0 } }];\n}\nif (accion === 'estado') {\n  const campana_id = String(b.campana_id || '').trim();\n  if (!campana_id) throw new Error('Falta campana_id.');\n  if (typeof b.prender !== 'boolean') throw new Error('Falta prender: true o false.');\n  return [{ json: { accion, campana_id, prender: b.prender, ruta: 1 } }];\n}\nif (accion === 'ver_imagen') {\n  const campana_id = String(b.campana_id || '').trim();\n  if (!campana_id) throw new Error('Falta campana_id.');\n  return [{ json: { accion, campana_id, ruta: 2 } }];\n}\nthrow new Error('Acción no válida: crear, probar, estado o ver_imagen.');\n"
+      }
+    },
+    {
+      "id": "332de3ab-1ee5-4d22-81cd-7f057a4467f0",
+      "name": "Acción",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        704
+      ],
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 4,
+        "output": "={{ $json.ruta }}"
+      }
+    },
+    {
+      "id": "88aa89ba-6fc0-4abf-8023-2e7f3af05fb0",
+      "name": "Guardar pedido",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        240
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__PAID_TABLA_ID__",
+          "cachedResultName": "paid_campanas"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "campana_id": "={{ $(\"Validar\").first().json.campana_id }}",
+            "marca": "={{ $(\"Validar\").first().json.marca }}",
+            "medio": "={{ $(\"Validar\").first().json.medio }}",
+            "nombre": "={{ $(\"Validar\").first().json.nombre }}",
+            "estado": "={{ $(\"Validar\").first().json.estado }}",
+            "objetivo": "={{ $(\"Validar\").first().json.objetivo }}",
+            "presupuesto": "={{ $(\"Validar\").first().json.presupuesto }}",
+            "propuesta": "={{ $(\"Validar\").first().json.propuesta_txt }}",
+            "landing": "={{ $(\"Validar\").first().json.landing }}",
+            "actualizado": "={{ $(\"Validar\").first().json.actualizado }}"
+          },
+          "schema": [
+            {
+              "id": "campana_id",
+              "displayName": "campana_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "marca",
+              "displayName": "marca",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "medio",
+              "displayName": "medio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "objetivo",
+              "displayName": "objetivo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "presupuesto",
+              "displayName": "presupuesto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "propuesta",
+              "displayName": "propuesta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "landing",
+              "displayName": "landing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "47d7cd5a-ec39-457f-9bc0-ba69538781a5",
+      "name": "¿Es Meta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Validar\").first().json.medio === \"meta\" }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "42de1bf3-707e-4113-a3eb-f1d3611faada",
+      "name": "Redactar anuncio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1120,
+        144
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/redactar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const V = $(\"Validar\").first().json, p = V.propuesta || {}; const OBJ = { leads_sitio: \"que dejen sus datos en \" + V.landing, leads_formulario: \"que dejen sus datos en un formulario de Meta, sin salir de Facebook o Instagram\", trafico: \"que visiten \" + V.landing, reconocimiento: \"que conozcan la marca (alcance)\", seguidores_fb: \"que den Me gusta a la página de Facebook de la marca\", visitas_ig: \"que visiten el perfil de Instagram de la marca\" }; return { marca: V.marca, post_id: V.campana_id, fecha: $now.setZone(\"America/Mexico_City\").toISODate(), version: 1, tipo: V.marca === \"marca-b\" ? \"captacion\" : \"producto\", tema: \"Anuncio pagado de Meta (no post orgánico). Objetivo: \" + (OBJ[V.objetivo] || OBJ.leads_sitio) + \". Idea: \" + (p.mensaje || V.nombre) + (p.titular ? \". Titular propuesto, úsalo tal cual si cumple las reglas: \" + p.titular : \"\") + (p.texto ? \". Texto propuesto, respétalo si cumple las reglas: \" + p.texto : \"\") + (p.publico ? \". Público: \" + p.publico : \"\"), recientes: [] }; })()) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 200000
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      }
+    },
+    {
+      "id": "cd65c08b-839c-4e09-bbb0-207467453969",
+      "name": "Crear imagen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        144
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "__MODAL_URL__/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ marca: $(\"Validar\").first().json.marca, post_id: $(\"Validar\").first().json.campana_id, version: 1, sistema: $json.sistema, escena: $json.escena, textos: $json.textos }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 360000
+        }
+      },
+      "executeOnce": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Modal (X-Pieza-Token)"
+        }
+      }
+    },
+    {
+      "id": "17052eab-7c64-4a16-9d5c-82ff68c86289",
+      "name": "Preparar Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        144
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Arma lo que se manda a Meta según el objetivo: campaña, conjunto, creativo y anuncio (todo en pausa).\n// Con «probar» no se crea nada: arma un lote de revisiones para que Meta valide la combinación.\nconst V = $('Validar').first().json;\nconst leer = n => { try { return $(n).isExecuted ? $(n).first().json : null; } catch (e) { return null; } };\nconst R = leer('Redactar anuncio') || {}, P = leer('Crear imagen') || {};\nconst detalle = x => { const d = x && (x.detail || x.error || x.message); return (typeof d === 'string' ? d : JSON.stringify(d || x || {})).slice(0, 300); };\nconst C = {\n  'marca-a': { act: '__META_AD_ACCOUNT_A__', page: '__META_PAGE_ID_A__', ig: '__META_IG_ID_A__', ig_usuario: '__IG_USUARIO_A__', pixel: '__META_PIXEL_ID_A__', dominio: '__DOMINIO_A__', imagen_prueba: 'de8bf018b17af09cf6b3022bccb4f1ff' },\n  'marca-b': { act: '__META_AD_ACCOUNT_B__', page: '__META_PAGE_ID_B__', ig: '__META_IG_ID_B__', ig_usuario: '__IG_USUARIO_B__', pixel: '__META_PIXEL_ID_B__', dominio: '__DOMINIO_B__', imagen_prueba: '6fd711f4de789bf1f2e0a5792d984a1f' },\n}[V.marca];\nconst OBJ = V.objetivo;\nconst nuevo = OBJ !== 'interaccion'; // los demás llevan anuncio nuevo (texto + imagen)\nif (!V.probar && nuevo) {\n  if (!R.textos || !R.copy) return [{ json: { ok: false, error: 'No se pudo redactar el anuncio: ' + detalle(R) } }];\n  if (!P.pieza_jpeg_b64) return [{ json: { ok: false, error: 'No se pudo crear la imagen: ' + detalle(P) } }];\n}\nconst slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);\nconst utm = u => u + (u.includes('?') ? '&' : '?') + 'utm_source=meta&utm_medium=paid_social&utm_campaign=' + slug(V.nombre) + '&utm_content=' + V.campana_id.toLowerCase();\nconst link = utm(V.landing);\nconst copy = V.probar ? 'Prueba de validación (no se publica).' : String(R.copy || '').split('\\n').filter(l => !/(https?:\\/\\/|www\\.)\\S+/i.test(l)).join('\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst titular = String((R.textos && R.textos.titular) || V.nombre).slice(0, 80);\nconst nombre = '[Agente] ' + V.nombre;\n// Objetivo de Meta, meta de optimización y destino (Graph API v26).\nconst M = {\n  reconocimiento: { objective: 'OUTCOME_AWARENESS', optimization_goal: 'REACH', promoted_object: { page_id: C.page } },\n  trafico: { objective: 'OUTCOME_TRAFFIC', optimization_goal: 'LANDING_PAGE_VIEWS', destination_type: 'WEBSITE', pixel: true },\n  visitas_ig: { objective: 'OUTCOME_TRAFFIC', optimization_goal: 'PROFILE_VISIT', destination_type: 'INSTAGRAM_PROFILE', promoted_object: { page_id: C.page }, plataformas: ['instagram'] },\n  interaccion: { objective: 'OUTCOME_ENGAGEMENT', optimization_goal: 'POST_ENGAGEMENT', destination_type: 'ON_POST' },\n  seguidores_fb: { objective: 'OUTCOME_ENGAGEMENT', optimization_goal: 'PAGE_LIKES', destination_type: 'ON_PAGE', promoted_object: { page_id: C.page }, plataformas: ['facebook'] },\n  leads_sitio: { objective: 'OUTCOME_LEADS', optimization_goal: 'OFFSITE_CONVERSIONS', destination_type: 'WEBSITE', promoted_object: { pixel_id: C.pixel, custom_event_type: 'LEAD' }, pixel: true },\n  leads_formulario: { objective: 'OUTCOME_LEADS', optimization_goal: 'LEAD_GENERATION', destination_type: 'ON_AD', promoted_object: { page_id: C.page } },\n}[OBJ];\nconst edad = Math.max(18, Math.min(65, Number((V.propuesta || {}).edad_min) || 18));\n// Con audiencias para incluir se apaga Advantage+ audiencia: si no, Meta las toma solo como sugerencia.\nconst targeting = { geo_locations: { countries: ['MX'] }, age_min: edad, targeting_automation: { advantage_audience: V.incluir.length ? 0 : 1 } };\nif (V.incluir.length) targeting.custom_audiences = V.incluir.map(id => ({ id }));\nif (V.excluir.length) targeting.excluded_custom_audiences = V.excluir.map(id => ({ id }));\nif (M.plataformas) { targeting.publisher_platforms = M.plataformas; if (M.plataformas[0] === 'facebook') targeting.facebook_positions = ['feed']; else targeting.instagram_positions = ['stream', 'story', 'reels']; }\nconst campana = { name: nombre, objective: M.objective, status: 'PAUSED', special_ad_categories: [], daily_budget: String(V.presupuesto * 100), bid_strategy: 'LOWEST_COST_WITHOUT_CAP' };\nconst conjunto = { name: nombre + ' · público', billing_event: 'IMPRESSIONS', optimization_goal: M.optimization_goal, targeting, status: 'PAUSED' };\nif (M.destination_type) conjunto.destination_type = M.destination_type;\nif (M.promoted_object) conjunto.promoted_object = M.promoted_object;\n// Creativo.\nconst ctaSitio = OBJ === 'leads_sitio' ? (V.marca === 'marca-a' ? 'APPLY_NOW' : 'CONTACT_US') : 'LEARN_MORE';\nlet creativo;\nif (OBJ === 'interaccion') {\n  creativo = V.post.red === 'facebook'\n    ? { name: nombre + ' · post', object_story_id: V.post.fb, instagram_user_id: C.ig }\n    : { name: nombre + ' · post', object_id: C.page, instagram_user_id: C.ig, source_instagram_media_id: '__IGMEDIA__' };\n} else {\n  const ld = { image_hash: '__HASH__', message: copy, name: titular };\n  if (OBJ === 'seguidores_fb') Object.assign(ld, { link: 'https://www.facebook.com/' + C.page, call_to_action: { type: 'LIKE_PAGE', value: { page: C.page } } });\n  else if (OBJ === 'leads_formulario') Object.assign(ld, { link: 'https://fb.me/', call_to_action: { type: 'SIGN_UP', value: { lead_gen_form_id: V.form_id } } });\n  else if (OBJ === 'visitas_ig') Object.assign(ld, { link: 'https://www.instagram.com/' + C.ig_usuario + '/', call_to_action: { type: 'VIEW_INSTAGRAM_PROFILE' } });\n  else Object.assign(ld, { link, call_to_action: { type: ctaSitio, value: { link } } });\n  creativo = { name: nombre + ' · creativo', object_story_spec: { page_id: C.page, instagram_user_id: C.ig, link_data: ld } };\n}\nconst anuncio = { name: nombre + ' · anuncio', status: 'PAUSED' };\nif (M.pixel) { anuncio.conversion_domain = C.dominio; anuncio.tracking_specs = [{ 'action.type': ['offsite_conversion'], 'fb_pixel': [C.pixel] }]; }\nconst enc = o => Object.entries(o).map(([k, v]) => k + '=' + encodeURIComponent(typeof v === 'string' ? v : JSON.stringify(v)))\n  .join('&').replace(/%7Bresult%3D([a-z]+)%3A%24\\.id%7D/g, '{result=$1:$.id}');\nconst batch = JSON.stringify([\n  { method: 'POST', name: 'campana', omit_response_on_success: false, relative_url: C.act + '/campaigns', body: enc(campana) },\n  { method: 'POST', name: 'conjunto', omit_response_on_success: false, relative_url: C.act + '/adsets', body: enc(Object.assign({ campaign_id: '{result=campana:$.id}' }, conjunto)) },\n  { method: 'POST', name: 'creativo', omit_response_on_success: false, relative_url: C.act + '/adcreatives', body: enc(creativo) },\n  { method: 'POST', name: 'anuncio', omit_response_on_success: false, relative_url: C.act + '/ads', body: enc(Object.assign({ adset_id: '{result=conjunto:$.id}', creative: { creative_id: '{result=creativo:$.id}' } }, anuncio)) },\n]);\n// Prueba sin crear nada, en un solo lote (Meta no acepta un conjunto con la campaña anidada):\n// (1) la campaña con validate_only, (2) la estimación de entrega con la misma meta, público y objeto promovido\n// (revisa que el conjunto sea válido), (3) la vista previa del creativo (lo valida sin guardarlo).\nconst qs = o => Object.entries(o).map(([k, v]) => k + '=' + encodeURIComponent(typeof v === 'string' ? v : JSON.stringify(v))).join('&');\nconst estimacion = { optimization_goal: M.optimization_goal, targeting_spec: targeting };\nif (M.promoted_object) estimacion.promoted_object = M.promoted_object;\nconst prueba_batch = JSON.stringify([\n  { method: 'POST', name: 'campana', relative_url: C.act + '/campaigns', body: enc(Object.assign({}, campana, { execution_options: ['validate_only'] })) },\n  { method: 'GET', name: 'conjunto', relative_url: C.act + '/delivery_estimate?' + qs(estimacion) },\n  { method: 'GET', name: 'vista', relative_url: C.act + '/generatepreviews?' + qs({ ad_format: OBJ === 'visitas_ig' ? 'INSTAGRAM_STANDARD' : 'MOBILE_FEED_STANDARD', creative: creativo }) },\n]).split('__HASH__').join(C.imagen_prueba);\nconst ig_shortcode = OBJ === 'interaccion' && V.post.red === 'instagram' ? V.post.ig : '';\nreturn [{ json: { ok: true, probar: V.probar, objetivo: OBJ, marca: V.marca, act: C.act, ig: C.ig, sube_imagen: nuevo, ig_shortcode, batch, prueba_batch,\n  bytes: P.pieza_jpeg_b64 || '', titular, copy, link: ['trafico', 'leads_sitio', 'reconocimiento'].includes(OBJ) ? link : '', costo_usd: Number(P.costo_usd) || 0 } }];\n"
+      }
+    },
+    {
+      "id": "409d0780-a50a-4dcc-bdef-35fb10748082",
+      "name": "¿Listo para Meta?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        144
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "17eb09cd-35a4-45a0-928e-5fe1987b319c",
+      "name": "Cuenta",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2016,
+        80
+      ],
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{ $json.marca === \"marca-a\" ? 0 : 1 }}"
+      }
+    },
+    {
+      "id": "5af85020-012f-46e2-85b0-2e7e6886b2b7",
+      "name": "Imagen Marca A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2240,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_A__/adimages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "bytes",
+              "value": "={{ $(\"Preparar Meta\").first().json.bytes }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "815beb95-aa07-4f14-a460-52744ca11c7a",
+      "name": "Crear Marca A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2464,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "batch",
+              "value": "={{ $(\"Preparar Meta\").first().json.batch.replace(\"__HASH__\", (Object.values($json.images || {})[0] || {}).hash || \"\").replace(\"__IGMEDIA__\", ((($(\"Medios IG Marca A\").first().json.data) || []).find(m => m.shortcode === $(\"Preparar Meta\").first().json.ig_shortcode) || {}).id || \"0\") }}"
+            },
+            {
+              "name": "include_headers",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "4b0be526-0cef-402c-8223-858384451b0e",
+      "name": "Revisar Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Lee lo que contestó Meta. Todo nace en pausa: no se gasta nada hasta que el dueño la prenda.\nconst V = $('Validar').first().json, M = $('Preparar Meta').first().json;\nconst msg = x => (x && x.error && (x.error.error_user_msg || x.error.error_user_title || x.error.message)) || '';\nconst leer = n => { try { return $(n).isExecuted ? $(n).first().json : null; } catch (e) { return null; } };\nlet error = '', ids = {};\nif (!M.ok) error = M.error;\nelse {\n  const img = leer('Imagen Marca A') || leer('Imagen Marca B') || {};\n  const medios = leer('Medios IG Marca A') || leer('Medios IG Marca B') || {};\n  if (M.sube_imagen && (msg(img) || !img.images)) error = 'Meta no aceptó la imagen: ' + (msg(img) || JSON.stringify(img).slice(0, 200));\n  else if (M.ig_shortcode && !((medios.data || []).some(m => m.shortcode === M.ig_shortcode))) error = 'No encontré ese post en el Instagram de la marca (solo se buscan los últimos 100).';\n  else {\n    const items = $input.all().map(i => i.json || {});\n    if (items.length === 1 && items[0].error) error = 'Meta rechazó la creación: ' + msg(items[0]);\n    else {\n      const nombres = ['campaign', 'adset', 'creative', 'ad'], que = ['la campaña', 'el público', 'el creativo', 'el anuncio'];\n      items.forEach((x, i) => {\n        let body = {}; try { body = JSON.parse(x.body || '{}'); } catch (e) {}\n        if (Number(x.code) !== 200 || body.error || !body.id) { if (!error) error = 'Meta rechazó ' + (que[i] || 'un paso') + ': ' + (msg(body) || ('código ' + x.code)); }\n        else ids[nombres[i]] = body.id;\n      });\n      if (!error && Object.keys(ids).length < 4) error = 'Meta no confirmó todos los pasos.';\n    }\n  }\n}\nconst parcial = error && ids.campaign ? ' Quedó una campaña incompleta en pausa en Meta (' + ids.campaign + '); no gasta, pero conviene borrarla.' : '';\nreturn [{ json: { ok: !error, error: error ? error + parcial : '', ids, bytes: M.ok ? M.bytes : '', titular: M.titular || '', copy: M.copy || '', link: M.link || '', costo_usd: M.costo_usd || 0, campana_id: V.campana_id, archivo: V.campana_id + '.jpg', con_imagen: !!(M.ok && M.bytes) } }];\n"
+      }
+    },
+    {
+      "id": "b9ecb334-e41e-4b48-9606-6f18f61ac08d",
+      "name": "Imagen Marca B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2240,
+        192
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/__META_AD_ACCOUNT_B__/adimages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "bytes",
+              "value": "={{ $(\"Preparar Meta\").first().json.bytes }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    },
+    {
+      "id": "4021de15-9073-4ee7-b8ca-e33185a8f973",
+      "name": "Crear Marca B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2464,
+        192
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "batch",
+              "value": "={{ $(\"Preparar Meta\").first().json.batch.replace(\"__HASH__\", (Object.values($json.images || {})[0] || {}).hash || \"\").replace(\"__IGMEDIA__\", ((($(\"Medios IG Marca B\").first().json.data) || []).find(m => m.shortcode === $(\"Preparar Meta\").first().json.ig_shortcode) || {}).id || \"0\") }}"
+            },
+            {
+              "name": "include_headers",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    },
+    {
+      "id": "9d2b3c58-9d46-47ea-8add-2b438ef3c3e5",
+      "name": "Pedido Google",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        464
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Google Ads todavía no tiene conexión por API para crear campañas: se guarda la propuesta y el panel abre el encargo.\nconst V = $('Validar').first().json;\nreturn [{ json: { respuesta: { ok: true, mensaje: 'Guardé la propuesta de Google Ads. Google todavía no está conectado para crearla solo: queda como encargo y la armo en pausa con tu OK.', data: { campana_id: V.campana_id, estado: 'encargada' } } } }];\n"
+      }
+    },
+    {
+      "id": "fb061cf7-f699-4c36-9c7b-cae7be09ea3b",
+      "name": "Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4032,
+        672
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Respuesta única que lee el panel.\nfor (const n of ['Fila de campaña', 'Fila de estado', 'Pedido Google', 'Imagen lista', 'Resultado prueba']) {\n  try { if ($(n).isExecuted) return [{ json: $(n).first().json.respuesta }]; } catch (e) {}\n}\nreturn [{ json: { ok: false, mensaje: 'Sin respuesta.' } }];\n"
+      }
+    },
+    {
+      "id": "c0d26434-a531-46ee-a2e8-6fb8ee1e74ad",
+      "name": "Leer campaña",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2464,
+        768
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__PAID_TABLA_ID__",
+          "cachedResultName": "paid_campanas"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "campana_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.campana_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      }
+    },
+    {
+      "id": "f430d2a7-bb22-42e9-8fbc-b504e6a11ca1",
+      "name": "Preparar estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        768
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prender o apagar una campaña de Meta creada por el agente. Prender activa anuncio, público y campaña; apagar pausa la campaña.\nconst S = $('Validar').first().json, row = $input.first().json || {};\nif (!row.campana_id) throw new Error('No encontré la campaña ' + S.campana_id + '.');\nif (row.medio !== 'meta') throw new Error('Por ahora solo las campañas de Meta se prenden desde el panel.');\nif (!row.meta_campaign_id || !row.meta_adset_id || !row.meta_ad_id) throw new Error('Esta campaña no se terminó de crear en Meta; no se puede prender.');\nif (Number(row.presupuesto) > 300) throw new Error('La campaña pasa el tope de MXN 300 al día.');\nconst st = S.prender ? 'ACTIVE' : 'PAUSED';\nconst objs = S.prender ? [row.meta_ad_id, row.meta_adset_id, row.meta_campaign_id] : [row.meta_campaign_id];\nconst batch = JSON.stringify(objs.map(id => ({ method: 'POST', relative_url: id, body: 'status=' + st })));\nreturn [{ json: { batch, marca: row.marca, prender: S.prender, row } }];\n"
+      }
+    },
+    {
+      "id": "46c441d7-9e09-43d4-98e5-0cfe9e045800",
+      "name": "Cuenta (estado)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2912,
+        768
+      ],
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{ $json.marca === \"marca-a\" ? 0 : 1 }}"
+      }
+    },
+    {
+      "id": "aa3e2017-2333-4ec7-abae-334e31fdcf31",
+      "name": "Estado Marca A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3136,
+        624
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "batch",
+              "value": "={{ $json.batch }}"
+            },
+            {
+              "name": "include_headers",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "51386ad4-b2ff-41cb-8942-b6101dc7c362",
+      "name": "Fila de estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        768
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Resultado de prender o apagar.\nconst P = $('Preparar estado').first().json;\nconst items = $input.all().map(i => i.json || {});\nconst msg = x => (x && x.error && (x.error.error_user_msg || x.error.message)) || '';\nlet error = '';\nif (items.length === 1 && items[0].error) error = msg(items[0]);\nitems.forEach(x => { let body = {}; try { body = JSON.parse(x.body || '{}'); } catch (e) {} if (!error && (Number(x.code) !== 200 || body.error)) error = msg(body) || ('código ' + x.code); });\nconst estado = error ? P.row.estado : (P.prender ? 'activa' : 'en pausa');\nconst respuesta = error\n  ? { ok: false, mensaje: 'Meta no aceptó el cambio: ' + error, data: { campana_id: P.row.campana_id, estado } }\n  : { ok: true, mensaje: P.prender ? 'Campaña prendida. Meta la revisa antes de mostrarla (suele tardar de minutos a unas horas).' : 'Campaña apagada.', data: { campana_id: P.row.campana_id, estado } };\nreturn [{ json: { campana_id: P.row.campana_id, nombre: P.row.nombre, marca: P.row.marca, presupuesto: P.row.presupuesto, estado, error, respuesta, actualizado: $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') } }];\n"
+      }
+    },
+    {
+      "id": "412cda37-5b54-4426-8b8e-7a7d7b5c78e7",
+      "name": "Estado Marca B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        3136,
+        816
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v26.0/",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "batch",
+              "value": "={{ $json.batch }}"
+            },
+            {
+              "name": "include_headers",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    },
+    {
+      "id": "aa9a1cd3-816f-444b-91a9-b96522b50eea",
+      "name": "Leer campaña (imagen)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3360,
+        992
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__PAID_TABLA_ID__",
+          "cachedResultName": "paid_campanas"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "campana_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.campana_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      }
+    },
+    {
+      "id": "2f672ea2-cbb2-4a5f-a7e6-e68b81b10578",
+      "name": "Bajar imagen",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3584,
+        992
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $json.imagen }}",
+        "download": true,
+        "additionalFields": {
+          "mimeType": "image/jpeg"
+        }
+      },
+      "webhookId": "8fed1771-b75c-42e9-8433-ae76f260fb36",
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      }
+    },
+    {
+      "id": "7b692686-be10-4a9e-90e3-a1c1a5040ff1",
+      "name": "Imagen lista",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        992
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Imagen del anuncio para el panel.\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nreturn [{ json: { respuesta: { ok: true, data: { imagen: 'data:image/jpeg;base64,' + buf.toString('base64') } } } }];\n"
+      }
+    },
+    {
+      "id": "e92cb802-06e0-4de3-9c2b-3dafaa74b3b0",
+      "name": "¿Creada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2912,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.ok }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "e15b2f92-1d79-476f-849c-d325277fad19",
+      "name": "JPEG anuncio",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        3136,
+        48
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "bytes",
+        "options": {
+          "fileName": "={{ $json.archivo }}",
+          "mimeType": "image/jpeg"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "f72d391b-ac0d-442e-8a20-e60461770852",
+      "name": "Avisar campaña",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3360,
+        48
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "message_thread_id": 3,
+          "parse_mode": "HTML",
+          "caption": "={{ '<b>Campaña creada en pausa</b> · ' + $('Validar').first().json.nombre + '\\n' + ($('Validar').first().json.marca === 'marca-a' ? 'Marca A' : 'Marca B') + ' · Meta · MXN ' + $('Validar').first().json.presupuesto + ' al día\\nNo gasta hasta que la prendas en el panel (Paid).' }}"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "webhookId": "5420dac4-f50c-4416-8e8d-b324a309f8c0",
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      }
+    },
+    {
+      "id": "bd2aadb1-ff5a-4186-9859-23282dc4724c",
+      "name": "Fila de campaña",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3584,
+        192
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Lo que se guarda en paid_campanas y lo que ve el panel.\nconst V = $('Validar').first().json, R = $('Revisar Meta').first().json, T = $input.first().json || {};\nconst fotos = (T.result && T.result.photo) || T.photo || [];\nconst imagen = R.ok && fotos.length ? fotos[fotos.length - 1].file_id : '';\nconst fila = { estado: R.ok ? 'en pausa' : 'error', titular: R.titular, copy: R.copy, landing: R.link || V.landing, imagen, meta_campaign_id: R.ids.campaign || '', meta_adset_id: R.ids.adset || '', meta_creative_id: R.ids.creative || '', meta_ad_id: R.ids.ad || '', costo_usd: R.costo_usd, error: R.error, actualizado: $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') };\nconst respuesta = R.ok\n  ? { ok: true, mensaje: 'Campaña creada en pausa en Meta. Revisa la imagen y el texto; no gasta nada hasta que la prendas.', data: Object.assign({ campana_id: V.campana_id }, fila) }\n  : { ok: false, mensaje: R.error, data: Object.assign({ campana_id: V.campana_id }, fila) };\nreturn [{ json: Object.assign({ campana_id: V.campana_id, respuesta }, fila) }];\n"
+      }
+    },
+    {
+      "id": "02d5d1fd-9061-4d6c-af7b-24274b36b388",
+      "name": "Avisar error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3360,
+        288
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '⚠️ No se pudo crear la campaña «' + $('Validar').first().json.nombre + '» en Meta: ' + String($json.error || '').slice(0, 300).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "additionalFields": {
+          "message_thread_id": 3,
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "onError": "continueRegularOutput",
+      "webhookId": "831dd67c-9d56-4776-b6af-080bf9c4f72d",
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      }
+    },
+    {
+      "id": "52f2e555-8949-4bf1-9052-0546a8f3ace4",
+      "name": "Actualizar campaña",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3808,
+        192
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__PAID_TABLA_ID__",
+          "cachedResultName": "paid_campanas"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "campana_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.campana_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "={{ $json.estado }}",
+            "titular": "={{ $json.titular }}",
+            "copy": "={{ $json.copy }}",
+            "landing": "={{ $json.landing }}",
+            "imagen": "={{ $json.imagen }}",
+            "meta_campaign_id": "={{ $json.meta_campaign_id }}",
+            "meta_adset_id": "={{ $json.meta_adset_id }}",
+            "meta_creative_id": "={{ $json.meta_creative_id }}",
+            "meta_ad_id": "={{ $json.meta_ad_id }}",
+            "costo_usd": "={{ $json.costo_usd }}",
+            "error": "={{ $json.error }}",
+            "actualizado": "={{ $json.actualizado }}"
+          },
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "titular",
+              "displayName": "titular",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "copy",
+              "displayName": "copy",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "landing",
+              "displayName": "landing",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "imagen",
+              "displayName": "imagen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta_campaign_id",
+              "displayName": "meta_campaign_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta_adset_id",
+              "displayName": "meta_adset_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta_creative_id",
+              "displayName": "meta_creative_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meta_ad_id",
+              "displayName": "meta_ad_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "costo_usd",
+              "displayName": "costo_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "026853cd-a9b4-4b77-9fd7-a0a4be27be00",
+      "name": "Guardar estado",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3584,
+        768
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__PAID_TABLA_ID__",
+          "cachedResultName": "paid_campanas"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "campana_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.campana_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estado": "={{ $json.estado }}",
+            "error": "={{ $json.error }}",
+            "actualizado": "={{ $json.actualizado }}"
+          },
+          "schema": [
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7396661a-af1d-4c62-bf43-041f38d9670b",
+      "name": "Avisar estado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3808,
+        768
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $('Fila de estado').first().json.error ? '⚠️ No se pudo ' + ($('Preparar estado').first().json.prender ? 'prender' : 'apagar') + ' «' + $('Fila de estado').first().json.nombre + '»: ' + String($('Fila de estado').first().json.error).slice(0, 200) : ($('Preparar estado').first().json.prender ? '▶️ Prendiste «' : '⏸ Apagaste «') + $('Fila de estado').first().json.nombre + '» (MXN ' + $('Fila de estado').first().json.presupuesto + ' al día) desde el panel.' }}",
+        "additionalFields": {
+          "message_thread_id": 3,
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "onError": "continueRegularOutput",
+      "webhookId": "14618b1e-1af7-4c8b-a73b-4d23b33b3b5e",
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      }
+    },
+    {
+      "id": "8c1a8cce-f75e-4857-a0d4-a2bafd6cfddc",
+      "name": "¿Pieza nueva?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $(\"Validar\").first().json.objetivo !== \"interaccion\" }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              }
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          }
+        }
+      }
+    },
+    {
+      "id": "00ab26e1-6db0-46ad-8175-44726e658e7f",
+      "name": "¿Es prueba?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.probar === true }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              }
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          }
+        }
+      }
+    },
+    {
+      "id": "c913a337-4f69-4dcb-afb9-8ae471b36702",
+      "name": "Cuenta (prueba)",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1900,
+        520
+      ],
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 2,
+        "output": "={{ $json.marca === \"marca-a\" ? 0 : 1 }}"
+      }
+    },
+    {
+      "id": "30a347b5-44d7-4f9c-876b-0285faca89d5",
+      "name": "Medios IG Marca A (prueba)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2120,
+        460
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "method": "GET",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        },
+        "url": "https://graph.facebook.com/v26.0/__META_IG_ID_A__/media?fields=id,shortcode&limit=100"
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "8c965bfe-0121-46ad-acc1-ce8a0adc76db",
+      "name": "Medios IG Marca B (prueba)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2120,
+        600
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "method": "GET",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        },
+        "url": "https://graph.facebook.com/v26.0/__META_IG_ID_B__/media?fields=id,shortcode&limit=100"
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    },
+    {
+      "id": "ce7a8190-a770-40e0-8202-47e542db1c6a",
+      "name": "Probar Marca A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2340,
+        460
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "body": "={{ \"include_headers=false&batch=\" + encodeURIComponent($(\"Preparar Meta\").first().json.prueba_batch.split(\"__IGMEDIA__\").join((($json.data || []).find(m => m.shortcode === $(\"Preparar Meta\").first().json.ig_shortcode) || {}).id || \"0\")) }}",
+        "contentType": "raw",
+        "method": "POST",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        },
+        "rawContentType": "application/x-www-form-urlencoded",
+        "sendBody": true,
+        "url": "https://graph.facebook.com/v26.0/"
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "35a7fb62-48b7-48c8-8b9b-d08af531ead9",
+      "name": "Probar Marca B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2340,
+        600
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "body": "={{ \"include_headers=false&batch=\" + encodeURIComponent($(\"Preparar Meta\").first().json.prueba_batch.split(\"__IGMEDIA__\").join((($json.data || []).find(m => m.shortcode === $(\"Preparar Meta\").first().json.ig_shortcode) || {}).id || \"0\")) }}",
+        "contentType": "raw",
+        "method": "POST",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000
+        },
+        "rawContentType": "application/x-www-form-urlencoded",
+        "sendBody": true,
+        "url": "https://graph.facebook.com/v26.0/"
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    },
+    {
+      "id": "bf5a7928-f8f8-4a43-a29a-4a3770aecd95",
+      "name": "Resultado prueba",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        520
+      ],
+      "parameters": {
+        "jsCode": "// Resultado de la prueba: Meta revisó la campaña (validate_only), estimó la entrega del conjunto y armó la vista previa del creativo, sin crear nada.\nconst M = $('Preparar Meta').first().json;\nif (!M.ok) return [{ json: { respuesta: { ok: false, mensaje: M.error } } }];\nconst NOMBRE = { reconocimiento: 'Reconocimiento', trafico: 'Tráfico al sitio', visitas_ig: 'Visitas al perfil de Instagram', interaccion: 'Interacción con un post', seguidores_fb: 'Seguidores de Facebook', leads_sitio: 'Leads en el sitio', leads_formulario: 'Leads con formulario de Meta' }[M.objetivo] || M.objetivo;\nconst medios = (() => { try { return ($('Medios IG Marca A (prueba)').isExecuted ? $('Medios IG Marca A (prueba)') : $('Medios IG Marca B (prueba)')).first().json; } catch (x) { return {}; } })();\nif (M.ig_shortcode && !((medios.data || []).some(m => m.shortcode === M.ig_shortcode))) return [{ json: { respuesta: { ok: false, mensaje: NOMBRE + ': no encontré ese post en el Instagram de la marca.' } } }];\nconst items = $input.all().map(i => i.json || {});\nconst err = x => { const e = (x && x.error) || {}; return e.error_user_msg || e.error_user_title || e.message ? (e.error_user_msg || e.error_user_title || e.message) + (e.error_subcode ? ' (' + e.code + '/' + e.error_subcode + ')' : '') : ''; };\nif (items.length === 1 && items[0].error) return [{ json: { respuesta: { ok: false, mensaje: NOMBRE + ': Meta no aceptó la prueba: ' + err(items[0]) } } }];\nconst body = i => { try { return JSON.parse((items[i] || {}).body || '{}'); } catch (e) { return {}; } };\nconst c = body(0), a = body(1), v = body(2);\nconst problemas = [];\nif (!(c.success === true || c.id)) problemas.push('la campaña: ' + (err(c) || 'sin respuesta'));\nif (!(a.data && a.data.length)) problemas.push('el público y la meta: ' + (err(a) || 'sin estimación'));\nif (!(v.data && v.data[0] && v.data[0].body)) problemas.push('el anuncio: ' + (err(v) || 'sin vista previa'));\nconst vista = ((v.data || [])[0] || {}).body || '';\nconst vista_url = ((vista.match(/src=\"([^\"]+)\"/) || [])[1] || '').replace(/&amp;/g, '&');\nconst est = (a.data || [])[0] || {};\nconst alcance = est.estimate_mau_lower_bound ? est.estimate_mau_lower_bound + '–' + est.estimate_mau_upper_bound : '';\nreturn [{ json: { respuesta: problemas.length\n  ? { ok: false, mensaje: NOMBRE + ': Meta rechazó ' + problemas.join('; y '), data: { objetivo: M.objetivo, campana: c, conjunto: a, vista: v.error ? v : 'ok' } }\n  : { ok: true, mensaje: NOMBRE + ': Meta aceptó la campaña, el público y el anuncio (prueba sin crear nada).', data: { objetivo: M.objetivo, publico_estimado: alcance, vista_url } } } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "26207402-8a03-414c-bf4f-60ab1d3f7aea",
+      "name": "Medios IG Marca A",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2130,
+        -120
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "method": "GET",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        },
+        "url": "https://graph.facebook.com/v26.0/__META_IG_ID_A__/media?fields=id,shortcode&limit=100"
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads A"
+        }
+      }
+    },
+    {
+      "id": "ed8b8448-a4e3-48bf-a70a-50c20333bb73",
+      "name": "Medios IG Marca B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2130,
+        300
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "method": "GET",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        },
+        "url": "https://graph.facebook.com/v26.0/__META_IG_ID_B__/media?fields=id,shortcode&limit=100"
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta Ads B"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Pedido": {
+      "main": [
+        [
+          {
+            "node": "Validar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar": {
+      "main": [
+        [
+          {
+            "node": "Acción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acción": {
+      "main": [
+        [
+          {
+            "node": "Guardar pedido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Leer campaña",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Leer campaña (imagen)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar pedido": {
+      "main": [
+        [
+          {
+            "node": "¿Es Meta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Meta?": {
+      "main": [
+        [
+          {
+            "node": "¿Pieza nueva?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedido Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar anuncio": {
+      "main": [
+        [
+          {
+            "node": "Crear imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear imagen": {
+      "main": [
+        [
+          {
+            "node": "Preparar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Listo para Meta?": {
+      "main": [
+        [
+          {
+            "node": "Cuenta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Revisar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Imagen Marca A": {
+      "main": [
+        [
+          {
+            "node": "Crear Marca A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Marca A": {
+      "main": [
+        [
+          {
+            "node": "Revisar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar Meta": {
+      "main": [
+        [
+          {
+            "node": "¿Creada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Imagen Marca B": {
+      "main": [
+        [
+          {
+            "node": "Crear Marca B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Marca B": {
+      "main": [
+        [
+          {
+            "node": "Revisar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido Google": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer campaña": {
+      "main": [
+        [
+          {
+            "node": "Preparar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar estado": {
+      "main": [
+        [
+          {
+            "node": "Cuenta (estado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cuenta (estado)": {
+      "main": [
+        [
+          {
+            "node": "Estado Marca A",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Estado Marca B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estado Marca A": {
+      "main": [
+        [
+          {
+            "node": "Fila de estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila de estado": {
+      "main": [
+        [
+          {
+            "node": "Guardar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estado Marca B": {
+      "main": [
+        [
+          {
+            "node": "Fila de estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer campaña (imagen)": {
+      "main": [
+        [
+          {
+            "node": "Bajar imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bajar imagen": {
+      "main": [
+        [
+          {
+            "node": "Imagen lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Imagen lista": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Creada?": {
+      "main": [
+        [
+          {
+            "node": "JPEG anuncio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JPEG anuncio": {
+      "main": [
+        [
+          {
+            "node": "Avisar campaña",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar campaña": {
+      "main": [
+        [
+          {
+            "node": "Fila de campaña",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila de campaña": {
+      "main": [
+        [
+          {
+            "node": "Actualizar campaña",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar error": {
+      "main": [
+        [
+          {
+            "node": "Fila de campaña",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar campaña": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar estado": {
+      "main": [
+        [
+          {
+            "node": "Avisar estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar estado": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Pieza nueva?": {
+      "main": [
+        [
+          {
+            "node": "Redactar anuncio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Meta": {
+      "main": [
+        [
+          {
+            "node": "¿Es prueba?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es prueba?": {
+      "main": [
+        [
+          {
+            "node": "Cuenta (prueba)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Listo para Meta?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cuenta (prueba)": {
+      "main": [
+        [
+          {
+            "node": "Medios IG Marca A (prueba)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Medios IG Marca B (prueba)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medios IG Marca A (prueba)": {
+      "main": [
+        [
+          {
+            "node": "Probar Marca A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medios IG Marca B (prueba)": {
+      "main": [
+        [
+          {
+            "node": "Probar Marca B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar Marca A": {
+      "main": [
+        [
+          {
+            "node": "Resultado prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar Marca B": {
+      "main": [
+        [
+          {
+            "node": "Resultado prueba",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado prueba": {
+      "main": [
+        [
+          {
+            "node": "Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cuenta": {
+      "main": [
+        [
+          {
+            "node": "Medios IG Marca A",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Medios IG Marca B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medios IG Marca A": {
+      "main": [
+        [
+          {
+            "node": "Imagen Marca A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medios IG Marca B": {
+      "main": [
+        [
+          {
+            "node": "Imagen Marca B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Paid del panel: crea campañas de Meta en pausa (7 objetivos: reconocimiento, tráfico, visitas IG, interacción con post, seguidores FB, leads sitio, leads formulario), audiencias, tope MXN 300/día. «probar» valida sin crear."
+  },
+  "pinData": {}
+}

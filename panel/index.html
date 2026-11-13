@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de la agencia</title>
+<style>
+  :root {
+    --fondo: #f6f7f9; --tarjeta: #fff; --texto: #16181d; --suave: #5f6673; --linea: #e3e6eb;
+    --acento: #2f5bea; --ok: #157f3b; --alerta: #b54708; --error: #b42318;
+    --radio: 14px; --sombra: 0 1px 2px rgba(16, 24, 40, .06);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--fondo); color: var(--texto); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 28px; background: var(--tarjeta); border-bottom: 1px solid var(--linea); }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { color: var(--suave); font-size: 13px; }
+  nav { display: flex; gap: 4px; padding: 0 28px; background: var(--tarjeta); border-bottom: 1px solid var(--linea); overflow-x: auto; }
+  nav button { border: 0; background: none; padding: 12px 14px; font: inherit; color: var(--suave); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  nav button.activa { color: var(--texto); border-bottom-color: var(--acento); font-weight: 600; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 60px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpi, .tarjeta { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
+  .kpi { padding: 18px 20px; }
+  .kpi .num { font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .kpi .eti { color: var(--suave); font-size: 13px; margin-top: 4px; }
+  .tarjeta { padding: 20px; margin-bottom: 16px; }
+  .tarjeta h2 { margin: 0 0 12px; font-size: 17px; }
+  .fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .fila2 { grid-template-columns: 1fr; } main, header { padding-left: 16px; padding-right: 16px; } }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  th { color: var(--suave); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  .barra { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; }
+  .barra span:first-child { width: 120px; color: var(--suave); }
+  .barra .b { height: 10px; background: var(--acento); border-radius: 5px; }
+  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef1f6; color: var(--suave); }
+  .chip.por-aprobar { background: #fff3e0; color: var(--alerta); }
+  .chip.aprobado, .chip.publicado { background: #e7f6ec; color: var(--ok); }
+  .chip.error-al-preparar, .chip.error-al-publicar { background: #fdecea; color: var(--error); }
+  .post { border: 1px solid var(--linea); border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fff; }
+  .post .cab { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .post h3 { margin: 8px 0 6px; font-size: 18px; }
+  .post .copy { white-space: pre-wrap; color: #333; font-size: 14px; max-height: 160px; overflow: auto; }
+  .post .tema { color: var(--suave); font-size: 13px; margin-top: 8px; }
+  .acciones { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button.btn { border: 1px solid var(--linea); background: #fff; border-radius: 10px; padding: 8px 14px; font: inherit; cursor: pointer; }
+  button.btn.prim { background: var(--acento); border-color: var(--acento); color: #fff; }
+  button.btn:disabled { opacity: .5; cursor: default; }
+  .vacio { color: var(--suave); padding: 20px 0; }
+  .aviso { padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; background: #eef4ff; color: #1d3a8a; }
+  .aviso.error { background: #fdecea; color: var(--error); }
+  dialog { border: 0; border-radius: var(--radio); padding: 24px; width: min(460px, 92vw); }
+  dialog label { display: block; font-size: 13px; color: var(--suave); margin: 12px 0 4px; }
+  dialog input, dialog textarea { width: 100%; padding: 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
+  .filtros { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  select { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--linea); font: inherit; background: #fff; }
+  a { color: var(--acento); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Panel de la agencia</h1>
+    <div class="meta" id="generado">Sin datos todavía</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <select id="dias" title="Periodo">
+      <option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option>
+    </select>
+    <button class="btn" id="recargar">Actualizar</button>
+    <button class="btn" id="ajustes">Conexión</button>
+  </div>
+</header>
+<nav id="tabs">
+  <button data-tab="resumen" class="activa">Resumen</button>
+  <button data-tab="posts">Posts</button>
+  <button data-tab="leads">Leads</button>
+  <button data-tab="blog">Blog</button>
+  <button data-tab="research">Research</button>
+</nav>
+<main id="contenido"><div class="vacio">Configura la conexión con n8n para empezar.</div></main>
+
+<dialog id="dlgConexion">
+  <form method="dialog">
+    <h2 style="margin-top:0">Conexión con n8n</h2>
+    <label for="url">URL de tu n8n (sin / al final)</label>
+    <input id="url" placeholder="https://n8n.tu-dominio.com" required>
+    <label for="token">Token del panel (el valor de la credencial «Panel (X-Panel-Token)»)</label>
+    <input id="token" type="password" required>
+    <p class="meta" style="color:var(--suave);font-size:13px">Se guarda solo en este navegador.</p>
+    <div class="acciones"><button class="btn prim" value="ok">Guardar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgCambios">
+  <form method="dialog">
+    <h2 style="margin-top:0">Pedir cambios</h2>
+    <p id="cambiosPost" style="color:var(--suave)"></p>
+    <label for="cambiosTexto">¿Qué cambio? (imagen, titular o copy)</label>
+    <textarea id="cambiosTexto" rows="4"></textarea>
+    <div class="acciones"><button class="btn prim" value="ok">Mandar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const clase = s => String(s || '').toLowerCase().replace(/[^a-z]+/g, '-');
+  let datos = null, tab = 'resumen', marcaFiltro = '';
+  const mem = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const conf = () => ({ url: mem.get('panel_url'), token: mem.get('panel_token') });
+
+  async function pedir(ruta, opciones = {}) {
+    const c = conf();
+    if (!c.url || !c.token) throw new Error('Falta configurar la conexión.');
+    const r = await fetch(c.url + '/webhook/' + ruta, { ...opciones, headers: { 'X-Panel-Token': c.token, 'Content-Type': 'application/json', ...(opciones.headers || {}) } });
+    const texto = await r.text();
+    let j = {}; try { j = JSON.parse(texto); } catch (e) { j = { motivo: texto.slice(0, 200) }; }
+    if (!r.ok) throw new Error(j.motivo || j.message || ('n8n respondió ' + r.status));
+    return j;
+  }
+
+  async function cargar() {
+    $('#contenido').innerHTML = '<div class="vacio">Cargando…</div>';
+    try {
+      datos = await pedir('agencia-panel?dias=' + $('#dias').value);
+      $('#generado').textContent = 'Actualizado ' + datos.generado + ' · últimos ' + datos.dias + ' días';
+      pintar();
+    } catch (e) {
+      $('#contenido').innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>';
+    }
+  }
+
+  function barras(obj) {
+    const pares = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+    if (!pares.length) return '<div class="vacio">Sin datos en el periodo.</div>';
+    const max = Math.max(...pares.map(p => p[1]));
+    return pares.map(([k, v]) => '<div class="barra"><span>' + esc(k) + '</span><div class="b" style="width:' + Math.max(4, v / max * 60) + '%"></div><b>' + v + '</b></div>').join('');
+  }
+
+  const marcas = () => [...new Set([...(datos.posts || []).map(p => p.marca), ...Object.keys(datos.leads.por_marca || {})].filter(Boolean))];
+  const filtroMarca = () => '<div class="filtros"><select id="fMarca"><option value="">Todas las marcas</option>' + marcas().map(m => '<option' + (m === marcaFiltro ? ' selected' : '') + '>' + esc(m) + '</option>').join('') + '</select></div>';
+  const deMarca = x => !marcaFiltro || x.marca === marcaFiltro;
+
+  function vistaResumen() {
+    const k = datos.kpis;
+    return '<div class="kpis">'
+      + '<div class="kpi"><div class="num">' + k.leads + '</div><div class="eti">Leads (sin pruebas)</div></div>'
+      + '<div class="kpi"><div class="num">' + k.publicados + '</div><div class="eti">Posts publicados</div></div>'
+      + '<div class="kpi"><div class="num">' + k.por_aprobar + '</div><div class="eti">Posts por aprobar</div></div>'
+      + '<div class="kpi"><div class="num">' + k.articulos_por_aprobar + '</div><div class="eti">Artículos por aprobar</div></div></div>'
+      + '<div class="fila2"><div class="tarjeta"><h2>Leads por marca</h2>' + barras(datos.leads.por_marca) + '</div>'
+      + '<div class="tarjeta"><h2>Leads por fuente</h2>' + barras(datos.leads.por_fuente) + '</div></div>'
+      + '<div class="tarjeta"><h2>Posts por estado</h2>' + barras(datos.estados) + '</div>';
+  }
+
+  function vistaPosts() {
+    const posts = (datos.posts || []).filter(deMarca);
+    if (!posts.length) return filtroMarca() + '<div class="vacio">No hay posts en las últimas dos semanas ni próximos.</div>';
+    return filtroMarca() + posts.map(p => {
+      const puede = p.estado === 'por aprobar';
+      const editable = ['por aprobar', 'aprobado', 'cambios pedidos'].includes(p.estado) && !p.fb_url && !p.ig_url;
+      return '<div class="post"><div class="cab"><div><b>' + esc(p.post_id) + '</b> · ' + esc(p.marca) + ' · ' + esc(p.fecha) + ' ' + esc(p.hora) + (p.version ? ' · v' + esc(p.version) : '') + '</div><span class="chip ' + clase(p.estado) + '">' + esc(p.estado) + '</span></div>'
+        + (p.titular ? '<h3>' + esc(p.titular) + '</h3>' : '')
+        + (p.copy ? '<div class="copy">' + esc(p.copy) + '</div>' : '')
+        + (p.tema ? '<div class="tema">Tema: ' + esc(p.tema) + '</div>' : '')
+        + (p.cambios_pedidos ? '<div class="tema">Cambios pedidos: ' + esc(p.cambios_pedidos) + '</div>' : '')
+        + (p.fb_url || p.ig_url ? '<div class="tema">' + (p.fb_url ? '<a href="' + esc(p.fb_url) + '" target="_blank" rel="noopener">Facebook</a> ' : '') + (p.ig_url ? '<a href="' + esc(p.ig_url) + '" target="_blank" rel="noopener">Instagram</a>' : '') + '</div>' : '')
+        + (editable ? '<div class="acciones">'
+          + (puede ? '<button class="btn prim" data-acc="aprobar" data-id="' + esc(p.post_id) + '" data-v="' + esc(p.version) + '">✅ Aprobar</button>' : '')
+          + '<button class="btn" data-acc="cambios" data-id="' + esc(p.post_id) + '">✏️ Pedir cambios</button>'
+          + '<button class="btn" data-acc="descartar" data-id="' + esc(p.post_id) + '">Descartar</button></div>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  function vistaLeads() {
+    const l = (datos.leads.ultimos || []).filter(deMarca);
+    return filtroMarca() + '<div class="tarjeta"><h2>Leads por día</h2>' + barras(datos.leads.por_dia) + '</div>'
+      + '<div class="tarjeta"><h2>Últimos leads</h2>' + (l.length ? '<table><tr><th>Fecha</th><th>Marca</th><th>Origen</th><th>Empresa</th><th>Fuente</th><th>Estado</th></tr>'
+      + l.map(x => '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.marca) + '</td><td>' + esc(x.origen) + '</td><td>' + esc(x.empresa) + '</td><td>' + esc([x.utm_source, x.utm_campaign].filter(Boolean).join(' / ')) + '</td><td><span class="chip">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>'
+      : '<div class="vacio">Sin leads en el periodo.</div>') + '<p class="meta" style="color:var(--suave);font-size:13px">Los datos de contacto están en el Sheet, pestaña Leads.</p></div>';
+  }
+
+  function vistaBlog() {
+    const a = (datos.articulos || []).filter(deMarca);
+    return filtroMarca() + '<div class="tarjeta"><h2>Artículos</h2>' + (a.length ? '<table><tr><th>#</th><th>Marca</th><th>Keyword</th><th>Título</th><th>Estado</th><th>Volumen</th></tr>'
+      + a.map(x => '<tr><td>' + esc(x.id) + '</td><td>' + esc(x.marca) + '</td><td>' + esc(x.keyword) + '</td><td>' + (x.url && x.estado === 'publicado' ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.titulo) + '</a>' : esc(x.titulo)) + '</td><td><span class="chip ' + clase(x.estado) + '">' + esc(x.estado) + '</span></td><td>' + esc(x.volumen ?? '') + '</td></tr>').join('') + '</table>'
+      : '<div class="vacio">Agrega temas en la tabla seo_articulos de n8n.</div>') + '<p class="meta" style="color:var(--suave);font-size:13px">Los artículos se aprueban en Telegram con ✅ Publicar.</p></div>';
+  }
+
+  function vistaResearch() {
+    const h = (datos.hallazgos || []).filter(deMarca);
+    return filtroMarca() + '<div class="tarjeta"><h2>Hallazgos recientes</h2>' + (h.length ? '<table><tr><th>Fecha</th><th>Marca</th><th>Tipo</th><th>Hallazgo</th><th>Acción</th></tr>'
+      + h.map(x => '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.marca) + '</td><td>' + esc(x.tipo) + '</td><td>' + esc(x.hallazgo) + (x.fuente ? ' <a href="' + esc(x.fuente) + '" target="_blank" rel="noopener">fuente</a>' : '') + '</td><td>' + esc(x.accion) + '</td></tr>').join('') + '</table>'
+      : '<div class="vacio">Sin hallazgos en el periodo (Research corre los lunes).</div>') + '</div>';
+  }
+
+  function pintar() {
+    if (!datos) return;
+    const vistas = { resumen: vistaResumen, posts: vistaPosts, leads: vistaLeads, blog: vistaBlog, research: vistaResearch };
+    $('#contenido').innerHTML = vistas[tab]();
+    const f = $('#fMarca');
+    if (f) f.onchange = () => { marcaFiltro = f.value; pintar(); };
+  }
+
+  async function accion(acc, id, version, texto) {
+    try {
+      await pedir('agencia-panel-acciones', { method: 'POST', body: JSON.stringify({ accion: acc, post_id: id, version, texto }) });
+      const msj = { aprobar: 'Aprobado: se publica en su fecha.', cambios: 'Cambios pedidos: la versión nueva llega a Telegram en unos minutos.', descartar: 'Descartado.' }[acc];
+      $('#contenido').insertAdjacentHTML('afterbegin', '<div class="aviso">' + esc(id) + ' · ' + esc(msj) + '</div>');
+      setTimeout(cargar, 1200);
+    } catch (e) {
+      $('#contenido').insertAdjacentHTML('afterbegin', '<div class="aviso error">' + esc(id) + ': ' + esc(e.message) + '</div>');
+    }
+  }
+
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-acc]');
+    if (!b) return;
+    const { acc, id, v } = b.dataset;
+    if (acc === 'cambios') {
+      $('#cambiosPost').textContent = id;
+      $('#cambiosTexto').value = '';
+      const d = $('#dlgCambios');
+      d.onclose = () => { if (d.returnValue === 'ok' && $('#cambiosTexto').value.trim()) accion('cambios', id, v, $('#cambiosTexto').value.trim()); };
+      d.showModal();
+      return;
+    }
+    if (acc === 'descartar' && !confirm('¿Descartar ' + id + '? No se publicará.')) return;
+    b.disabled = true;
+    accion(acc, id, v);
+  });
+
+  $('#tabs').onclick = ev => {
+    const b = ev.target.closest('button[data-tab]');
+    if (!b) return;
+    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('activa', x === b));
+    tab = b.dataset.tab;
+    pintar();
+  };
+  $('#recargar').onclick = cargar;
+  $('#dias').onchange = cargar;
+  $('#ajustes').onclick = () => {
+    const c = conf();
+    $('#url').value = c.url;
+    $('#token').value = c.token;
+    const d = $('#dlgConexion');
+    d.onclose = () => { if (d.returnValue === 'ok') { mem.set('panel_url', $('#url').value.trim().replace(/\/+$/, '')); mem.set('panel_token', $('#token').value.trim()); cargar(); } };
+    d.showModal();
+  };
+  if (conf().url && conf().token) cargar(); else $('#ajustes').click();
+})();
+</script>
+</body>
+</html>

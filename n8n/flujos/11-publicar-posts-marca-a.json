@@ -1,0 +1,1236 @@
+{
+  "name": "Agencia · Publicar posts (Marca A)",
+  "nodes": [
+    {
+      "id": "3433a2b3-4f51-492b-aa64-b140c63e23c7",
+      "name": "Cada hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "f607a56b-a42f-487f-bbe7-2d2586a80fe9",
+      "name": "Publicar ahora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        360
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "947638ed-8790-4b86-9cb2-ef38c8a8fffd",
+      "name": "Reintento desde Telegram",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        520
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "0708c034-1d37-4951-85ea-b6bd30f1dae5",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        360
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configuración de la marca de ESTE flujo. Para otra marca: duplica el flujo y cambia aquí.\nreturn [{ json: {\n  marca: 'marca-a',            // carpeta marcas/<marca> del servicio\n  nombre: 'Marca A',\n  page_id: '__META_PAGE_ID_A__', // página de Facebook\n  ig_id: '__META_IG_ID_A__',     // cuenta de Instagram ligada a la página\n} }];"
+      }
+    },
+    {
+      "id": "ca2d3e69-f247-4890-b560-08079bdde033",
+      "name": "Aprobados",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        360
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "options": {
+          "returnAllMatches": "returnAllMatches"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "estado",
+              "lookupValue": "aprobado"
+            },
+            {
+              "lookupColumn": "marca",
+              "lookupValue": "={{ $('Config').first().json.marca }}"
+            }
+          ]
+        },
+        "combineFilters": "AND"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "cf7f810d-2166-4885-924a-ef07446fd7f8",
+      "name": "Ya toca y tiene imagen",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ DateTime.fromFormat(String($json.fecha) + ' ' + String($json.hora), 'yyyy-MM-dd HH:mm', { zone: 'America/Mexico_City' }) <= $now }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              }
+            },
+            {
+              "leftValue": "={{ String($json.imagen_url || '') }}",
+              "rightValue": "tg:",
+              "operator": {
+                "operation": "startsWith",
+                "type": "string"
+              }
+            },
+            {
+              "leftValue": "={{ String($json.copy || '') }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "notEmpty",
+                "singleValue": true,
+                "type": "string"
+              }
+            },
+            {
+              "leftValue": "={{ String($json.fb_url || '') + String($json.ig_url || '') }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "empty",
+                "singleValue": true,
+                "type": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "293d19a5-8f65-4437-9203-69fbf263d66b",
+      "name": "Uno por vuelta",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        880,
+        360
+      ],
+      "parameters": {
+        "maxItems": 1
+      }
+    },
+    {
+      "id": "40c8fa93-e3ea-44b5-9294-30b908aa15c6",
+      "name": "¿Ya está en Publicados?",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1100,
+        360
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Publicados"
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "post_id",
+              "lookupValue": "={{ $json.post_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d628b24f-55eb-47fc-97c6-c3c1ddad7282",
+      "name": "Nunca dos veces",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ !String($json.post_id || '') }}",
+              "rightValue": "",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              }
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ba7940d8-3922-45f2-aa82-b903f8164a51",
+      "name": "Marcar publicando",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $(\"Uno por vuelta\").item.json.post_id }}",
+            "estado": "publicando"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "7e4b96f0-11cc-427c-a7a0-08ac3b097ff7",
+      "name": "Bajar pieza aprobada",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $(\"Uno por vuelta\").item.json.imagen_url.slice(3) }}",
+        "download": true,
+        "additionalFields": {
+          "mimeType": "image/jpeg"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "10260348-b9fd-4aec-83f4-c1a6bf7d5bb7"
+    },
+    {
+      "id": "502bd087-48c7-40fb-8882-e716d94da1d6",
+      "name": "Publicar en Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v26.0/' + $('Config').first().json.page_id + '/photos' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "source",
+              "inputDataFieldName": "data"
+            },
+            {
+              "parameterType": "formData",
+              "name": "message",
+              "value": "={{ $(\"Uno por vuelta\").item.json.copy }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "9b1653f2-3768-4d69-95ee-129750a34720",
+      "name": "URL de la foto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v26.0/{{ $json.id }}?fields=images",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      }
+    },
+    {
+      "id": "85b48fee-0259-459e-9d5a-ca751d62d63f",
+      "name": "Instagram: preparar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v26.0/' + $('Config').first().json.ig_id + '/media' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.images[0].source }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $(\"Uno por vuelta\").item.json.copy }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "683acaa6-b2c9-40fd-a4d4-25f1cdf0712d",
+      "name": "Esperar a Instagram",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2640,
+        300
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "webhookId": "486fa73d-4d27-436c-b2dd-3d1086fff74d"
+    },
+    {
+      "id": "e5cd4c61-4110-4681-ab87-a1f85515d627",
+      "name": "Instagram: publicar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2860,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v26.0/' + $('Config').first().json.ig_id + '/media_publish' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $('Instagram: preparar').item.json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "9e22760e-5239-4308-bee1-48b6a0548d21",
+      "name": "Liga de Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3080,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v26.0/{{ $json.id }}?fields=permalink",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "options": {}
+      },
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "",
+          "name": "Meta página A"
+        }
+      }
+    },
+    {
+      "id": "7ee9852b-5ad4-4a80-923c-5bf19dfe947e",
+      "name": "Calendario: publicado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3300,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $(\"Uno por vuelta\").item.json.post_id }}",
+            "estado": "publicado",
+            "fb_url": "={{ \"https://www.facebook.com/\" + $(\"Publicar en Facebook\").item.json.post_id }}",
+            "ig_url": "={{ $(\"Liga de Instagram\").item.json.permalink }}",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fb_url",
+              "displayName": "fb_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ig_url",
+              "displayName": "ig_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "7b7ee783-1812-404b-a314-c68ed55e94c7",
+      "name": "Publicados: anotar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3520,
+        300
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Publicados"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fecha_hora": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}",
+            "post_id": "={{ $(\"Uno por vuelta\").item.json.post_id }}",
+            "marca": "={{ $('Config').first().json.marca }}",
+            "red": "Facebook + Instagram",
+            "liga": "={{ \"https://www.facebook.com/\" + $(\"Publicar en Facebook\").item.json.post_id + \"  |  \" + $(\"Liga de Instagram\").item.json.permalink }}",
+            "costo_usd": "={{ $(\"Uno por vuelta\").item.json.costo_usd }}"
+          },
+          "schema": [
+            {
+              "id": "fecha_hora",
+              "displayName": "fecha_hora",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "marca",
+              "displayName": "marca",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "red",
+              "displayName": "red",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "liga",
+              "displayName": "liga",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "costo_usd",
+              "displayName": "costo_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "7f9ddfcd-dee1-49f6-8c23-f82296054963",
+      "name": "Avisar publicado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3740,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendPhoto",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "binaryData": false,
+        "file": "={{ String($(\"Uno por vuelta\").item.json.imagen_url).slice(3) }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "message_thread_id": "__TEMA_REPORTES__",
+          "caption": "={{ \"🚀 <b>Publicado \" + $(\"Uno por vuelta\").item.json.post_id + \" v\" + $(\"Uno por vuelta\").item.json.version + \"</b>\\n<a href=\\\"\" + \"https://www.facebook.com/\" + $(\"Publicar en Facebook\").item.json.post_id + \"\\\">Facebook</a> · <a href=\\\"\" + $(\"Liga de Instagram\").item.json.permalink + \"\\\">Instagram</a>\" }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "1acdfd5f-6a65-42e5-a6d3-43b186ff3c1c",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "234ceb3c-00df-4d2d-9ee1-d73c2da006b3",
+      "name": "Calendario: error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2640,
+        600
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $(\"Uno por vuelta\").item.json.post_id }}",
+            "estado": "error al publicar",
+            "fb_url": "={{ (() => { try { const p = $('Publicar en Facebook').item.json.post_id; return p ? 'https://www.facebook.com/' + p : ''; } catch (e) { return ''; } })() }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fb_url",
+              "displayName": "fb_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "c785aaae-42a3-4881-9aed-3348ee306a55",
+      "name": "Avisar error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2860,
+        600
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ (() => { const id = $(\"Uno por vuelta\").item.json.post_id; let fb = ''; try { fb = $('Publicar en Facebook').item.json.post_id || ''; } catch (e) {} return fb ? '⚠️ ' + id + ': Facebook sí salió, pero falló Instagram. Quedó como «error al publicar».' : '⚠️ No pude publicar ' + id + '. Meta rechazó la publicación y no salió en ninguna red. Quedó como «error al publicar».'; })() }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔁 Reintentar",
+                    "additionalFields": {
+                      "callback_data": "={{ \"reintentar|\" + $(\"Uno por vuelta\").item.json.post_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "33818115-ca38-4962-9676-644c03bfc411",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "36b999e9-612f-41db-b730-0bf62d2f82c1",
+      "name": "Calendario: ya publicado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1540,
+        560
+      ],
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Calendario"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "post_id"
+          ],
+          "value": {
+            "post_id": "={{ $(\"Uno por vuelta\").item.json.post_id }}",
+            "estado": "publicado",
+            "actualizado": "={{ $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "schema": [
+            {
+              "id": "post_id",
+              "displayName": "post_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "e8ff748d-c773-4be1-8caf-bbc8efe4a236",
+      "name": "Avisar duplicado evitado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        560
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ 'ℹ️ No publiqué ' + $(\"Uno por vuelta\").item.json.post_id + ' otra vez: ya está en Publicados. Lo dejé como «publicado».' }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "c5205d06-9e02-419c-8957-64ea5dfb30b0",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Cada hora": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar ahora": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reintento desde Telegram": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Aprobados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aprobados": {
+      "main": [
+        [
+          {
+            "node": "Ya toca y tiene imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ya toca y tiene imagen": {
+      "main": [
+        [
+          {
+            "node": "Uno por vuelta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Uno por vuelta": {
+      "main": [
+        [
+          {
+            "node": "¿Ya está en Publicados?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Ya está en Publicados?": {
+      "main": [
+        [
+          {
+            "node": "Nunca dos veces",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nunca dos veces": {
+      "main": [
+        [
+          {
+            "node": "Marcar publicando",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calendario: ya publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendario: ya publicado": {
+      "main": [
+        [
+          {
+            "node": "Avisar duplicado evitado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar publicando": {
+      "main": [
+        [
+          {
+            "node": "Bajar pieza aprobada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bajar pieza aprobada": {
+      "main": [
+        [
+          {
+            "node": "Publicar en Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar en Facebook": {
+      "main": [
+        [
+          {
+            "node": "URL de la foto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calendario: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "URL de la foto": {
+      "main": [
+        [
+          {
+            "node": "Instagram: preparar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram: preparar": {
+      "main": [
+        [
+          {
+            "node": "Esperar a Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calendario: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar a Instagram": {
+      "main": [
+        [
+          {
+            "node": "Instagram: publicar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instagram: publicar": {
+      "main": [
+        [
+          {
+            "node": "Liga de Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calendario: error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liga de Instagram": {
+      "main": [
+        [
+          {
+            "node": "Calendario: publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendario: publicado": {
+      "main": [
+        [
+          {
+            "node": "Publicados: anotar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicados: anotar": {
+      "main": [
+        [
+          {
+            "node": "Avisar publicado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendario: error": {
+      "main": [
+        [
+          {
+            "node": "Avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 900,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Cada hora publica en Facebook e Instagram el post aprobado de la marca cuya fecha ya llegó; nunca dos veces. Anota ligas en el Sheet y avisa por Telegram. Duplicar por marca."
+  },
+  "pinData": {}
+}

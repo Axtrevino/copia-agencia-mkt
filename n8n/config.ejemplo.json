@@ -1,0 +1,32 @@
+{
+  "_ayuda": "Copia este archivo como config.json, llena tus valores y corre: python3 n8n/configurar.py. Los flujos listos para importar quedan en n8n/listos/. config.json no se sube a git.",
+
+  "SHEET_ID": "ID del Google Sheet (lo que va entre /d/ y /edit en la URL)",
+  "MODAL_URL": "https://TU-CUENTA--agencia-marketing-pieza.modal.run",
+
+  "TELEGRAM_CHAT_ID": "-100XXXXXXXXXX (grupo con temas)",
+  "TELEGRAM_USER_ID": "tu user id de Telegram (solo esa persona puede aprobar)",
+  "TEMA_APROBACIONES": 2,
+  "TEMA_REPORTES": 3,
+  "TEMA_ALERTAS": 4,
+
+  "DOMINIO_A": "marca-a.com",
+  "DOMINIO_B": "marca-b.com",
+
+  "META_PAGE_ID_A": "",
+  "META_IG_ID_A": "",
+  "META_PIXEL_ID_A": "",
+  "META_AD_ACCOUNT_A": "act_XXXXXXXX",
+  "IG_USUARIO_A": "usuario_de_instagram_a",
+  "META_PAGE_ID_B": "",
+  "META_IG_ID_B": "",
+  "META_PIXEL_ID_B": "",
+  "META_AD_ACCOUNT_B": "act_XXXXXXXX",
+  "IG_USUARIO_B": "usuario_de_instagram_b",
+
+  "WEBFLOW_SITE_ID_A": "",
+  "WEBFLOW_COLLECTION_ID_A": "",
+
+  "SEO_TABLA_ID": "ID de la tabla de datos seo_articulos en n8n",
+  "PAID_TABLA_ID": "ID de la tabla de datos paid_campanas en n8n"
+}

@@ -1,0 +1,68 @@
+{
+  "name": "Agencia · Alertas de error",
+  "nodes": [
+    {
+      "id": "6096feee-6ca8-4c4d-811d-4ea7fc0c6cb6",
+      "name": "Cuando falla un flujo",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "82bd46fb-9e03-462c-87cf-6c6a9e16b136",
+      "name": "Telegram: Alertas",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ '⚠️ Falló «' + ($json.workflow?.name || 'flujo') + '»\\nNodo: ' + ($json.execution?.lastNodeExecuted || $json.trigger?.error?.node?.name || '¿?') + '\\nError: ' + String($json.execution?.error?.message || $json.trigger?.error?.message || 'sin detalle').slice(0, 300) + ($json.execution?.url ? '\\n' + $json.execution.url : '') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "message_thread_id": "__TEMA_ALERTAS__",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "770e04ed-c7b8-4f55-96c7-17b35ea36c42",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Cuando falla un flujo": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "meta": {
+    "descripcion": "Flujo de error de todos los demás: avisa en Telegram (Alertas) con nombre, nodo y error."
+  },
+  "pinData": {}
+}

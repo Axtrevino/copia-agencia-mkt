@@ -1,0 +1,61 @@
+{
+  "nombre": "Marca A",
+  "descripcion_en": "a Mexican brand (describe here in English what it sells and to whom)",
+  "reglas_visuales_en": [
+    "Colors: primary #1F3A5F, white, accent #F28C28 only for small details; light background #F7F7F5.",
+    "Typography: geometric sans like Poppins. Bold for headline and CTA; regular for body. Large, perfectly legible text; one main message; lots of empty space; 72 px margins.",
+    "The photo is the protagonist; soft rounded corners (~32 px) on cards."
+  ],
+  "foto_en": "editorial, natural, relatable Mexican people in everyday places, candid, nobody looking at the camera, natural light, clothing with clearly different colors. Never stock-bank looking.",
+  "acento_en": "in the accent color #F28C28",
+
+  "plantillas": {
+    "foto_titular_abajo": {
+      "descripcion": "Full-bleed photo covering the whole canvas, subject in the upper two thirds. A smooth dark gradient rises from the bottom over the lowest ~40% so the text sits on a calm area. White bold headline at the BOTTOM-LEFT. Logo small in the BOTTOM-RIGHT corner.",
+      "logo": "logo-blanco.png",
+      "logo_desc": "This layout uses the WHITE logo (attached) because its background is dark.",
+      "referencia": ""
+    },
+    "panel_lateral": {
+      "descripcion": "Solid primary-color background. A photo inside a clean rectangle with rounded corners takes the RIGHT ~45% of the canvas. A large white bold headline sits on the color at the LEFT, vertically centered. Logo small in the BOTTOM-LEFT corner.",
+      "logo": "logo-blanco.png",
+      "logo_desc": "This layout uses the WHITE logo (attached) because its background is dark.",
+      "referencia": ""
+    },
+    "tarjeta_clara": {
+      "descripcion": "Photo on the top half. A light card overlaps the bottom half with the headline in the primary color and an optional subtitle. Logo small at the TOP-LEFT over the photo.",
+      "logo": "logo-color.png",
+      "logo_desc": "This layout uses the COLOR logo (attached) because it sits on a light area.",
+      "referencia": ""
+    }
+  },
+
+  "limites": {"titular": 60, "kicker": 28, "subtitulo": 90, "cta": 20, "url": 40, "disclaimer": 220},
+  "imagen": {"solo_titular": false, "tipos_con_extras": ["captacion"]},
+  "copy": {"max_caracteres": 900, "max_lineas": 0, "max_largo_linea": 0, "emojis": true},
+
+  "liga": {
+    "sitio": "https://www.marca-a.com/",
+    "utm": "utm_source=meta&utm_medium=organic_social&utm_campaign=organico",
+    "cta": "Conoce más"
+  },
+
+  "disclaimer_obligatorio": false,
+  "palabras_prohibidas": ["garantizado", "100% seguro", "gratis"],
+  "frases_trilladas": ["en el día a día", "llevamos tu negocio al siguiente nivel"],
+
+  "temporadas": [
+    {"inicio": "03-01", "fin": "03-31", "nombre": "Temporada alta de la industria (ejemplo)", "nota": "Cámbiala por las fechas reales del giro."}
+  ],
+  "quincenas": false,
+
+  "blog": {
+    "sitio": "https://www.marca-a.com/",
+    "rol": "Eres el redactor SEO del blog de Marca A. El lector es su cliente ideal en México (ver la ficha); escríbele de tú, claro y sin tecnicismos. Es contenido para el sitio, no un anuncio.",
+    "reglas": "- Respeta la ficha al pie de la letra.\n- No inventes cifras: solo las de «Datos verificados».",
+    "fuentes_oficiales": {},
+    "personas_en": "people from the brand's target audience in everyday situations",
+    "lugar_en": "a real everyday environment in Mexico, consistent with the topic",
+    "evitar_en": ""
+  }
+}
