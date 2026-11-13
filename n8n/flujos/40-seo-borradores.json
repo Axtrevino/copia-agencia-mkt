@@ -102,7 +102,7 @@
         "resource": "message",
         "operation": "sendMessage",
         "chatId": "__TELEGRAM_CHAT_ID__",
-        "text": "ℹ️ SEO: ya no hay temas «planeado» en la tabla seo_articulos. Agrega los siguientes.",
+        "text": "ℹ️ SEO: ya no hay temas «planeado» en seo_articulos. «SEO plan de artículos» agrega los siguientes el lunes; si no quieres esperar, ábrelo en n8n y toca «Probar».",
         "additionalFields": {
           "appendAttribution": false,
           "message_thread_id": "__TEMA_ALERTAS__"

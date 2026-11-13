@@ -27,6 +27,7 @@ Luego importa `n8n/listos/` (pasos en [../docs/instalacion.md](../docs/instalaci
 | 41 | SEO acciones (publicar o pedir cambios) |
 | 42 | SEO posiciones y on-page (edita «Marcas»: público, reglas y keywords base) |
 | 43 | SEO preparar pestañas (manual, una vez) |
+| 44 | SEO plan de artículos (edita «Marcas»: semillas, competidores, público y reglas) |
 | 50 | Paid campañas de Meta (en pausa, con tope diario) |
 | 52 | Paid propuesta (Claude arma la campaña que escribes en el panel) |
 | 51 | Meta Ads optimizador (pon el costo objetivo por lead en «Configuración») |
@@ -44,4 +45,4 @@ Luego importa `n8n/listos/` (pasos en [../docs/instalacion.md](../docs/instalaci
 | 74 | Docs oficiales (edita «Fuentes») |
 
 **Otra marca:** duplica 10 y 11, cambia `marca`, `nombre`, `page_id` e `ig_id` en «Config» y la
-credencial de Meta; agrégala en 20, 21, 30, 40, 42, 53, 62, 70 y 71 y en el nodo «Publicar de nuevo» de 12.
+credencial de Meta; agrégala en 20, 21, 30, 40, 42, 44, 53, 62, 70 y 71 y en el nodo «Publicar de nuevo» de 12.

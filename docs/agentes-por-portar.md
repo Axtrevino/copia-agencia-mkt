@@ -61,6 +61,23 @@ caen 30 % o más, si GA4 no registra visitas o si Meta gasta MXN 500+ sin leads.
 - Cada hora (:17): copia la pestaña Leads a la tabla `leads` **sin** nombre, correo, teléfono ni
   mensaje.
 
+## SEO plan de artículos (44)
+
+Llena la tabla `seo_articulos`: nadie tiene que escribir los temas a mano. Cada lunes 6:53 revisa
+cada marca con `blog: true`; si le quedan menos de 4 temas pendientes (o con «Probar»):
+
+1. Junta keywords candidatas: ideas de DataForSEO a partir de las `semillas`, las keywords por las
+   que posicionan los `competidores` (top 20), búsquedas de Search Console donde la marca ya aparece
+   entre la posición 8 y 40, y la pestaña Keywords del Research semanal.
+2. Quita lo que no sirve para un artículo: nombres de marcas, búsquedas de navegación o de compra
+   directa, volumen menor a 30, dificultad mayor a 60 y keywords parecidas a un artículo que ya
+   existe (para no canibalizar).
+3. Ordena por oportunidad (volumen × facilidad; las que ya tienen impresiones pesan más).
+4. Claude escoge hasta 8 temas, escribe el brief de cada uno y su intención.
+5. Los guarda «planeado» en orden (intercalando marcas) y avisa en Telegram. «SEO (borradores)» los
+   escribe martes y jueves y llegan para aprobar; nada se publica sin ✅. Para quitar un tema,
+   cámbialo a «descartado».
+
 ## SEO posiciones y on-page (42, 43)
 
 - Lunes 7:43: posición en Google México (DataForSEO, top 30) de hasta 40 keywords por marca

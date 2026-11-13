@@ -16,7 +16,8 @@ pasos 5 a 7 por ti.
 | Meta for Developers | Publicar en Facebook/Instagram, leads, Conversions API, campañas | Gratis (las campañas sí cuestan) |
 | Google Cloud | GA4, Search Console y BigQuery con una cuenta de servicio (Analytics, Resultados, SEO, Analista, BigQuery) | Gratis hasta cierto uso; BigQuery cobra por consulta |
 | GitHub | Encargos del panel y copia de los docs oficiales | Gratis |
-| Opcionales | Tavily (noticias y docs oficiales), Apify (competencia), DataForSEO (keywords, posiciones y on-page), Webflow (blog) | Por uso |
+| DataForSEO | Casi obligatoria para SEO: escoger los temas del blog con datos, medir posiciones y revisar páginas | Por uso |
+| Opcionales | Tavily (noticias y docs oficiales), Apify (competencia), Webflow (blog) | Por uso |
 
 ## 2. Tu marca
 
@@ -91,7 +92,9 @@ Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y s
 6. Corre una vez, a mano: «Leads (preparar hoja)», «SEO preparar pestañas» y «BigQuery preparar».
 7. En «Panel analytics (lectura)» → nodo «Configuración» pon el evento de GA4 que cuenta como lead
    (`generate_lead` por omisión) y, si tienes, un paso intermedio del embudo (`form_start`).
-   En «SEO posiciones y on-page» → nodo «Marcas» escribe el público y las reglas de cada marca.
+   En «SEO posiciones y on-page» y en «SEO plan de artículos» → nodo «Marcas» escribe el público y
+   las reglas de cada marca; en el plan, además, 5 a 20 semillas (qué vende y qué problemas tiene su
+   público) y 2 o 3 dominios de la competencia, y marca `blog: true` en las marcas con blog.
 8. Activa primero: Alertas de error, Telegram (respuestas) y Vigilante. Luego Preparar y Publicar.
    Los agentes de análisis (Analista, BigQuery, SEO posiciones, Docs oficiales) se activan cuando
    ya estén sus credenciales.

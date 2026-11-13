@@ -1,0 +1,659 @@
+{
+  "name": "Agencia · SEO plan de artículos",
+  "nodes": [
+    {
+      "id": "dbd487c8-05f6-5e8b-a6be-13b9581df585",
+      "name": "Cada lunes 6:53",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "53 6 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "1ca7d483-f655-5d42-af26-4dd7b9c2e809",
+      "name": "Probar",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "c288b6e3-0740-5491-bc1a-45e19fe6c067",
+      "name": "Marcas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Configuración del plan de artículos por marca. Lo llena Claude al instalar, con lo que diga la persona.\n// blog: true solo si la marca tiene blog configurado en «SEO (borradores)».\n// semillas: 5 a 20 frases que describen lo que vende la marca y los problemas de su público (sin nombres de marca).\n// competidores: dominios de 2 o 3 competidores (sin https://). De ahí salen las keywords por las que ya posicionan.\n// pais: location_code de DataForSEO (2484 = México) e idioma.\nconst MARCAS = {\n  'marca-a': { nombre: 'Marca A', blog: true, dominio: '__DOMINIO_A__', gsc: '__GSC_SITIO_A__',\n    semillas: [], competidores: [],\n    publico: 'describe aquí a quién le vende la marca',\n    reglas: 'Escribe aquí las reglas de la marca: temas que no se tocan, promesas que no se pueden hacer, tono.' },\n  'marca-b': { nombre: 'Marca B', blog: false, dominio: '__DOMINIO_B__', gsc: '__GSC_SITIO_B__',\n    semillas: [], competidores: [],\n    publico: 'describe aquí a quién le vende la marca',\n    reglas: 'Escribe aquí las reglas de la marca.' },\n};\nconst AJUSTES = { location_code: 2484, language_code: 'es', pendientes_min: 4, temas_por_corrida: 8, min_volumen: 30, max_dificultad: 60 };\nlet probar = false;\ntry { probar = $('Probar').isExecuted === true; } catch (e) {}\nconst hoy = $now.setZone('America/Mexico_City').startOf('day');\nreturn [{ json: { MARCAS, AJUSTES, probar, fecha: hoy.toISODate(), gsc: { ini: hoy.minus({ days: 30 }).toISODate(), fin: hoy.minus({ days: 3 }).toISODate() } } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "195f1f1b-3449-50fe-b67d-50677a4f2e6d",
+      "name": "Leer seo_articulos",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "83ff206f-b88c-5893-9f23-91dc1ab4960a",
+      "name": "Leer Keywords",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/__SHEET_ID__/values/Keywords!A:H",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "f9e52c00-891e-5d8e-9246-41421b5300fb",
+      "name": "¿Qué marcas planear?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Planea solo las marcas con blog a las que les quedan menos temas pendientes que pendientes_min («Probar» planea todas).\nconst C = $('Marcas').first().json;\nconst filas = $('Leer seo_articulos').all().map(i => i.json || {}).filter(r => r.marca);\nconst PEND = ['planeado', 'preparando', 'por aprobar', 'cambios pedidos'];\nconst out = [];\nfor (const [marca, c] of Object.entries(C.MARCAS)) {\n  if (!c.blog) continue;\n  const pendientes = filas.filter(r => r.marca === marca && PEND.includes(r.estado)).length;\n  if (!C.probar && pendientes >= C.AJUSTES.pendientes_min) continue;\n  if (!(c.semillas || []).length && !(c.competidores || []).length) throw new Error('«SEO plan de artículos»: llena semillas o competidores de ' + c.nombre + ' en el nodo «Marcas».');\n  out.push({ json: { marca, pendientes, faltan: Math.max(1, C.AJUSTES.temas_por_corrida) } });\n}\nreturn out;\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "5cc48895-7477-567d-9e21-1b3fcb7329dc",
+      "name": "Pedidos a DataForSEO",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Por marca: ideas de keywords a partir de las semillas y keywords por las que posiciona cada competidor.\nconst C = $('Marcas').first().json, A = C.AJUSTES;\nconst out = [];\nfor (const it of $input.all()) {\n  const m = it.json.marca, c = C.MARCAS[m];\n  const sem = (c.semillas || []).map(s => String(s).trim().toLowerCase()).filter(Boolean).slice(0, 20);\n  if (sem.length) out.push({ json: { marca: m, tipo: 'ideas', url: 'https://api.dataforseo.com/v3/dataforseo_labs/google/keyword_ideas/live',\n    body: [{ keywords: sem, location_code: A.location_code, language_code: A.language_code, limit: 300, order_by: ['keyword_info.search_volume,desc'] }] } });\n  for (const d of (c.competidores || []).slice(0, 3)) out.push({ json: { marca: m, tipo: 'competidor', competidor: d, url: 'https://api.dataforseo.com/v3/dataforseo_labs/google/ranked_keywords/live',\n    body: [{ target: String(d).replace(/^https?:\\/\\//, '').replace(/^www\\./, '').replace(/\\/.*$/, ''), location_code: A.location_code, language_code: A.language_code, limit: 200,\n      filters: [['ranked_serp_element.serp_item.rank_group', '<=', 20]], order_by: ['keyword_data.keyword_info.search_volume,desc'] }] } });\n}\nreturn out;\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "ef4f4c7a-1ef7-5f3d-aab5-49b768f2cbbf",
+      "name": "DataForSEO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1344,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 120000,
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "DataForSEO"
+        }
+      }
+    },
+    {
+      "id": "443de81e-5d50-520a-bc85-c6f50f2b95c3",
+      "name": "Pedidos a Search Console",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Búsquedas donde la marca ya aparece (28 días): las que están entre la posición 8 y 40 son oportunidad.\nconst C = $('Marcas').first().json;\nreturn $('¿Qué marcas planear?').all().map(i => ({ json: { marca: i.json.marca,\n  url: 'https://www.googleapis.com/webmasters/v3/sites/' + encodeURIComponent(C.MARCAS[i.json.marca].gsc) + '/searchAnalytics/query',\n  body: { startDate: C.gsc.ini, endDate: C.gsc.fin, dimensions: ['query'], rowLimit: 500 } } }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "a7955f2e-9307-560d-b440-1e35d16b7f57",
+      "name": "Search Console",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1792,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Google (cuenta de servicio)"
+        }
+      }
+    },
+    {
+      "id": "d157ef8e-202f-5e0a-b669-f75b1526454e",
+      "name": "Juntar candidatos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Junta las keywords candidatas por marca, quita lo que no sirve para un artículo y lo que ya existe,\n// les pone un puntaje de oportunidad y arma el pedido a Claude.\nconst C = $('Marcas').first().json, A = C.AJUSTES;\nconst norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ ]+/g, ' ').replace(/\\s+/g, ' ').trim();\nconst palabras = s => new Set(norm(s).split(' ').filter(w => w.length > 2 && !['para', 'los', 'las', 'del', 'que', 'con', 'una', 'por', 'como', 'que'].includes(w)));\nconst parecidas = (a, b) => { const x = palabras(a), y = palabras(b); if (!x.size || !y.size) return false; let n = 0; x.forEach(w => { if (y.has(w)) n++; }); return n / Math.min(x.size, y.size) >= 0.8; };\nconst existentes = $('Leer seo_articulos').all().map(i => i.json || {}).filter(r => r.marca);\nconst pedidosD = $('Pedidos a DataForSEO').all().map(i => i.json), respD = $('DataForSEO').all().map(i => i.json || {});\nconst pedidosG = $('Pedidos a Search Console').all().map(i => i.json), respG = $('Search Console').all().map(i => i.json || {});\nconst kwTab = ((($('Leer Keywords').first().json || {}).values) || []).slice(1);\nlet costo = 0;\nconst errores = [];\nconst salida = [];\nfor (const it of $('¿Qué marcas planear?').all()) {\n  const m = it.json.marca, c = C.MARCAS[m];\n  const cand = new Map();\n  const marcaPropia = norm(c.nombre);\n  const ajenas = (c.competidores || []).map(d => norm(String(d).replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('.')[0])).filter(x => x.length > 2);\n  const add = (kw, x) => {\n    const k = norm(kw);\n    if (!k || k.split(' ').length < 2 && !(x.volumen >= 1000)) return; // una sola palabra casi nunca es un artículo\n    if (ajenas.some(a => k.includes(a)) || (marcaPropia && k.includes(marcaPropia))) return; // marcas: no son artículos\n    const y = cand.get(k) || { keyword: k, volumen: null, dificultad: null, cpc: null, intencion: '', fuentes: [], impresiones: 0, posicion: null };\n    for (const f of ['volumen', 'dificultad', 'cpc']) if (y[f] == null && x[f] != null) y[f] = x[f];\n    if (!y.intencion && x.intencion) y.intencion = x.intencion;\n    if (x.impresiones) { y.impresiones = x.impresiones; y.posicion = x.posicion; }\n    if (!y.fuentes.includes(x.fuente)) y.fuentes.push(x.fuente);\n    cand.set(k, y);\n  };\n  pedidosD.forEach((p, i) => {\n    if (p.marca !== m) return;\n    const t = ((respD[i] || {}).tasks || [])[0] || {};\n    costo += Number(t.cost || 0);\n    if (t.status_code !== 20000) { errores.push(c.nombre + ' · ' + (p.competidor || 'ideas') + ': ' + (t.status_message || (respD[i].error && respD[i].error.message) || 'sin respuesta')); return; }\n    for (const x of (((t.result || [])[0] || {}).items || [])) {\n      const d = p.tipo === 'ideas' ? x : (x.keyword_data || {});\n      const info = d.keyword_info || {}, prop = d.keyword_properties || {}, int = d.search_intent_info || {};\n      add(d.keyword, { volumen: info.search_volume ?? null, cpc: info.cpc ?? null, dificultad: prop.keyword_difficulty ?? null, intencion: int.main_intent || '', fuente: p.tipo === 'ideas' ? 'ideas' : 'competencia: ' + p.competidor });\n    }\n  });\n  pedidosG.forEach((p, i) => {\n    if (p.marca !== m) return;\n    const r = respG[i] || {};\n    if (r.error) { errores.push(c.nombre + ' · Search Console: ' + (r.error.message || 'error')); return; }\n    for (const x of r.rows || []) if (x.position >= 8 && x.position <= 40 && x.impressions >= 20) add(x.keys[0], { impresiones: x.impressions, posicion: Math.round(x.position * 10) / 10, fuente: 'search console' });\n  });\n  for (const r of kwTab) if (r[1] === m && r[2]) add(r[2], { volumen: r[5] === '' || r[5] == null ? null : Number(r[5]), cpc: r[6] === '' || r[6] == null ? null : Number(r[6]), fuente: 'research semanal' });\n  const deMarca = existentes.filter(r => r.marca === m);\n  const lista = [...cand.values()]\n    .filter(x => ['navigational', 'transactional'].indexOf(x.intencion) === -1)\n    .filter(x => (x.volumen != null && x.volumen >= A.min_volumen) || x.impresiones >= 20)\n    .filter(x => x.dificultad == null || x.dificultad <= A.max_dificultad)\n    .filter(x => !deMarca.some(r => parecidas(r.keyword, x.keyword)))\n    .map(x => Object.assign(x, { puntaje: Math.round(((x.volumen || x.impresiones * 3) * (1 - (x.dificultad || 30) / 100)) * (x.impresiones ? 1.5 : 1)) }))\n    .sort((a, b) => b.puntaje - a.puntaje)\n    .slice(0, 60);\n  if (!lista.length) { errores.push(c.nombre + ': no salieron keywords candidatas (revisa semillas y competidores).'); continue; }\n  const ya = deMarca.map(r => ({ keyword: r.keyword, titulo: r.titulo || '', estado: r.estado }));\n  const prompt = `Marca: ${c.nombre} (${c.dominio}). Público: ${c.publico}.\\nReglas de la marca (obligatorias): ${c.reglas}\\n\\n` +\n    `Tarea: escoge hasta ${it.json.faltan} temas de artículo para el blog de esta marca, en orden de prioridad, usando SOLO keywords de la lista de candidatas. ` +\n    'Prioriza oportunidad (puntaje: volumen alto y dificultad baja; las de Search Console ya tienen impresiones) y que el artículo le sirva al público de la marca. ' +\n    'Cada artículo usa una keyword principal y puede cubrir keywords secundarias muy parecidas de la misma lista. ' +\n    'No propongas dos artículos que respondan la misma búsqueda ni uno que repita o compita con los que ya existen (lista de abajo). ' +\n    'El tema es un brief de 1 a 3 frases: qué debe explicar, para quién y qué no inventar (sin cifras, precios ni datos que no estén en fuentes oficiales; si algo no está confirmado, decirlo). ' +\n    'intencion: informativa, comercial, comparativa o b2b. Escribe en español de México.\\n' +\n    'Responde SOLO con JSON válido: {\"temas\":[{\"keyword\":\"\",\"secundarias\":[\"\"],\"tema\":\"\",\"intencion\":\"\",\"por_que\":\"\"}]}\\n\\n' +\n    'Candidatas:\\n' + JSON.stringify(lista.map(x => ({ keyword: x.keyword, volumen: x.volumen, dificultad: x.dificultad, impresiones: x.impresiones || undefined, posicion: x.posicion || undefined, puntaje: x.puntaje }))) +\n    '\\n\\nArtículos que ya existen (no repetir):\\n' + JSON.stringify(ya);\n  salida.push({ json: { marca: m, nombre: c.nombre, lista, prompt, faltan: it.json.faltan } });\n}\nif (!salida.length) throw new Error('«SEO plan de artículos» no encontró candidatas. ' + errores.join(' · ').slice(0, 400));\nreturn salida.map((s, i) => ({ json: Object.assign(s.json, { costo: i === 0 ? Math.round(costo * 10000) / 10000 : 0, errores: i === 0 ? errores : [] }) }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "cc64b05e-c979-570e-9d8b-7df5a2a1839a",
+      "name": "Claude escoge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2240,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 6000, system: 'Eres editor SEO de un blog en español de México. Escoges temas con datos, sin canibalizar artículos y respetando las reglas de la marca. Respondes solo JSON válido.', messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "id": "b462db2a-05e8-56c1-bc2a-daaeaf72ade9",
+      "name": "Armar filas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        100
+      ],
+      "parameters": {
+        "jsCode": "// Valida lo que escogió Claude (solo keywords de la lista, sin repetidas) y arma las filas «planeado».\nconst J = $('Juntar candidatos').all().map(i => i.json), R = $('Claude escoge').all().map(i => i.json || {});\nconst existentes = $('Leer seo_articulos').all().map(i => i.json || {});\nlet orden = existentes.reduce((m, r) => Math.max(m, Number(r.orden) || 0), 0);\nconst ahora = $now.setZone('America/Mexico_City').toFormat('yyyy-MM-dd HH:mm');\nconst porMarca = [], fallas = [...(J[0] ? J[0].errores : [])];\nJ.forEach((j, i) => {\n  const r = R[i] || {};\n  if (r.error || !r.content) { fallas.push(j.nombre + ': Claude no respondió (' + ((r.error && r.error.message) || 'sin respuesta') + ')'); return; }\n  const txt = r.content.filter(b => b.type === 'text').map(b => b.text).join('');\n  let temas = [];\n  try { const m = txt.match(/\\{[\\s\\S]*\\}/); temas = JSON.parse(m ? m[0] : txt).temas || []; } catch (e) { fallas.push(j.nombre + ': respuesta de Claude no legible'); return; }\n  const porKw = new Map(j.lista.map(x => [x.keyword, x]));\n  const usadas = new Set();\n  const filas = [];\n  for (const t of temas) {\n    const k = String(t.keyword || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ ]+/g, ' ').replace(/\\s+/g, ' ').trim();\n    const x = porKw.get(k);\n    if (!x || usadas.has(k) || !t.tema) continue;\n    usadas.add(k);\n    filas.push({ marca: j.marca, keyword: x.keyword, tema: String(t.tema).slice(0, 900), intencion: ['informativa', 'comercial', 'comparativa', 'b2b'].includes(t.intencion) ? t.intencion : 'informativa',\n      volumen: x.volumen, dificultad: x.dificultad, cpc: x.cpc,\n      notas: ('Plan ' + ahora.slice(0, 10) + ': ' + String(t.por_que || '') + ((t.secundarias || []).length ? ' · Secundarias: ' + t.secundarias.join(', ') : '') + ' · Fuente: ' + x.fuentes.join(', ')).slice(0, 900) });\n    if (filas.length >= j.faltan) break;\n  }\n  porMarca.push(filas);\n});\n// Intercala las marcas para que el blog no publique solo de una.\nconst out = [];\nfor (let k = 0; porMarca.some(f => f[k]); k++) for (const f of porMarca) if (f[k]) out.push(Object.assign({}, f[k], { orden: ++orden, estado: 'planeado', version: 0, actualizado: ahora }));\nif (!out.length) throw new Error('«SEO plan de artículos» no pudo armar temas. ' + fallas.join(' · ').slice(0, 400));\nreturn out.map((x, i) => ({ json: Object.assign(x, i === 0 ? { _fallas: fallas } : {}) }));\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "e197749b-63c4-5daf-80be-98e5fc946cfc",
+      "name": "Guardar temas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        100
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SEO_TABLA_ID__",
+          "cachedResultName": "seo_articulos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "marca": "={{ $json.marca }}",
+            "orden": "={{ $json.orden }}",
+            "tema": "={{ $json.tema }}",
+            "keyword": "={{ $json.keyword }}",
+            "intencion": "={{ $json.intencion }}",
+            "estado": "={{ $json.estado }}",
+            "version": "={{ $json.version }}",
+            "volumen": "={{ $json.volumen }}",
+            "dificultad": "={{ $json.dificultad }}",
+            "cpc": "={{ $json.cpc }}",
+            "notas": "={{ $json.notas }}",
+            "actualizado": "={{ $json.actualizado }}"
+          },
+          "schema": [
+            {
+              "id": "marca",
+              "displayName": "marca",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "orden",
+              "displayName": "orden",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tema",
+              "displayName": "tema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "keyword",
+              "displayName": "keyword",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "intencion",
+              "displayName": "intencion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "version",
+              "displayName": "version",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "volumen",
+              "displayName": "volumen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "dificultad",
+              "displayName": "dificultad",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cpc",
+              "displayName": "cpc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "notas",
+              "displayName": "notas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "actualizado",
+              "displayName": "actualizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "035db693-a4ad-500b-b7d8-2d3cb00b9cf3",
+      "name": "Aviso",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const F = $('Armar filas').all().map(i => i.json);\nconst C = $('Marcas').first().json;\nconst J = $('Juntar candidatos').first().json;\nconst e = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst num = n => n == null ? '—' : Number(n).toLocaleString('es-MX');\nlet t = '📝 <b>Plan de artículos</b>' + (C.probar ? ' (prueba)' : '') + '\\n' + F.length + ' temas nuevos en seo_articulos, en el orden en que se escriben:\\n';\nF.forEach((x, i) => { t += '\\n' + (i + 1) + '. <b>' + e(x.keyword) + '</b> · ' + e((C.MARCAS[x.marca] || {}).nombre || x.marca) + ' · ' + num(x.volumen) + ' búsquedas/mes' + (x.dificultad != null ? ' · dificultad ' + x.dificultad : '') + '\\n   ' + e(String(x.tema).slice(0, 160)); });\nconst fallas = F[0]._fallas || [];\nif (fallas.length) t += '\\n\\n⚠️ ' + e(fallas.join(' · ').slice(0, 500));\nt += '\\n\\nCosto DataForSEO: US$' + (J.costo || 0) + '. Los borradores llegan aquí para aprobar; nada se publica sin tu ✅. Para quitar un tema, cámbialo a «descartado» en la tabla.';\nreturn [{ json: { texto: t.slice(0, 4000) } }];\n",
+        "mode": "runOnceForAllItems"
+      }
+    },
+    {
+      "id": "1a331277-2030-57f0-8ae9-50889034d7c6",
+      "name": "Telegram: Reportes",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3136,
+        100
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "__TELEGRAM_CHAT_ID__",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true,
+          "message_thread_id": "__TEMA_REPORTES__"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": "Telegram (bot de la agencia)"
+        }
+      },
+      "webhookId": "f5d8bcb0-2392-5b59-a725-b5d4ec67097c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Cada lunes 6:53": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar": {
+      "main": [
+        [
+          {
+            "node": "Marcas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcas": {
+      "main": [
+        [
+          {
+            "node": "Leer seo_articulos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer seo_articulos": {
+      "main": [
+        [
+          {
+            "node": "Leer Keywords",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Keywords": {
+      "main": [
+        [
+          {
+            "node": "¿Qué marcas planear?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Qué marcas planear?": {
+      "main": [
+        [
+          {
+            "node": "Pedidos a DataForSEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedidos a DataForSEO": {
+      "main": [
+        [
+          {
+            "node": "DataForSEO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DataForSEO": {
+      "main": [
+        [
+          {
+            "node": "Pedidos a Search Console",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedidos a Search Console": {
+      "main": [
+        [
+          {
+            "node": "Search Console",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Console": {
+      "main": [
+        [
+          {
+            "node": "Juntar candidatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar candidatos": {
+      "main": [
+        [
+          {
+            "node": "Claude escoge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude escoge": {
+      "main": [
+        [
+          {
+            "node": "Armar filas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar filas": {
+      "main": [
+        [
+          {
+            "node": "Guardar temas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar temas": {
+      "main": [
+        [
+          {
+            "node": "Aviso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Reportes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "executionTimeout": 1800,
+    "errorWorkflow": "__FLUJO_ALERTAS__"
+  },
+  "meta": {
+    "descripcion": "Lunes 6:53: si a una marca con blog le quedan menos de 4 temas pendientes, busca keywords con DataForSEO (ideas, competencia) y Search Console, Claude escoge los mejores temas sin canibalizar y los deja «planeado» en seo_articulos. No publica nada."
+  },
+  "pinData": {},
+  "active": false
+}

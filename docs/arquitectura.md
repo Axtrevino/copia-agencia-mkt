@@ -54,6 +54,7 @@ Todo lo de la marca está en `marcas/<slug>/marca.json` y `ficha.md` (ver los co
 | 41 | SEO acciones | Sub-flujo | ✅ publica en Webflow; ✏️ pide cambios y rehace el borrador. |
 | 42 | SEO posiciones y on-page | Lunes 7:43 | Posiciones (DataForSEO) y Search Console; cada dos semanas revisión on-page y propuestas de Claude («propuesto»). No aplica nada. |
 | 43 | SEO preparar pestañas | Manual | Crea las pestañas SEO del Sheet. |
+| 44 | SEO plan de artículos | Lunes 6:53 | Si quedan menos de 4 temas pendientes: DataForSEO (ideas y competencia) + Search Console → Claude escoge temas sin canibalizar → `seo_articulos` «planeado». |
 | 50 | Paid campañas (Meta) | Pestaña Paid del panel (webhook con token) | Crea campañas de Meta en pausa (7 objetivos), con pieza y texto; «probar» valida sin crear. |
 | 52 | Paid propuesta | Pestaña Paid del panel | Manda lo que escribió la persona a Modal /campana y devuelve la propuesta. No crea nada. |
 | 51 | Meta Ads optimizador | Diario 10:40 | Pausa campañas «[Agente]» que rompen las reglas de costo por lead; propone lo demás (subir presupuesto y pausar con ✅/❌); bitácora en `meta_ads_decisiones`. |

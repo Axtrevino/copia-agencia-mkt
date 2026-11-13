@@ -14,7 +14,7 @@ no en el código. Viene con dos espacios de marca (`marca-a` y `marca-b`) listos
 |---|---|
 | `app/` | El servicio (Python en [Modal](https://modal.com)): redacta posts, hace las piezas con GPT Image, edita textos de una pieza, resume el research, propone ideas y escribe artículos SEO con su portada. |
 | `marcas/` | Una carpeta por marca: `marca.json` (reglas que aplica el código), `ficha.md` (voz, público, producto, datos), `ajustes.md`, logos y piezas de referencia. |
-| `n8n/` | 32 flujos de [n8n](https://n8n.io) que mueven todo: calendario → preparar → aprobar → publicar, vigilante, leads, research, ideas, SEO (borradores, posiciones y on-page), campañas, audiencias y optimizador de Meta (con ✅/❌ en Telegram), analista semanal, BigQuery, docs oficiales y el panel. |
+| `n8n/` | 33 flujos de [n8n](https://n8n.io) que mueven todo: calendario → preparar → aprobar → publicar, vigilante, leads, research, ideas, SEO (plan de artículos con datos, borradores, posiciones y on-page), campañas, audiencias y optimizador de Meta (con ✅/❌ en Telegram), analista semanal, BigQuery, docs oficiales y el panel. |
 | `panel/` | Panel web (un solo HTML): Hoy (lo que te toca y lo que sale esta semana), Resultados (embudo y quién se lleva el mérito), Analytics (GA4 y Search Console, con pantalla de detalle), Paid (escribes la campaña y Claude arma la propuesta; apruebas y se crea en pausa; prenderlas o apagarlas y ver lo que hizo el optimizador), Contenido (aprobar, pedir cambios, descartar), SEO (posiciones, páginas por arreglar y propuestas por aprobar), Agentes (estado real de cada flujo y encargos) y Research. Sistema visual: fondo blanco, tinta #111, amarillo #FFC21A, Inter Tight + JetBrains Mono y una escala de tres tamaños de número. Los colores de cada marca se asignan solos en `PALETA`. |
 | `docs/` | Arquitectura, instalación paso a paso, estructura del Google Sheet, reglas de operación y agentes por portar. |
 | `tests/` | Pruebas del servicio y del panel con datos simulados (`pytest`; el panel usa Playwright y se salta si no está instalado). |
@@ -33,6 +33,11 @@ Google Sheet «Calendario» ──► n8n «Preparar posts» ──► Modal /re
 Más detalle en [docs/arquitectura.md](docs/arquitectura.md).
 
 ## Empezar
+
+**Lo más fácil:** sigue [docs/empezar-con-claude.md](docs/empezar-con-claude.md): qué cuenta sirve
+para qué y el prompt para que Claude te lleve de la mano en toda la instalación.
+
+A mano:
 
 1. Lee [docs/instalacion.md](docs/instalacion.md): cuentas que necesitas, Google Sheet, bot de
    Telegram, Modal, n8n y Meta.
