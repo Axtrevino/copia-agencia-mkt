@@ -26,6 +26,7 @@ Luego importa `n8n/listos/` (pasos en [../docs/instalacion.md](../docs/instalaci
 | 40 | SEO borradores en Webflow (edita «Preparar pedido») |
 | 41 | SEO acciones (publicar o pedir cambios) |
 | 50 | Paid campañas de Meta (en pausa, con tope diario) |
+| 51 | Meta Ads optimizador (pon el costo objetivo por lead en «Configuración») |
 | 60 | Panel (lectura) |
 | 61 | Panel acciones |
 

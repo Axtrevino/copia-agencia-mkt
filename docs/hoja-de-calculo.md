@@ -54,6 +54,10 @@ Créalas en n8n → Data tables.
 `volumen` (número), `cpc` (número), `dificultad` (número), `palabras` (número), `notas`,
 `cambios`, `error`, `actualizado`.
 
+**meta_ads_decisiones** (bitácora del optimizador): `fecha`, `marca`, `campana`, `conjunto`,
+`adset_id`, `regla`, `accion`, `estado`, `gasto_7d`, `leads_7d`, `cpl_7d`, `cpl_objetivo`,
+`frecuencia`, `presupuesto_dia`, `propuesta_presupuesto`, `detalle`.
+
 **paid_campanas**: `campana_id`, `marca`, `medio`, `nombre`, `estado`, `objetivo`,
 `presupuesto`, `propuesta`, `landing`, `titular`, `copy`, `imagen`, `meta_campaign_id`,
 `meta_adset_id`, `meta_creative_id`, `meta_ad_id`, `costo_usd`, `error`, `actualizado`.

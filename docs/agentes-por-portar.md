@@ -4,7 +4,10 @@ Estos agentes existían en la agencia original pero no vienen como flujo en este
 muy amarrados a sus cuentas o porque no se terminaron. Aquí está su lógica para que los
 reconstruyas (con Claude y el MCP de n8n se arman en una sesión).
 
-## Optimizador de Meta Ads (diario)
+## Optimizador de Meta Ads (diario) — ya incluido: `n8n/flujos/51-meta-ads-optimizador.json`
+
+Pon el costo objetivo por lead de cada marca en el nodo «Configuración»; mientras sea `null`
+solo reporta. Las propuestas llegan a Telegram y se aplican a mano. Esta es su lógica:
 
 Lee 7 días de cada cuenta de anuncios con una sola llamada en lote (`POST graph.facebook.com/` con
 `batch`): conjuntos activos, anuncios activos, insights por día y de la semana. Decide por conjunto:
@@ -24,9 +27,8 @@ Reglas de seguridad:
 
 - Solo **pausa solo** las campañas que creó el agente (nombre empieza con `[Agente]`); en las
   hechas a mano solo propone.
-- **Subir presupuesto siempre es propuesta**: llega a Telegram con ✅/❌ y un segundo flujo
-  («Meta Ads acciones») la aplica solo si sigue vigente (máximo +20 %, tope diario, una vez cada
-  3 días, propuesta de máximo 2 días de antigüedad).
+- **Subir presupuesto siempre es propuesta** (+15 %, con tope diario, máximo una vez cada 3 días).
+  Mejora posible: botones ✅/❌ en Telegram y un flujo que la aplique solo si sigue vigente.
 - Si los encabezados de uso de la API (`x-business-use-case-usage`, `x-ad-account-usage`,
   `x-app-usage`) pasan el 75 %, no aplica nada y avisa.
 - Guarda cada decisión en una tabla `meta_ads_decisiones` (fecha, marca, campaña, conjunto,

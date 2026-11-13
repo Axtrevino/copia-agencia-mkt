@@ -34,7 +34,7 @@
   .barra { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; }
   .barra span:first-child { width: 120px; color: var(--suave); }
   .barra .b { height: 10px; background: var(--acento); border-radius: 5px; }
-  .chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef1f6; color: var(--suave); }
+  .chip { white-space: nowrap; display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef1f6; color: var(--suave); }
   .chip.por-aprobar { background: #fff3e0; color: var(--alerta); }
   .chip.aprobado, .chip.publicado { background: #e7f6ec; color: var(--ok); }
   .chip.error-al-preparar, .chip.error-al-publicar { background: #fdecea; color: var(--error); }
@@ -78,6 +78,7 @@
   <button data-tab="leads">Leads</button>
   <button data-tab="blog">Blog</button>
   <button data-tab="research">Research</button>
+  <button data-tab="agentes">Agentes</button>
 </nav>
 <main id="contenido"><div class="vacio">Configura la conexión con n8n para empezar.</div></main>
 
@@ -198,9 +199,46 @@
       : '<div class="vacio">Sin hallazgos en el periodo (Research corre los lunes).</div>') + '</div>';
   }
 
+
+  // Agentes de la agencia: qué hace cada uno, cuándo corre y en qué archivo de n8n vive.
+  // «incluido» = el flujo está en n8n/flujos del repo; «por armar» = solo está su lógica en docs/agentes-por-portar.md.
+  const AGENTES = [
+    ['Contenido', 'Preparar posts', 'Diario 10:07 / 12:07', 'Redacta el post con la ficha de la marca, hace la pieza con GPT Image y la manda a Telegram para aprobar.', '10-preparar-posts-marca-a/b', 'incluido'],
+    ['Contenido', 'Aprobaciones en Telegram', 'Al tocar un botón', 'Aprobar, pedir cambios, reintentar una publicación y aprobar artículos.', '12-telegram-respuestas', 'incluido'],
+    ['Contenido', 'Nueva versión', 'Al pedir cambios', 'Rehace solo lo necesario: copy, textos de la imagen o pieza nueva.', '13-nueva-version-de-post', 'incluido'],
+    ['Contenido', 'Publicar posts', 'Cada hora', 'Publica en Facebook e Instagram lo aprobado cuya hora llegó. Nunca dos veces.', '11-publicar-posts-marca-a/b', 'incluido'],
+    ['Contenido', 'Ideas semanales', 'Lunes 9:00', 'Escribe el brief de cada post con research, temporada y voz del público.', '21-ideas-semanales', 'incluido'],
+    ['Research', 'Research semanal', 'Lunes 8:00', 'Noticias, anuncios de la competencia y keywords → hallazgos.', '20-research-semanal', 'incluido'],
+    ['SEO', 'Borradores del blog', 'Martes y jueves', 'Artículo + portada → borrador en Webflow → aprobar en Telegram.', '40-seo-borradores', 'incluido'],
+    ['SEO', 'Publicar artículos', 'Al aprobar', 'Publica en Webflow o rehace con los cambios pedidos.', '41-seo-acciones', 'incluido'],
+    ['SEO', 'Posiciones y on-page', 'Semanal / quincenal', 'Posición de keywords y revisión on-page con propuestas.', 'docs/agentes-por-portar.md', 'por armar'],
+    ['Leads', 'Leads', 'Al llegar + cada 30 min', 'Formularios del sitio y de Meta → Sheet → Telegram; Conversions API.', '30-leads', 'incluido'],
+    ['Paid', 'Campañas de Meta', 'Desde el panel / n8n', 'Crea campañas en pausa (7 objetivos) con pieza y texto; «probar» valida sin crear.', '50-paid-campanas-meta', 'incluido'],
+    ['Paid', 'Optimizador de Meta Ads', 'Diario 10:40', 'Pausa campañas del agente que rompen las reglas de costo por lead y propone lo demás.', '51-meta-ads-optimizador', 'incluido'],
+    ['Paid', 'Audiencias de Meta', 'A pedido', 'Audiencias base y similares por marca, sin listas de clientes.', 'docs/agentes-por-portar.md', 'por armar'],
+    ['Análisis', 'Analista semanal', 'Lunes', 'GA4, Search Console y Meta Ads: semana contra la anterior y 3 recomendaciones.', 'docs/agentes-por-portar.md', 'por armar'],
+    ['Análisis', 'BigQuery (embudo)', 'Diario / cada hora', 'Métricas de posts, anuncios y leads en BigQuery para el embudo completo.', 'docs/agentes-por-portar.md', 'por armar'],
+    ['Atención', 'Agente de WhatsApp', 'Siempre', 'Responde, captura leads y escala a una persona.', 'docs/agentes-por-portar.md', 'por armar'],
+    ['Operación', 'Vigilante', 'Cada hora :40', 'Posts atorados, caídas de n8n y recordatorios antes de la hora de publicación.', '14-vigilante', 'incluido'],
+    ['Operación', 'Alertas de error y reinicio', 'Al fallar / al arrancar n8n', 'Avisan en Telegram qué flujo falló o que n8n se reinició.', '01 y 02', 'incluido'],
+    ['Panel', 'Panel (lectura y acciones)', 'Al abrir el panel', 'Los dos webhooks que usa esta pantalla.', '60-panel-lectura y 61-panel-acciones', 'incluido'],
+  ];
+  function vistaAgentes() {
+    const fila = a => '<tr><td>' + esc(a[0]) + '</td><td><b>' + esc(a[1]) + '</b><div style="color:var(--suave);font-size:13px">' + esc(a[3]) + '</div></td><td>' + esc(a[2]) + '</td><td><code>' + esc(a[4]) + '</code></td><td><span class="chip ' + (a[5] === 'incluido' ? 'aprobado' : 'por-aprobar') + '">' + esc(a[5]) + '</span></td></tr>';
+    return '<div class="tarjeta"><h2>Agentes de la agencia</h2><table><tr><th>Área</th><th>Agente</th><th>Cuándo</th><th>Flujo</th><th>Estado</th></tr>' + AGENTES.map(fila).join('') + '</table></div>'
+      + '<div class="tarjeta"><h2>Cómo subir los flujos a tu n8n</h2><ol style="margin:0;padding-left:20px;line-height:1.8">'
+      + '<li>Crea en n8n las credenciales con los nombres de <code>docs/instalacion.md</code> (paso 5).</li>'
+      + '<li>Crea las tablas <code>seo_articulos</code>, <code>paid_campanas</code> y <code>meta_ads_decisiones</code> en n8n → Data tables.</li>'
+      + '<li>Copia <code>n8n/config.ejemplo.json</code> como <code>n8n/config.json</code>, llénalo y corre <code>python3 n8n/configurar.py</code>.</li>'
+      + '<li>Importa los archivos de <code>n8n/listos/</code>: con <code>n8n import:workflow --separate --input=n8n/listos</code> o uno por uno en Workflows → Import from file.</li>'
+      + '<li>Si importaste uno por uno, corre <code>python3 n8n/configurar.py --ids</code> y reconecta los nodos que lista.</li>'
+      + '<li>Activa primero Alertas de error, Telegram (respuestas) y Vigilante; luego el resto.</li>'
+      + '</ol><p style="color:var(--suave);font-size:13px;margin-bottom:0">Atajo: dale a Claude acceso a tu n8n (MCP) y pídele «sube los flujos de n8n/listos y asigna mis credenciales».</p></div>';
+  }
+
   function pintar() {
-    if (!datos) return;
-    const vistas = { resumen: vistaResumen, posts: vistaPosts, leads: vistaLeads, blog: vistaBlog, research: vistaResearch };
+    if (!datos && tab !== 'agentes') return;
+    const vistas = { resumen: vistaResumen, posts: vistaPosts, leads: vistaLeads, blog: vistaBlog, research: vistaResearch, agentes: vistaAgentes };
     $('#contenido').innerHTML = vistas[tab]();
     const f = $('#fMarca');
     if (f) f.onchange = () => { marcaFiltro = f.value; pintar(); };

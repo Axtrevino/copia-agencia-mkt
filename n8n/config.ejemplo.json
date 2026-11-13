@@ -28,5 +28,6 @@
   "WEBFLOW_COLLECTION_ID_A": "",
 
   "SEO_TABLA_ID": "ID de la tabla de datos seo_articulos en n8n",
-  "PAID_TABLA_ID": "ID de la tabla de datos paid_campanas en n8n"
+  "PAID_TABLA_ID": "ID de la tabla de datos paid_campanas en n8n",
+  "META_DECISIONES_TABLA_ID": "ID de la tabla de datos meta_ads_decisiones en n8n"
 }

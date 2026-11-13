@@ -69,7 +69,7 @@ Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y s
 
 ## 6. Importar los flujos
 
-1. En n8n → Data tables crea `seo_articulos` y `paid_campanas` (columnas en
+1. En n8n → Data tables crea `seo_articulos`, `paid_campanas` y `meta_ads_decisiones` (columnas en
    [hoja-de-calculo.md](hoja-de-calculo.md)) y copia sus IDs.
 2. `cp n8n/config.ejemplo.json n8n/config.json`, llénalo y corre `python3 n8n/configurar.py`.
 3. Importa `n8n/listos/`:

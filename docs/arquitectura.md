@@ -52,6 +52,7 @@ Todo lo de la marca está en `marcas/<slug>/marca.json` y `ficha.md` (ver los co
 | 40 | SEO (borradores) | Martes y jueves | Siguiente tema de `seo_articulos` → artículo + portada → borrador en Webflow → Telegram. |
 | 41 | SEO acciones | Sub-flujo | ✅ publica en Webflow; ✏️ pide cambios y rehace el borrador. |
 | 50 | Paid campañas (Meta) | Webhook | Crea campañas de Meta en pausa (7 objetivos), con pieza y texto; «probar» valida sin crear. |
+| 51 | Meta Ads optimizador | Diario 10:40 | Pausa campañas «[Agente]» que rompen las reglas de costo por lead; propone lo demás; bitácora en `meta_ads_decisiones`. |
 | 60 | Panel (lectura) | Webhook | Resumen para el panel. |
 | 61 | Panel acciones | Webhook | Aprobar, pedir cambios o descartar desde el panel. |
 
