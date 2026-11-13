@@ -9,12 +9,14 @@ Endpoints:
   POST /ideas      el tema (brief) de cada post desde competencia, temporada y público
   POST /articulo   brief y borrador de un artículo SEO (sin publicar)
   POST /portada    imagen principal y miniatura de un artículo (sin texto)
+  POST /campana    Claude arma una propuesta de campaña de Meta con lo que pide la persona
   POST /archivos   lista o entrega los logos y referencias de una marca
   GET  /salud
 
 Secretos en Modal → Secrets → `agencia-marketing`: `OPENAI_API_KEY` y `PIEZA_TOKEN` (opcionales:
 `PIEZA_MODELO`, `PIEZA_TAMANO`, `PIEZA_CALIDAD`, `EDITAR_FIDELIDAD`, `PIEZA_TEXTO_MODELO`,
-`PORTADA_CALIDAD`). La carpeta `marcas/` viaja dentro de la imagen.
+`PORTADA_CALIDAD`; `ANTHROPIC_API_KEY` y `CLAUDE_MODELO` para /campana).
+La carpeta `marcas/` viaja dentro de la imagen.
 
 Deploy:  modal deploy app/main.py   (o el workflow de GitHub al fusionar a main)
 """
@@ -179,6 +181,24 @@ def pieza():
         return http(
             lambda: atender_articulo(
                 pedido, x_pieza_token, os.environ.get("PIEZA_TOKEN"), llave, modelo_texto
+            )
+        )
+
+    @web.post("/campana")
+    def campana(pedido: dict, x_pieza_token: str | None = Header(default=None)) -> dict:
+        """Paid: Claude convierte lo que pide la persona en una propuesta de campaña de Meta."""
+        from app.campana import atender as atender_campana
+
+        return http(
+            lambda: atender_campana(
+                pedido,
+                x_pieza_token,
+                os.environ.get("PIEZA_TOKEN"),
+                {"anthropic": os.environ.get("ANTHROPIC_API_KEY", ""), "openai": llave},
+                {
+                    "claude": os.environ.get("CLAUDE_MODELO", "claude-sonnet-4-5"),
+                    "gpt": modelo_texto,
+                },
             )
         )
 

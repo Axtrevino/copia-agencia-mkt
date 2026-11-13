@@ -151,6 +151,19 @@
   .pide input, .pide select, .pide textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
   .pide .todo { grid-column: 1 / -1; }
   .pide .res { margin-top: 14px; font-size: 14px; }
+  .burbuja { background: var(--ink); color: #fff; border-radius: 14px 14px 4px 14px; padding: 12px 16px; font-size: 14px; font-weight: 500; margin: 0 0 12px auto; max-width: 85%; width: fit-content; }
+  .prop { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .prop .cab { display: flex; justify-content: space-between; align-items: center; }
+  .prop h3 { margin: 8px 0 14px; font-size: 20px; letter-spacing: -.02em; }
+  .prop .datos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .prop .datos span, .prop .tx span { display: block; color: var(--muted); font-size: 12px; }
+  .prop .datos b { font-size: 15px; }
+  .prop .tx { padding-top: 12px; font-size: 14px; }
+  .prop .nota { color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .escribe { display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px 8px 8px 14px; margin-top: 14px; }
+  .escribe input { border: 0; outline: 0; flex: 1; padding: 6px 0; background: transparent; }
+  .escribe select { border: 0; background: var(--soft); border-radius: 8px; padding: 6px 8px; }
+  .enlace { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font-size: 13px; }
   .detalle { border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin: 8px 0 24px; }
   .detalle h3 { margin: 6px 0 10px; font-size: 22px; letter-spacing: -.02em; }
   .detalle .copy { white-space: pre-wrap; font-size: 15px; max-height: 260px; overflow: auto; }
@@ -366,8 +379,8 @@
 
   // Paid: campañas de Meta creadas desde aquí (siempre en pausa), prender/apagar y lo que hizo el optimizador.
   const TOPE = 300; // MXN al día por campaña; es el mismo tope del flujo «Paid campañas» (nodo Validar)
-  const OBJETIVOS = { leads_sitio: 'Leads en el sitio (píxel)', leads_formulario: 'Leads con formulario de Meta', trafico: 'Tráfico al sitio', reconocimiento: 'Reconocimiento (alcance)', interaccion: 'Interacción con un post', seguidores_fb: 'Seguidores de Facebook', visitas_ig: 'Visitas al perfil de Instagram' };
-  let paidRes = '';
+  const OBJETIVOS = { leads_sitio: 'Leads (píxel)', leads_formulario: 'Leads (formulario)', trafico: 'Tráfico', reconocimiento: 'Reconocimiento', interaccion: 'Interacción', seguidores_fb: 'Seguidores FB', visitas_ig: 'Visitas IG' };
+  let paidRes = '', pideTexto = '', propuesta = null, cambiando = false, pensando = false;
   function vistaPaid() {
     const camps = (datos.campanas || []).filter(deMarca);
     const dec = (datos.decisiones || []).filter(deMarca);
@@ -390,19 +403,17 @@
       + '<div class="tarjetas cuatro">' + tarjeta('Gasto en Meta', '$' + fmt(Math.round(gasto)), 'MXN · 7 días', 'Meta Ads · optimizador') + tarjeta('Prendidas', fmt(prendidas), prendidas ? 'gastando' : 'ninguna', 'paid_campanas') + tarjeta('Leads de anuncios', fmt(leadsAds || leadsMeta), leadsAds ? 'Meta Ads · 7 días' : 'fuente Meta · periodo', 'Meta') + tarjeta('Tope por campaña', '$' + TOPE, 'MXN al día', 'Regla del flujo') + '</div></div>'
       + '<div class="cols"><div><div class="bloque">' + tituloSec('Campañas creadas desde aquí', 'Se crean en pausa; tú las prendes') + campHtml + '</div>'
       + '<div class="bloque">' + tituloSec('Lo que hizo el optimizador', 'pausa solo campañas «[Agente]»; lo demás lo propone') + decHtml + '</div></div>'
-      + '<div class="pide"><h2>Pide una campaña</h2><p>Se redacta el anuncio con la ficha de la marca, se hace la pieza y se crea en Meta <b>en pausa</b>, con tope de $' + TOPE + ' al día. «Probar» le pregunta a Meta si la acepta sin crear nada.</p>'
-      + '<form id="formPaid"><div><label>Marca</label><select name="marca">' + (marcasOp.length ? marcasOp : ['marca-a', 'marca-b']).map(m => opcion(esc(m), esc(nombreMarca(m)))).join('') + '</select></div>'
-      + '<div><label>Presupuesto MXN/día</label><input name="presupuesto_diario" type="number" min="30" max="' + TOPE + '" value="150" required></div>'
-      + '<div class="todo"><label>Nombre</label><input name="nombre" placeholder="Leads · CDMX y Monterrey" required maxlength="100"></div>'
-      + '<div class="todo"><label>Objetivo</label><select name="objetivo">' + Object.entries(OBJETIVOS).map(([k, t]) => opcion(k, t)).join('') + '</select></div>'
-      + '<div class="todo"><label>Idea del anuncio</label><textarea name="mensaje" rows="2" placeholder="Qué quieres decir y a quién"></textarea></div>'
-      + '<div><label>Público</label><input name="publico" placeholder="Dueños de negocio, 28–55, CDMX"></div>'
-      + '<div><label>Lleva a (landing)</label><input name="landing" placeholder="https://www.tu-sitio.com/contacto"></div>'
-      + '<div class="todo"><label>Titular (opcional)</label><input name="titular" maxlength="60"></div>'
-      + '<div class="todo" data-solo="leads_formulario" hidden><label>ID del formulario de Meta</label><input name="form_id" inputmode="numeric"></div>'
-      + '<div data-solo="interaccion" hidden><label>Post de Facebook (id)</label><input name="post_fb" placeholder="123_456"></div>'
-      + '<div data-solo="interaccion" hidden><label>o liga de Instagram</label><input name="post_ig" placeholder="https://www.instagram.com/p/…"></div>'
-      + '<div class="todo fila-btn" style="margin-top:4px"><button class="btn amarillo" data-enviar="crear">Crear en pausa</button><button class="btn" data-enviar="probar">Probar en Meta</button></div></form>'
+      + '<div class="pide"><h2>Pide una campaña</h2><p>Escribe qué campaña quieres. Claude te propone; apruebas o pides cambios. Se crea en pausa, con tope de $' + TOPE + ' al día.</p>'
+      + (pideTexto ? '<div class="burbuja">' + esc(pideTexto) + '</div>' : '<div class="burbuja" style="opacity:.55">Quiero leads para ' + esc(nombreMarca(marcasOp[0] || 'marca-a')) + ' en CDMX y Monterrey, unos 250 al día</div>')
+      + (pensando ? '<div class="prop" style="color:var(--muted)">Claude está armando la propuesta…</div>' : propuesta ? '<div class="prop"><div class="cab"><span class="ceja" style="font-size:11px">Propuesta · Meta · ' + esc(nombreMarca(propuesta.marca)) + '</span><span class="punto" style="background:' + color(propuesta.marca) + '"></span></div>'
+        + '<h3>' + esc(propuesta.nombre) + '</h3><div class="datos"><div><span>Presupuesto</span><b>$' + fmt(propuesta.presupuesto_diario) + ' MXN/día</b></div><div><span>Objetivo</span><b>' + esc(OBJETIVOS[propuesta.objetivo] || propuesta.objetivo) + '</b></div>'
+        + '<div><span>Público</span><b>' + esc(propuesta.publico || '—') + '</b></div><div><span>Lleva a</span><b>' + esc(propuesta.landing ? (new URL(propuesta.landing).pathname || '/') : '—') + '</b></div></div>'
+        + '<div class="tx"><span>Texto del anuncio</span>' + (propuesta.titular ? '<b>' + esc(propuesta.titular) + '</b><br>' : '') + esc(propuesta.texto || propuesta.mensaje) + '</div>'
+        + (propuesta.notas ? '<div class="nota">' + esc(propuesta.notas) + '</div>' : '')
+        + '<div class="fila-btn" style="margin-top:14px"><button class="btn amarillo" data-prop="crear">Aprobar y crear en pausa</button><button class="btn" data-prop="cambios">Pedir cambios</button></div>'
+        + '<div style="margin-top:10px"><button class="enlace" data-prop="probar">o pruébala en Meta sin crear nada</button></div></div>' : '')
+      + '<form class="escribe" id="formPide">' + (!marca && marcasOp.length > 1 ? '<select name="marca">' + marcasOp.map(m => opcion(esc(m), esc(nombreMarca(m)))).join('') + '</select>' : '')
+      + '<input name="texto" autocomplete="off" placeholder="' + (cambiando ? '¿Qué le cambio a la propuesta?' : 'Escribe qué campaña quieres…') + '"><button class="btn negro">Mandar</button></form>'
       + '<div class="res" id="paidRes">' + paidRes + '</div></div></div>';
   }
 
@@ -439,7 +450,7 @@
     ['SEO', 'Publicar artículos', 'Al aprobar', 'Publica en Webflow o rehace con los cambios pedidos.', '41-seo-acciones', 'incluido'],
     ['SEO', 'Posiciones y on-page', 'Semanal / quincenal', 'Posición de keywords y revisión on-page con propuestas.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Leads', 'Leads', 'Al llegar + cada 30 min', 'Formularios del sitio y de Meta → Sheet → Telegram; Conversions API.', '30-leads', 'incluido'],
-    ['Paid', 'Campañas de Meta', 'Desde la pestaña Paid', 'Crea campañas en pausa (7 objetivos) con pieza y texto; «probar» valida sin crear.', '50-paid-campanas-meta', 'incluido'],
+    ['Paid', 'Campañas de Meta', 'Desde la pestaña Paid', 'Escribes la campaña, Claude arma la propuesta y al aprobarla se crea en pausa (7 objetivos).', '50 y 52-paid', 'incluido'],
     ['Paid', 'Optimizador de Meta Ads', 'Diario 10:40', 'Pausa campañas del agente que rompen las reglas de costo por lead y propone lo demás.', '51-meta-ads-optimizador', 'incluido'],
     ['Paid', 'Audiencias de Meta', 'A pedido', 'Audiencias base y similares por marca, sin listas de clientes.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Análisis', 'Analista semanal', 'Lunes', 'GA4, Search Console y Meta Ads: semana contra la anterior y 3 recomendaciones.', 'docs/agentes-por-portar.md', 'por armar'],
@@ -504,26 +515,40 @@
     accion(acc, id, v);
   });
   // Paid: formulario, prender/apagar e imagen del anuncio.
-  document.addEventListener('change', ev => {
-    if (ev.target.name !== 'objetivo') return;
-    document.querySelectorAll('#formPaid [data-solo]').forEach(x => { x.hidden = x.dataset.solo !== ev.target.value; });
+
+  document.addEventListener('submit', async ev => {
+    if (ev.target.id !== 'formPide') return;
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    const texto = String(fd.get('texto') || '').trim();
+    if (!texto) return;
+    const m = String(fd.get('marca') || marca || (propuesta && propuesta.marca) || listaMarcas()[0] || 'marca-a');
+    const anterior = cambiando && propuesta ? propuesta : null;
+    pideTexto = anterior ? pideTexto + ' · Cambios: ' + texto : texto;
+    pensando = true; paidRes = ''; pintar();
+    try {
+      const r = await pedir('agencia-paid-propuesta', { method: 'POST', body: JSON.stringify({ marca: anterior ? anterior.marca : m, texto, anterior }) });
+      propuesta = r.propuesta || null;
+      if (!propuesta) paidRes = '<div class="aviso error" style="margin:0">' + esc(r.mensaje || 'No llegó la propuesta.') + '</div>';
+    } catch (e) { paidRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; }
+    pensando = false; cambiando = false; pintar();
   });
-  document.addEventListener('submit', ev => { if (ev.target.id === 'formPaid') ev.preventDefault(); });
   document.addEventListener('click', async ev => {
-    const env = ev.target.closest('button[data-enviar]');
-    if (env) {
+    const bpr = ev.target.closest('button[data-prop]');
+    if (bpr && propuesta) {
       ev.preventDefault();
-      const form = $('#formPaid');
-      if (!form.reportValidity()) return;
-      const p = Object.fromEntries([...new FormData(form)].filter(([, v]) => String(v).trim()));
-      p.medio = 'meta';
-      p.presupuesto_diario = Number(p.presupuesto_diario);
-      const crear = env.dataset.enviar === 'crear';
+      const que = bpr.dataset.prop;
+      if (que === 'cambios') { cambiando = true; pintar(); const inp = document.querySelector('#formPide input'); if (inp) inp.focus(); return; }
+      const crear = que === 'crear';
       if (crear && !confirm('Se crea en Meta EN PAUSA (no gasta hasta que la prendas). ¿Sigo?')) return;
-      form.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      document.querySelectorAll('[data-prop]').forEach(b => { b.disabled = true; });
       $('#paidRes').innerHTML = '<span style="color:var(--muted)">' + (crear ? 'Redactando el anuncio, haciendo la pieza y creando en Meta… tarda 1 a 3 minutos.' : 'Preguntándole a Meta…') + '</span>';
-      try { const r = await pedirPaid({ accion: crear ? 'crear' : 'probar', propuesta: p }); paidRes = '<div class="aviso' + (r.ok ? '' : ' error') + '" style="margin:0">' + esc(r.mensaje || (r.ok ? 'Listo.' : 'No se pudo.')) + (r.data && r.data.publico_estimado ? '<br>Público estimado: ' + esc(r.data.publico_estimado) : '') + '</div>'; if (crear && r.ok) await cargar(); else pintar(); }
-      catch (e) { paidRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; pintar(); }
+      const { notas, ...p } = propuesta;
+      try {
+        const r = await pedirPaid({ accion: crear ? 'crear' : 'probar', propuesta: p });
+        paidRes = '<div class="aviso' + (r.ok ? '' : ' error') + '" style="margin:0">' + esc(r.mensaje || (r.ok ? 'Listo.' : 'No se pudo.')) + (r.data && r.data.publico_estimado ? '<br>Público estimado: ' + esc(r.data.publico_estimado) : '') + '</div>';
+        if (crear && r.ok) { propuesta = null; pideTexto = ''; await cargar(); } else pintar();
+      } catch (e) { paidRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; pintar(); }
       return;
     }
     const bp = ev.target.closest('button[data-paid]');

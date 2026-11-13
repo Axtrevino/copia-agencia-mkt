@@ -14,8 +14,8 @@ no en el código. Viene con dos espacios de marca (`marca-a` y `marca-b`) listos
 |---|---|
 | `app/` | El servicio (Python en [Modal](https://modal.com)): redacta posts, hace las piezas con GPT Image, edita textos de una pieza, resume el research, propone ideas y escribe artículos SEO con su portada. |
 | `marcas/` | Una carpeta por marca: `marca.json` (reglas que aplica el código), `ficha.md` (voz, público, producto, datos), `ajustes.md`, logos y piezas de referencia. |
-| `n8n/` | 19 flujos de [n8n](https://n8n.io) que mueven todo: calendario → preparar → aprobar → publicar, vigilante, leads, research, ideas, SEO, campañas de Meta y el panel. |
-| `panel/` | Panel web (un solo HTML): Hoy (lo que te toca y lo que sale esta semana), Resultados, Paid (pedir campañas de Meta, prenderlas o apagarlas y ver lo que hizo el optimizador), Contenido (aprobar, pedir cambios, descartar), SEO, Research y Agentes. Sistema visual: fondo blanco, tinta #111, amarillo #FFC21A, Inter Tight + JetBrains Mono y una escala de tres tamaños de número. Los colores de cada marca se asignan solos en `PALETA`. |
+| `n8n/` | 20 flujos de [n8n](https://n8n.io) que mueven todo: calendario → preparar → aprobar → publicar, vigilante, leads, research, ideas, SEO, campañas de Meta y el panel. |
+| `panel/` | Panel web (un solo HTML): Hoy (lo que te toca y lo que sale esta semana), Resultados, Paid (escribes la campaña y Claude arma la propuesta; apruebas y se crea en pausa; prenderlas o apagarlas y ver lo que hizo el optimizador), Contenido (aprobar, pedir cambios, descartar), SEO, Research y Agentes. Sistema visual: fondo blanco, tinta #111, amarillo #FFC21A, Inter Tight + JetBrains Mono y una escala de tres tamaños de número. Los colores de cada marca se asignan solos en `PALETA`. |
 | `docs/` | Arquitectura, instalación paso a paso, estructura del Google Sheet, reglas de operación y agentes por portar. |
 | `tests/` | Pruebas del servicio (`pytest`). |
 

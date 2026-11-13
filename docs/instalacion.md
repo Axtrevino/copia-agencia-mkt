@@ -7,6 +7,7 @@ pasos 5 a 7 por ti.
 
 | Servicio | Para qué | Costo aproximado |
 |---|---|---|
+| Anthropic | Claude arma las propuestas de campaña en la pestaña Paid (si no hay llave, lo hace GPT) | Por uso |
 | OpenAI | Texto (GPT) e imágenes (GPT Image) | Por uso; una pieza en calidad alta cuesta centavos de dólar |
 | Modal | Correr el servicio `app/` | Por segundo; tiene crédito gratis mensual |
 | n8n | Flujos | n8n Cloud o tu propio servidor |
@@ -30,7 +31,7 @@ pasos 5 a 7 por ti.
 ```
 pip install modal
 modal token new
-modal secret create agencia-marketing OPENAI_API_KEY=… PIEZA_TOKEN=<inventa uno largo>
+modal secret create agencia-marketing OPENAI_API_KEY=… ANTHROPIC_API_KEY=… PIEZA_TOKEN=<inventa uno largo>
 modal deploy app/main.py
 ```
 
@@ -96,7 +97,7 @@ Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y s
 ## 8. Panel
 
 Abre `panel/index.html` (o súbelo a cualquier hosting estático) → Conexión → URL de tu n8n y el
-valor de «Panel (X-Panel-Token)». Activa en n8n «Panel (lectura)», «Panel acciones» y «Paid campañas (Meta)»; los tres usan la credencial «Panel (X-Panel-Token)». En la pestaña Paid las campañas se crean en pausa; prenderlas es lo único que gasta.
+valor de «Panel (X-Panel-Token)». Activa en n8n «Panel (lectura)», «Panel acciones», «Paid propuesta» y «Paid campañas (Meta)»; los cuatro usan la credencial «Panel (X-Panel-Token)». En la pestaña Paid las campañas se crean en pausa; prenderlas es lo único que gasta.
 
 ## Primera prueba
 

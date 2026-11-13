@@ -186,3 +186,50 @@ def test_articulo_valida_y_firma():
     assert art["slug"] == "guia-de-compras-locales"
     assert "Escrito por el equipo editorial de Marca A" in art["cuerpo_html"]
     assert "1 de diciembre de 2026" in art["cuerpo_html"]
+
+
+def test_campana_propuesta_y_reglas():
+    from app.campana import proponer
+
+    buena = json.dumps(
+        {
+            "nombre": "Leads · CDMX",
+            "objetivo": "leads_sitio",
+            "presupuesto_diario": 250,
+            "publico": "Dueños de negocio, 28–55, CDMX",
+            "landing": "",
+            "titular": "Abre en domingo",
+            "texto": "Ahora abrimos en domingo.",
+            "mensaje": "Abrimos en domingo",
+            "notas": "Leads porque piden contacto",
+        }
+    )
+    malas = [json.dumps({"objetivo": "ventas", "presupuesto_diario": 900, "nombre": "x"}), buena]
+
+    def preguntar(sistema, usuario):
+        assert "Ficha de marca" in sistema
+        return malas.pop(0)
+
+    p = proponer(
+        marcas.ficha(M), {"marca": M, "texto": "leads en CDMX, unos 250 al día"}, preguntar
+    )
+    assert p["objetivo"] == "leads_sitio" and p["presupuesto_diario"] == 250
+    assert p["landing"] == "https://www.marca-a.com/"
+    assert p["medio"] == "meta"
+
+
+def test_campana_rechaza_landing_ajena():
+    from app.campana import leer_propuesta
+
+    with pytest.raises(PedidoMalo):
+        leer_propuesta(
+            json.dumps(
+                {
+                    "nombre": "x",
+                    "objetivo": "trafico",
+                    "presupuesto_diario": 100,
+                    "landing": "https://otro.com/",
+                }
+            ),
+            M,
+        )

@@ -23,6 +23,7 @@ Endpoints (todos piden el header `X-Pieza-Token`):
 | `POST /research` | Resume noticias, anuncios de la competencia y keywords en hallazgos con fuente. |
 | `POST /ideas` | Escribe el brief (Insight, Ángulo, Gancho, Por qué ahora) de cada post de la semana. |
 | `POST /articulo` | Brief y borrador SEO validado (palabras, h2, fuentes citadas, firma, FAQ). |
+| `POST /campana` | Claude convierte lo que pide la persona («leads en Monterrey, 250 al día») en una propuesta de campaña de Meta validada (objetivo, tope, landing). |
 | `POST /portada` | Imagen principal y miniatura del artículo, sin texto. |
 | `POST /archivos` | Lista o entrega logos y referencias de una marca. |
 
@@ -52,6 +53,7 @@ Todo lo de la marca está en `marcas/<slug>/marca.json` y `ficha.md` (ver los co
 | 40 | SEO (borradores) | Martes y jueves | Siguiente tema de `seo_articulos` → artículo + portada → borrador en Webflow → Telegram. |
 | 41 | SEO acciones | Sub-flujo | ✅ publica en Webflow; ✏️ pide cambios y rehace el borrador. |
 | 50 | Paid campañas (Meta) | Pestaña Paid del panel (webhook con token) | Crea campañas de Meta en pausa (7 objetivos), con pieza y texto; «probar» valida sin crear. |
+| 52 | Paid propuesta | Pestaña Paid del panel | Manda lo que escribió la persona a Modal /campana y devuelve la propuesta. No crea nada. |
 | 51 | Meta Ads optimizador | Diario 10:40 | Pausa campañas «[Agente]» que rompen las reglas de costo por lead; propone lo demás; bitácora en `meta_ads_decisiones`. |
 | 60 | Panel (lectura) | Webhook | Resumen para el panel (Sheet, seo_articulos, paid_campanas y meta_ads_decisiones). |
 | 61 | Panel acciones | Webhook | Aprobar, pedir cambios o descartar desde el panel. |
