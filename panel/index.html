@@ -3,104 +3,189 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Panel de la agencia</title>
+<title>Panel · Agencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* Sistema visual del panel: tokens del diseño en Paper. */
   :root {
-    --fondo: #f6f7f9; --tarjeta: #fff; --texto: #16181d; --suave: #5f6673; --linea: #e3e6eb;
-    --acento: #2f5bea; --ok: #157f3b; --alerta: #b54708; --error: #b42318;
-    --radio: 14px; --sombra: 0 1px 2px rgba(16, 24, 40, .06);
+    --bg: #FFFFFF; --ink: #111111; --muted: #5E5E5E; --line: #E8E8E8; --soft: #F4F4F2;
+    --accent: #FFC21A; --accent-soft: #FFF3C4; --up: #1E7A4C; --down: #C23B22;
+    --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    --r-sm: 4px; --r-md: 10px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--fondo); color: var(--texto); }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 28px; background: var(--tarjeta); border-bottom: 1px solid var(--linea); }
-  header h1 { margin: 0; font-size: 20px; }
-  header .meta { color: var(--suave); font-size: 13px; }
-  nav { display: flex; gap: 4px; padding: 0 28px; background: var(--tarjeta); border-bottom: 1px solid var(--linea); overflow-x: auto; }
-  nav button { border: 0; background: none; padding: 12px 14px; font: inherit; color: var(--suave); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
-  nav button.activa { color: var(--texto); border-bottom-color: var(--acento); font-weight: 600; }
-  main { max-width: 1180px; margin: 0 auto; padding: 24px 28px 60px; }
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .kpi, .tarjeta { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: var(--radio); box-shadow: var(--sombra); }
-  .kpi { padding: 18px 20px; }
-  .kpi .num { font-size: 34px; font-weight: 700; line-height: 1.1; }
-  .kpi .eti { color: var(--suave); font-size: 13px; margin-top: 4px; }
-  .tarjeta { padding: 20px; margin-bottom: 16px; }
-  .tarjeta h2 { margin: 0 0 12px; font-size: 17px; }
-  .fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 760px) { .fila2 { grid-template-columns: 1fr; } main, header { padding-left: 16px; padding-right: 16px; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  a { color: inherit; }
+  .envoltura { max-width: 1328px; margin: 0 auto; padding: 0 56px; }
+  @media (max-width: 760px) { .envoltura { padding: 0 18px; } }
+
+  /* Encabezado */
+  header { border-bottom: 1px solid var(--line); }
+  .barra-sup { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 24px 0 18px; flex-wrap: wrap; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+  .logo .a { width: 26px; height: 26px; border-radius: 6px; background: var(--ink); color: var(--accent); display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+  .logo .sub { font-weight: 400; color: var(--muted); }
+  .controles { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pildoras { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
+  .pildoras button { border: 0; background: none; padding: 5px 12px; border-radius: 999px; font-size: 14px; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .pildoras button.activa { background: var(--soft); color: var(--ink); font-weight: 600; }
+  .punto { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .btn { border: 1px solid var(--line); background: var(--bg); border-radius: var(--r-md); padding: 8px 14px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .btn:hover { border-color: #cfcfcf; }
+  .btn.amarillo { background: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .btn.negro { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  select.btn { padding-right: 10px; }
+  .act { font: 12px var(--mono); color: var(--muted); }
+  nav { display: flex; gap: 28px; overflow-x: auto; }
+  nav button { border: 0; background: none; padding: 0 0 12px; font-size: 15px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+  nav button.activa { color: var(--ink); font-weight: 500; border-bottom-color: var(--ink); }
+  .badge { background: var(--accent); color: var(--ink); font-size: 12px; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; }
+
+  /* Héroe y escala de números: nivel 1 (120 / frase 72), nivel 2 (32), nivel 3 (18 + mono 14) */
+  .heroe { padding: 56px 0 40px; }
+  .ceja { font: 500 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .n1 { font-size: 120px; font-weight: 800; letter-spacing: -.05em; line-height: .95; margin: 14px 0 12px; }
+  .n1.frase { font-size: 72px; letter-spacing: -.05em; }
+  .heroe p { margin: 0; color: var(--muted); font-size: 16px; max-width: 760px; }
+  @media (max-width: 760px) { .n1 { font-size: 72px; } .n1.frase { font-size: 44px; } }
+  .n2 { font-size: 32px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+  @media (max-width: 760px) { .n2 { font-size: 28px; } }
+
+  .tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border-top: 2px solid var(--ink); }
+  .tarjeta { padding: 20px 22px 22px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-rows: auto auto 1fr auto; gap: 6px; }
+  .tarjeta + .tarjeta { padding-left: 22px; border-left: 1px solid var(--line); }
+  .tarjeta .t { font-weight: 600; }
+  .tarjeta .nota { color: var(--muted); font-size: 13px; }
+  .fuente { font: 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+
+  /* Secciones */
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 56px; padding-bottom: 64px; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+  .sec-tit { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--ink); padding-bottom: 10px; margin: 0 0 4px; }
+  .sec-tit h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+  .sec-tit span { color: var(--muted); font-size: 13px; }
+  .bloque { margin-bottom: 48px; }
+
+  .tarea { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; gap: 20px; align-items: center; padding: 22px 0; border-bottom: 1px solid var(--line); }
+  @media (max-width: 760px) { .tarea { grid-template-columns: 1fr; gap: 10px; } }
+  .tarea h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+  .tarea p { margin: 0; color: var(--muted); font-size: 14px; }
+  .tarea .acc { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .etiq { display: inline-block; font: 600 11px var(--mono); letter-spacing: .08em; padding: 4px 8px; border-radius: var(--r-sm); text-transform: uppercase; white-space: nowrap; }
+  .etiq.aprobar { background: var(--accent); }
+  .etiq.arreglar { background: var(--down); color: #fff; }
+  .etiq.decidir { border: 1.5px solid var(--ink); }
+  .etiq.hacer { background: var(--soft); color: var(--muted); }
+  .etiq.ok { background: #E3F2EA; color: var(--up); }
+
+  .dia { display: grid; grid-template-columns: 56px 1fr; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .dia .d { font: 500 12px var(--mono); color: var(--muted); letter-spacing: .06em; }
+  .dia .d b { display: block; font: 800 22px var(--sans); color: var(--ink); letter-spacing: -.02em; margin-top: 2px; }
+  .post-mini { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; margin-bottom: 12px; cursor: pointer; }
+  .post-mini:last-child { margin-bottom: 0; }
+  .cuadro { width: 40px; height: 40px; border-radius: 6px; }
+  .cuadro.vacio { border: 1.5px dashed #c9cdd6; }
+  .post-mini b { font-weight: 600; font-size: 14px; display: block; }
+  .post-mini span { color: var(--muted); font-size: 12px; }
+
+  .resumen { background: var(--soft); border-radius: 14px; padding: 24px; }
+  .resumen .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .resumen .n { font-size: 40px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+  .resumen .l { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .resumen .m { font: 11px var(--mono); color: var(--muted); }
+  .resumen .insight { border-left: 3px solid var(--accent); padding-left: 12px; font-size: 14px; }
+
+  .fila { display: grid; grid-template-columns: 44px minmax(0, 1fr) 180px 48px; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .fila.tres { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .fila .cuadro { width: 44px; height: 44px; }
+  .fila b { font-weight: 600; font-size: 14px; display: block; }
+  .fila .meta { font: 12px var(--mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .fila .total { font-size: 18px; font-weight: 700; text-align: right; }
+  .riel { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .riel i { display: block; height: 100%; border-radius: 3px; }
+  .barra { display: grid; grid-template-columns: 140px 1fr 56px; gap: 12px; align-items: center; padding: 8px 0; font-size: 14px; }
+  .barra .v { font: 14px var(--mono); text-align: right; }
+
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--linea); vertical-align: top; }
-  th { color: var(--suave); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
-  .barra { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; }
-  .barra span:first-child { width: 120px; color: var(--suave); }
-  .barra .b { height: 10px; background: var(--acento); border-radius: 5px; }
-  .chip { white-space: nowrap; display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef1f6; color: var(--suave); }
-  .chip.por-aprobar { background: #fff3e0; color: var(--alerta); }
-  .chip.aprobado, .chip.publicado { background: #e7f6ec; color: var(--ok); }
-  .chip.error-al-preparar, .chip.error-al-publicar { background: #fdecea; color: var(--error); }
-  .post { border: 1px solid var(--linea); border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fff; }
-  .post .cab { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-  .post h3 { margin: 8px 0 6px; font-size: 18px; }
-  .post .copy { white-space: pre-wrap; color: #333; font-size: 14px; max-height: 160px; overflow: auto; }
-  .post .tema { color: var(--suave); font-size: 13px; margin-top: 8px; }
-  .acciones { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-  button.btn { border: 1px solid var(--linea); background: #fff; border-radius: 10px; padding: 8px 14px; font: inherit; cursor: pointer; }
-  button.btn.prim { background: var(--acento); border-color: var(--acento); color: #fff; }
-  button.btn:disabled { opacity: .5; cursor: default; }
-  .vacio { color: var(--suave); padding: 20px 0; }
-  .aviso { padding: 10px 14px; border-radius: 10px; margin-bottom: 16px; background: #eef4ff; color: #1d3a8a; }
-  .aviso.error { background: #fdecea; color: var(--error); }
-  dialog { border: 0; border-radius: var(--radio); padding: 24px; width: min(460px, 92vw); }
-  dialog label { display: block; font-size: 13px; color: var(--suave); margin: 12px 0 4px; }
-  dialog input, dialog textarea { width: 100%; padding: 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
-  .filtros { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-  select { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--linea); font: inherit; background: #fff; }
-  a { color: var(--acento); }
+  th { text-align: left; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 10px 10px 0; border-bottom: 2px solid var(--ink); }
+  td { padding: 14px 10px 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.mono { font: 14px var(--mono); }
+
+  .hall { padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .hall .ceja { font-size: 11px; }
+  .hall p { margin: 6px 0; font-size: 15px; }
+  .hall .acc { font-weight: 600; font-size: 14px; }
+
+  .detalle { border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin: 8px 0 24px; }
+  .detalle h3 { margin: 6px 0 10px; font-size: 22px; letter-spacing: -.02em; }
+  .detalle .copy { white-space: pre-wrap; font-size: 15px; max-height: 260px; overflow: auto; }
+  .detalle .tema { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .vacio { color: var(--muted); padding: 24px 0; }
+  .aviso { padding: 12px 16px; border-radius: var(--r-md); margin: 20px 0 0; background: var(--accent-soft); }
+  .aviso.error { background: #FBE7E3; color: var(--down); }
+
+  dialog { border: 0; border-radius: 14px; padding: 28px; width: min(480px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+  dialog::backdrop { background: rgba(17,17,17,.35); }
+  dialog h2 { margin: 0 0 6px; letter-spacing: -.02em; }
+  dialog label { display: block; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; }
+  dialog input, dialog textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); }
+  .fila-btn { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+  code { font: 13px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>Panel de la agencia</h1>
-    <div class="meta" id="generado">Sin datos todavía</div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <select id="dias" title="Periodo">
-      <option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option>
-    </select>
-    <button class="btn" id="recargar">Actualizar</button>
-    <button class="btn" id="ajustes">Conexión</button>
+  <div class="envoltura">
+    <div class="barra-sup">
+      <div class="logo"><span class="a" id="logoLetra">A</span><span id="logoNombre">Agencia</span><span class="sub">Marketing</span></div>
+      <div class="controles">
+        <div class="pildoras" id="marcas"></div>
+        <select class="btn" id="dias" title="Periodo">
+          <option value="7">Últimos 7 días</option><option value="28" selected>Últimos 28 días</option><option value="90">Últimos 90 días</option>
+        </select>
+        <span class="act" id="act">sin datos</span>
+        <button class="btn" id="recargar">Actualizar</button>
+        <button class="btn" id="ajustes">Conexión</button>
+      </div>
+    </div>
+    <nav id="tabs">
+      <button data-tab="hoy" class="activa">Hoy <span class="badge" id="badgeHoy" hidden></span></button>
+      <button data-tab="resultados">Resultados</button>
+      <button data-tab="contenido">Contenido</button>
+      <button data-tab="seo">SEO</button>
+      <button data-tab="research">Research</button>
+      <button data-tab="agentes">Agentes</button>
+    </nav>
   </div>
 </header>
-<nav id="tabs">
-  <button data-tab="resumen" class="activa">Resumen</button>
-  <button data-tab="posts">Posts</button>
-  <button data-tab="leads">Leads</button>
-  <button data-tab="blog">Blog</button>
-  <button data-tab="research">Research</button>
-  <button data-tab="agentes">Agentes</button>
-</nav>
-<main id="contenido"><div class="vacio">Configura la conexión con n8n para empezar.</div></main>
+<main class="envoltura" id="contenido"><div class="heroe"><div class="ceja">Panel</div><div class="n1 frase">Conecta tu n8n</div><p>Toca «Conexión» y pon la URL de tu n8n y el token del panel.</p></div></main>
 
 <dialog id="dlgConexion">
   <form method="dialog">
-    <h2 style="margin-top:0">Conexión con n8n</h2>
-    <label for="url">URL de tu n8n (sin / al final)</label>
+    <h2>Conexión con n8n</h2>
+    <label for="nombre">Nombre de la agencia</label>
+    <input id="nombre" placeholder="Agencia">
+    <label for="url">URL de tu n8n</label>
     <input id="url" placeholder="https://n8n.tu-dominio.com" required>
-    <label for="token">Token del panel (el valor de la credencial «Panel (X-Panel-Token)»)</label>
+    <label for="token">Token del panel («Panel (X-Panel-Token)» en n8n)</label>
     <input id="token" type="password" required>
-    <p class="meta" style="color:var(--suave);font-size:13px">Se guarda solo en este navegador.</p>
-    <div class="acciones"><button class="btn prim" value="ok">Guardar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
+    <p style="color:var(--muted);font-size:13px;margin:12px 0 0">Se guarda solo en este navegador.</p>
+    <div class="fila-btn"><button class="btn negro" value="ok">Guardar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
   </form>
 </dialog>
 
 <dialog id="dlgCambios">
   <form method="dialog">
-    <h2 style="margin-top:0">Pedir cambios</h2>
-    <p id="cambiosPost" style="color:var(--suave)"></p>
+    <h2>Pedir cambios</h2>
+    <p id="cambiosPost" style="color:var(--muted);margin:0"></p>
     <label for="cambiosTexto">¿Qué cambio? (imagen, titular o copy)</label>
     <textarea id="cambiosTexto" rows="4"></textarea>
-    <div class="acciones"><button class="btn prim" value="ok">Mandar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
+    <div class="fila-btn"><button class="btn negro" value="ok">Mandar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
   </form>
 </dialog>
 
@@ -108,10 +193,15 @@
 (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const clase = s => String(s || '').toLowerCase().replace(/[^a-z]+/g, '-');
-  let datos = null, tab = 'resumen', marcaFiltro = '';
+  const fmt = n => Number(n || 0).toLocaleString('es-MX');
+  const PALETA = ['#5C65D1', '#5AA6F7', '#E07A5F', '#2A9D8F', '#C77DFF', '#F4A261'];
+  const DIAS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  let datos = null, tab = 'hoy', marca = '', abierto = '';
   const mem = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
-  const conf = () => ({ url: mem.get('panel_url'), token: mem.get('panel_token') });
+  const conf = () => ({ url: mem.get('panel_url'), token: mem.get('panel_token'), nombre: mem.get('panel_nombre') || 'Agencia' });
+
+  function pintarLogo() { const n = conf().nombre; $('#logoNombre').textContent = n; $('#logoLetra').textContent = n.trim().charAt(0).toUpperCase() || 'A'; }
 
   async function pedir(ruta, opciones = {}) {
     const c = conf();
@@ -124,84 +214,139 @@
   }
 
   async function cargar() {
-    $('#contenido').innerHTML = '<div class="vacio">Cargando…</div>';
     try {
       datos = await pedir('agencia-panel?dias=' + $('#dias').value);
-      $('#generado').textContent = 'Actualizado ' + datos.generado + ' · últimos ' + datos.dias + ' días';
+      $('#act').textContent = 'act. ' + String(datos.generado || '').slice(11, 16);
+      pintarMarcas();
       pintar();
     } catch (e) {
       $('#contenido').innerHTML = '<div class="aviso error">' + esc(e.message) + '</div>';
     }
   }
 
-  function barras(obj) {
+  // Marcas y colores (en el orden en que aparecen; los colores de la paleta se asignan en ese orden).
+  const listaMarcas = () => datos ? [...new Set([...(datos.posts || []).map(p => p.marca), ...Object.keys((datos.leads || {}).por_marca || {}), ...(datos.articulos || []).map(a => a.marca)].filter(Boolean))].sort() : [];
+  const color = m => PALETA[Math.max(0, listaMarcas().indexOf(m)) % PALETA.length];
+  const nombreMarca = m => String(m || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const deMarca = x => !marca || x.marca === marca;
+  function pintarMarcas() {
+    const ms = listaMarcas();
+    $('#marcas').innerHTML = '<button data-m="" class="' + (!marca ? 'activa' : '') + '">Todas</button>' + ms.map(m => '<button data-m="' + esc(m) + '" class="' + (m === marca ? 'activa' : '') + '"><span class="punto" style="background:' + color(m) + '"></span>' + esc(nombreMarca(m)) + '</button>').join('');
+  }
+  $('#marcas').onclick = ev => { const b = ev.target.closest('button[data-m]'); if (!b) return; marca = b.dataset.m; pintarMarcas(); pintar(); };
+
+  const fecha = s => { const [y, m, d] = String(s || '').slice(0, 10).split('-').map(Number); return y ? new Date(y, m - 1, d) : null; };
+  const hoyTxt = () => { const d = new Date(); return ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()]; };
+  const cuadro = p => p.estado === 'planeado' || p.estado === 'preparando' ? '<div class="cuadro vacio"></div>' : '<div class="cuadro" style="background:' + color(p.marca) + '"></div>';
+  const heroe = (ceja, numero, texto, frase) => '<div class="heroe"><div class="ceja">' + ceja + '</div><div class="n1' + (frase ? ' frase' : '') + '">' + numero + '</div><p>' + texto + '</p></div>';
+  const tituloSec = (t, d) => '<div class="sec-tit"><h2>' + t + '</h2><span>' + (d || '') + '</span></div>';
+  const tarjeta = (t, n, nota, fuente) => '<div class="tarjeta"><div class="t">' + t + '</div><div class="n2">' + n + '</div><div class="nota">' + (nota || '') + '</div><div class="fuente">' + fuente + '</div></div>';
+  function barras(obj, colorear) {
     const pares = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
     if (!pares.length) return '<div class="vacio">Sin datos en el periodo.</div>';
     const max = Math.max(...pares.map(p => p[1]));
-    return pares.map(([k, v]) => '<div class="barra"><span>' + esc(k) + '</span><div class="b" style="width:' + Math.max(4, v / max * 60) + '%"></div><b>' + v + '</b></div>').join('');
+    return pares.map(([k, v]) => '<div class="barra"><span>' + esc(colorear ? nombreMarca(k) : k) + '</span><div class="riel"><i style="width:' + Math.max(3, v / max * 100) + '%;background:' + (colorear ? color(k) : 'var(--ink)') + '"></i></div><span class="v">' + fmt(v) + '</span></div>').join('');
   }
 
-  const marcas = () => [...new Set([...(datos.posts || []).map(p => p.marca), ...Object.keys(datos.leads.por_marca || {})].filter(Boolean))];
-  const filtroMarca = () => '<div class="filtros"><select id="fMarca"><option value="">Todas las marcas</option>' + marcas().map(m => '<option' + (m === marcaFiltro ? ' selected' : '') + '>' + esc(m) + '</option>').join('') + '</select></div>';
-  const deMarca = x => !marcaFiltro || x.marca === marcaFiltro;
-
-  function vistaResumen() {
-    const k = datos.kpis;
-    return '<div class="kpis">'
-      + '<div class="kpi"><div class="num">' + k.leads + '</div><div class="eti">Leads (sin pruebas)</div></div>'
-      + '<div class="kpi"><div class="num">' + k.publicados + '</div><div class="eti">Posts publicados</div></div>'
-      + '<div class="kpi"><div class="num">' + k.por_aprobar + '</div><div class="eti">Posts por aprobar</div></div>'
-      + '<div class="kpi"><div class="num">' + k.articulos_por_aprobar + '</div><div class="eti">Artículos por aprobar</div></div></div>'
-      + '<div class="fila2"><div class="tarjeta"><h2>Leads por marca</h2>' + barras(datos.leads.por_marca) + '</div>'
-      + '<div class="tarjeta"><h2>Leads por fuente</h2>' + barras(datos.leads.por_fuente) + '</div></div>'
-      + '<div class="tarjeta"><h2>Posts por estado</h2>' + barras(datos.estados) + '</div>';
+  // Lo que necesita a una persona: posts por aprobar, errores y artículos por aprobar.
+  function pendientes() {
+    const t = [];
+    for (const p of (datos.posts || []).filter(deMarca)) {
+      if (p.estado === 'por aprobar') t.push({ tipo: 'aprobar', titulo: p.titular || p.post_id, texto: nombreMarca(p.marca) + ' · sale ' + p.fecha + ' ' + (p.hora || '') + ' · v' + (p.version || 1), post: p });
+      else if (/^error/.test(p.estado || '')) t.push({ tipo: 'arreglar', titulo: (p.titular || p.post_id), texto: nombreMarca(p.marca) + ' · ' + p.estado + '. ' + (p.estado === 'error al preparar' ? 'Para reintentar, ponlo «planeado» en el Sheet.' : 'Reintenta con 🔁 en Telegram.'), post: p });
+      else if (p.estado === 'cambios pedidos') t.push({ tipo: 'decidir', titulo: p.titular || p.post_id, texto: nombreMarca(p.marca) + ' · pediste cambios: «' + (p.cambios_pedidos || '') + '». La versión nueva llega a Telegram.', post: p });
+    }
+    for (const a of (datos.articulos || []).filter(deMarca)) if (a.estado === 'por aprobar') t.push({ tipo: 'hacer', titulo: a.titulo || a.keyword, texto: nombreMarca(a.marca) + ' · artículo del blog · se aprueba en Telegram con ✅ Publicar' });
+    const orden = { arreglar: 0, aprobar: 1, decidir: 2, hacer: 3 };
+    return t.sort((a, b) => orden[a.tipo] - orden[b.tipo]);
   }
 
-  function vistaPosts() {
+  function accionesPost(p) {
+    const editable = ['por aprobar', 'aprobado', 'cambios pedidos'].includes(p.estado) && !p.fb_url && !p.ig_url;
+    if (!editable) return '';
+    return (p.estado === 'por aprobar' ? '<button class="btn amarillo" data-acc="aprobar" data-id="' + esc(p.post_id) + '" data-v="' + esc(p.version) + '">Aprobar</button>' : '')
+      + '<button class="btn" data-acc="cambios" data-id="' + esc(p.post_id) + '">Pedir cambios</button>'
+      + '<button class="btn" data-acc="descartar" data-id="' + esc(p.post_id) + '">Descartar</button>';
+  }
+
+  function semana() {
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const fin = new Date(hoy); fin.setDate(fin.getDate() + 7);
+    const porDia = {};
+    for (const p of (datos.posts || []).filter(deMarca)) { const f = fecha(p.fecha); if (f && f >= hoy && f < fin && p.estado !== 'descartado') (porDia[p.fecha] = porDia[p.fecha] || []).push(p); }
+    const dias = Object.keys(porDia).sort();
+    if (!dias.length) return '<div class="vacio">Nada programado en los próximos 7 días.</div>';
+    return dias.map(d => { const f = fecha(d); const esHoy = +f === +hoy;
+      return '<div class="dia"><div class="d">' + (esHoy ? 'HOY' : DIAS[f.getDay()]) + '<b>' + f.getDate() + '</b></div><div>' + porDia[d].sort((a, b) => String(a.hora).localeCompare(String(b.hora))).map(p => '<div class="post-mini" data-abrir="' + esc(p.post_id) + '">' + cuadro(p) + '<div><b>' + esc(p.titular || p.tema || 'Tema por definir').slice(0, 90) + '</b><span>' + esc(nombreMarca(p.marca)) + ' · ' + esc(p.hora) + ' · ' + esc(p.estado) + '</span></div></div>').join('') + '</div></div>'; }).join('');
+  }
+
+  function vistaHoy() {
+    const t = pendientes();
+    const enPanel = t.filter(x => x.tipo === 'aprobar').length;
+    const leads = Object.entries((datos.leads || {}).por_marca || {}).filter(([m]) => !marca || m === marca);
+    const totalLeads = leads.reduce((s, [, v]) => s + v, 0);
+    const publicados = (datos.posts || []).filter(deMarca).filter(p => p.estado === 'publicado').length;
+    const fuentes = Object.entries((datos.leads || {}).por_fuente || {}).sort((a, b) => b[1] - a[1]);
+    const insight = fuentes.length && totalLeads ? 'La fuente que más leads trae es <b>' + esc(fuentes[0][0]) + '</b>: ' + fuentes[0][1] + ' de ' + totalLeads + ' en el periodo.' : 'Todavía no hay leads en el periodo.';
+    return heroe(hoyTxt(), t.length ? t.length + (t.length === 1 ? ' cosa te espera' : ' cosas te esperan') : 'Nada pendiente', t.length ? enPanel + ' se resuelven con un clic aquí. Lo demás se hace en Telegram o en el Sheet.' : 'No hay nada por aprobar ni con error.', true)
+      + '<div class="cols"><div>' + tituloSec('Te toca', 'Ordenado por lo que más bloquea')
+      + (t.length ? t.map(x => '<div class="tarea"><div><span class="etiq ' + x.tipo + '">' + x.tipo + '</span></div><div><h3>' + esc(x.titulo) + '</h3><p>' + esc(x.texto) + '</p></div><div class="acc">' + (x.post ? (x.post.estado === 'por aprobar' ? '<button class="btn" data-abrir="' + esc(x.post.post_id) + '">Ver</button>' : '') + accionesPost(x.post) : '') + '</div></div>').join('') : '<div class="vacio">Todo al día.</div>')
+      + '</div><div>' + tituloSec('Sale esta semana', '<a href="#" data-ir="contenido">Ver calendario →</a>') + semana()
+      + '<div class="resumen" style="margin-top:28px"><div style="display:flex;justify-content:space-between"><b>Cómo vamos</b><span class="m">ÚLTIMOS ' + datos.dias + ' DÍAS</span></div><div class="dos"><div><div class="n">' + fmt(totalLeads) + '</div><div class="l">leads</div><div class="m">' + leads.map(([m, v]) => esc(nombreMarca(m)) + ' ' + v).join(' · ') + '</div></div><div><div class="n">' + fmt(publicados) + '</div><div class="l">posts publicados</div><div class="m">FB + IG</div></div></div><div class="insight">' + insight + '</div><p style="margin:14px 0 0"><a href="#" data-ir="resultados"><b>Ver resultados →</b></a></p></div>'
+      + '</div></div>';
+  }
+
+  function vistaResultados() {
+    const L = datos.leads || {};
+    const total = Object.entries(L.por_marca || {}).filter(([m]) => !marca || m === marca).reduce((s, [, v]) => s + v, 0);
+    const k = datos.kpis || {};
+    const porMarca = Object.fromEntries(Object.entries(L.por_marca || {}).filter(([m]) => !marca || m === marca));
+    const ult = (L.ultimos || []).filter(deMarca);
+    return heroe('Leads · últimos ' + datos.dias + ' días', fmt(total), 'Personas que dejaron sus datos en los sitios o en formularios de Meta, sin pruebas ni duplicados.')
+      + '<div class="tarjetas">' + tarjeta('Leads', fmt(total), 'en ' + datos.dias + ' días', 'Formularios · sitio + Meta')
+      + tarjeta('Posts publicados', fmt(k.publicados), 'Facebook e Instagram', 'Orgánico · Meta')
+      + tarjeta('Por aprobar', fmt(k.por_aprobar), 'posts esperando tu OK', 'Calendario')
+      + tarjeta('Artículos por aprobar', fmt(k.articulos_por_aprobar), 'borradores del blog', 'seo_articulos') + '</div>'
+      + '<div class="cols" style="margin-top:48px"><div><div class="bloque">' + tituloSec('Leads por día', 'todas las fuentes') + barras(L.por_dia) + '</div>'
+      + '<div class="bloque">' + tituloSec('Últimos leads', 'contacto en el Sheet, pestaña Leads') + (ult.length ? '<table><tr><th>Fecha</th><th>Marca</th><th>Origen</th><th>Empresa</th><th>Fuente</th><th>Estado</th></tr>' + ult.map(x => '<tr><td class="mono">' + esc(String(x.fecha).slice(0, 16)) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + esc(nombreMarca(x.marca)) + '</td><td class="mono">' + esc(x.origen) + '</td><td>' + esc(x.empresa) + '</td><td class="mono">' + esc([x.utm_source, x.utm_campaign].filter(Boolean).join(' / ')) + '</td><td><span class="etiq ' + (x.estado === 'nuevo' ? 'aprobar' : 'hacer') + '">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>' : '<div class="vacio">Sin leads en el periodo.</div>') + '</div></div>'
+      + '<div><div class="bloque">' + tituloSec('Por marca', 'leads') + barras(porMarca, true) + '</div><div class="bloque">' + tituloSec('Por fuente', 'leads') + barras(L.por_fuente) + '</div></div></div>';
+  }
+
+  function vistaContenido() {
     const posts = (datos.posts || []).filter(deMarca);
-    if (!posts.length) return filtroMarca() + '<div class="vacio">No hay posts en las últimas dos semanas ni próximos.</div>';
-    return filtroMarca() + posts.map(p => {
-      const puede = p.estado === 'por aprobar';
-      const editable = ['por aprobar', 'aprobado', 'cambios pedidos'].includes(p.estado) && !p.fb_url && !p.ig_url;
-      return '<div class="post"><div class="cab"><div><b>' + esc(p.post_id) + '</b> · ' + esc(p.marca) + ' · ' + esc(p.fecha) + ' ' + esc(p.hora) + (p.version ? ' · v' + esc(p.version) : '') + '</div><span class="chip ' + clase(p.estado) + '">' + esc(p.estado) + '</span></div>'
-        + (p.titular ? '<h3>' + esc(p.titular) + '</h3>' : '')
-        + (p.copy ? '<div class="copy">' + esc(p.copy) + '</div>' : '')
-        + (p.tema ? '<div class="tema">Tema: ' + esc(p.tema) + '</div>' : '')
-        + (p.cambios_pedidos ? '<div class="tema">Cambios pedidos: ' + esc(p.cambios_pedidos) + '</div>' : '')
-        + (p.fb_url || p.ig_url ? '<div class="tema">' + (p.fb_url ? '<a href="' + esc(p.fb_url) + '" target="_blank" rel="noopener">Facebook</a> ' : '') + (p.ig_url ? '<a href="' + esc(p.ig_url) + '" target="_blank" rel="noopener">Instagram</a>' : '') + '</div>' : '')
-        + (editable ? '<div class="acciones">'
-          + (puede ? '<button class="btn prim" data-acc="aprobar" data-id="' + esc(p.post_id) + '" data-v="' + esc(p.version) + '">✅ Aprobar</button>' : '')
-          + '<button class="btn" data-acc="cambios" data-id="' + esc(p.post_id) + '">✏️ Pedir cambios</button>'
-          + '<button class="btn" data-acc="descartar" data-id="' + esc(p.post_id) + '">Descartar</button></div>' : '')
-        + '</div>';
-    }).join('');
+    const porAprobar = posts.filter(p => p.estado === 'por aprobar').length;
+    const salieron = posts.filter(p => p.estado === 'publicado').sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
+    const prox = posts.filter(p => p.estado !== 'publicado' && p.estado !== 'descartado').sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
+    const abiertoPost = posts.find(p => p.post_id === abierto);
+    const detalle = abiertoPost ? '<div class="detalle"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div class="ceja">' + esc(abiertoPost.post_id) + ' · ' + esc(nombreMarca(abiertoPost.marca)) + ' · ' + esc(abiertoPost.fecha) + ' ' + esc(abiertoPost.hora) + ' · v' + esc(abiertoPost.version || 1) + '</div><span class="etiq ' + (abiertoPost.estado === 'por aprobar' ? 'aprobar' : 'hacer') + '">' + esc(abiertoPost.estado) + '</span></div>'
+      + '<h3>' + esc(abiertoPost.titular || 'Sin titular todavía') + '</h3>' + (abiertoPost.copy ? '<div class="copy">' + esc(abiertoPost.copy) + '</div>' : '') + (abiertoPost.tema ? '<div class="tema">Tema: ' + esc(abiertoPost.tema) + '</div>' : '')
+      + (abiertoPost.fb_url || abiertoPost.ig_url ? '<div class="tema">' + (abiertoPost.fb_url ? '<a href="' + esc(abiertoPost.fb_url) + '" target="_blank" rel="noopener">Facebook</a> · ' : '') + (abiertoPost.ig_url ? '<a href="' + esc(abiertoPost.ig_url) + '" target="_blank" rel="noopener">Instagram</a>' : '') + '</div>' : '')
+      + '<div class="fila-btn">' + accionesPost(abiertoPost) + '<button class="btn" data-abrir="">Cerrar</button></div><p style="color:var(--muted);font-size:13px;margin:12px 0 0">La imagen está en Telegram (tema Aprobaciones).</p></div>' : '';
+    return heroe('Posts en Facebook e Instagram', porAprobar + ' por aprobar', salieron.length + ' publicados en las últimas dos semanas. Toca un post para verlo, aprobarlo o pedir cambios.', true)
+      + detalle
+      + '<div class="cols"><div><div class="bloque">' + tituloSec('Próximos', 'planeados y por aprobar') + (prox.length ? prox.map(p => '<div class="fila tres" data-abrir=""' + esc(p.post_id) + '" style="cursor:pointer">' + cuadro(p) + '<div><b>' + esc(p.titular || p.tema || 'Tema por definir').slice(0, 100) + '</b><div class="meta">' + esc(p.fecha) + ' · ' + esc(p.hora) + ' · ' + esc(nombreMarca(p.marca)) + '</div></div><div style="text-align:right"><span class="etiq ' + (p.estado === 'por aprobar' ? 'aprobar' : /^error/.test(p.estado) ? 'arreglar' : 'hacer') + '">' + esc(p.estado) + '</span></div></div>').join('') : '<div class="vacio">No hay posts próximos.</div>') + '</div>'
+      + '<div class="bloque">' + tituloSec('Lo que ya salió', 'Facebook + Instagram') + (salieron.length ? salieron.map(p => '<div class="fila tres" data-abrir=""' + esc(p.post_id) + '" style="cursor:pointer">' + cuadro(p) + '<div><b>' + esc(p.titular || p.post_id) + '</b><div class="meta">' + esc(p.fecha) + ' · ' + esc(nombreMarca(p.marca)) + '</div></div><div class="total">' + (p.fb_url ? '<a href="' + esc(p.fb_url) + '" target="_blank" rel="noopener" title="Facebook">FB</a>' : '') + '</div></div>').join('') : '<div class="vacio">Nada publicado en las últimas dos semanas.</div>') + '</div></div>'
+      + '<div>' + tituloSec('Sale esta semana', '') + semana() + '</div></div>';
   }
 
-  function vistaLeads() {
-    const l = (datos.leads.ultimos || []).filter(deMarca);
-    return filtroMarca() + '<div class="tarjeta"><h2>Leads por día</h2>' + barras(datos.leads.por_dia) + '</div>'
-      + '<div class="tarjeta"><h2>Últimos leads</h2>' + (l.length ? '<table><tr><th>Fecha</th><th>Marca</th><th>Origen</th><th>Empresa</th><th>Fuente</th><th>Estado</th></tr>'
-      + l.map(x => '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.marca) + '</td><td>' + esc(x.origen) + '</td><td>' + esc(x.empresa) + '</td><td>' + esc([x.utm_source, x.utm_campaign].filter(Boolean).join(' / ')) + '</td><td><span class="chip">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>'
-      : '<div class="vacio">Sin leads en el periodo.</div>') + '<p class="meta" style="color:var(--suave);font-size:13px">Los datos de contacto están en el Sheet, pestaña Leads.</p></div>';
-  }
-
-  function vistaBlog() {
+  function vistaSeo() {
     const a = (datos.articulos || []).filter(deMarca);
-    return filtroMarca() + '<div class="tarjeta"><h2>Artículos</h2>' + (a.length ? '<table><tr><th>#</th><th>Marca</th><th>Keyword</th><th>Título</th><th>Estado</th><th>Volumen</th></tr>'
-      + a.map(x => '<tr><td>' + esc(x.id) + '</td><td>' + esc(x.marca) + '</td><td>' + esc(x.keyword) + '</td><td>' + (x.url && x.estado === 'publicado' ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.titulo) + '</a>' : esc(x.titulo)) + '</td><td><span class="chip ' + clase(x.estado) + '">' + esc(x.estado) + '</span></td><td>' + esc(x.volumen ?? '') + '</td></tr>').join('') + '</table>'
-      : '<div class="vacio">Agrega temas en la tabla seo_articulos de n8n.</div>') + '<p class="meta" style="color:var(--suave);font-size:13px">Los artículos se aprueban en Telegram con ✅ Publicar.</p></div>';
+    const por = a.filter(x => x.estado === 'por aprobar').length;
+    const pub = a.filter(x => x.estado === 'publicado').length;
+    const porMarca = {};
+    for (const x of a) { porMarca[x.marca] = porMarca[x.marca] || { pub: 0, total: 0 }; porMarca[x.marca].total++; if (x.estado === 'publicado') porMarca[x.marca].pub++; }
+    return heroe('Blog · artículos del plan', por ? por + ' por aprobar' : pub + ' publicados', 'Los borradores llegan a Telegram los martes y jueves; se publican al tocar ✅ Publicar.', !!por)
+      + '<div class="cols"><div>' + tituloSec('Artículos', 'tabla seo_articulos') + (a.length ? '<table><tr><th>#</th><th>Keyword</th><th>Título</th><th>Volumen</th><th>Estado</th></tr>' + a.map(x => '<tr><td class="mono">' + esc(x.id) + '</td><td class="mono">' + esc(x.keyword) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + (x.url && x.estado === 'publicado' ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.titulo) + '</a>' : esc(x.titulo || '—')) + '</td><td class="mono">' + esc(x.volumen ?? '') + '</td><td><span class="etiq ' + (x.estado === 'por aprobar' ? 'aprobar' : x.estado === 'publicado' ? 'ok' : 'hacer') + '">' + esc(x.estado) + '</span></td></tr>').join('') + '</table>' : '<div class="vacio">Agrega temas «planeado» en la tabla seo_articulos de n8n.</div>')
+      + '</div><div>' + tituloSec('Avance', 'publicados de los planeados') + (Object.keys(porMarca).length ? Object.entries(porMarca).map(([m, v]) => '<div class="barra"><span>' + esc(nombreMarca(m)) + '</span><div class="riel"><i style="width:' + (v.total ? v.pub / v.total * 100 : 0) + '%;background:' + color(m) + '"></i></div><span class="v">' + v.pub + ' de ' + v.total + '</span></div>').join('') : '<div class="vacio">Sin artículos.</div>') + '</div></div>';
   }
 
   function vistaResearch() {
     const h = (datos.hallazgos || []).filter(deMarca);
-    return filtroMarca() + '<div class="tarjeta"><h2>Hallazgos recientes</h2>' + (h.length ? '<table><tr><th>Fecha</th><th>Marca</th><th>Tipo</th><th>Hallazgo</th><th>Acción</th></tr>'
-      + h.map(x => '<tr><td>' + esc(x.fecha) + '</td><td>' + esc(x.marca) + '</td><td>' + esc(x.tipo) + '</td><td>' + esc(x.hallazgo) + (x.fuente ? ' <a href="' + esc(x.fuente) + '" target="_blank" rel="noopener">fuente</a>' : '') + '</td><td>' + esc(x.accion) + '</td></tr>').join('') + '</table>'
-      : '<div class="vacio">Sin hallazgos en el periodo (Research corre los lunes).</div>') + '</div>';
+    return heroe('Research semanal', h.length + ' hallazgos', 'Competencia, voz del público, tendencias y keywords. Corre los lunes y alimenta las ideas de la semana.', true)
+      + '<div class="cols"><div>' + tituloSec('Del Research', 'más recientes primero') + (h.length ? h.map(x => '<div class="hall"><div class="ceja">' + esc(x.tipo) + ' · ' + esc(nombreMarca(x.marca)) + ' · ' + esc(x.fecha) + '</div><p>' + esc(x.hallazgo) + (x.fuente ? ' <a href="' + esc(x.fuente) + '" target="_blank" rel="noopener" style="color:var(--muted)">fuente</a>' : '') + '</p>' + (x.accion ? '<div class="acc">→ ' + esc(x.accion) + '</div>' : '') + '</div>').join('') : '<div class="vacio">Sin hallazgos en el periodo.</div>') + '</div><div></div></div>';
   }
 
-
-  // Agentes de la agencia: qué hace cada uno, cuándo corre y en qué archivo de n8n vive.
-  // «incluido» = el flujo está en n8n/flujos del repo; «por armar» = solo está su lógica en docs/agentes-por-portar.md.
+  // Agentes de la agencia: «incluido» = flujo en n8n/flujos del repo; «por armar» = lógica en docs/agentes-por-portar.md.
   const AGENTES = [
     ['Contenido', 'Preparar posts', 'Diario 10:07 / 12:07', 'Redacta el post con la ficha de la marca, hace la pieza con GPT Image y la manda a Telegram para aprobar.', '10-preparar-posts-marca-a/b', 'incluido'],
     ['Contenido', 'Aprobaciones en Telegram', 'Al tocar un botón', 'Aprobar, pedir cambios, reintentar una publicación y aprobar artículos.', '12-telegram-respuestas', 'incluido'],
@@ -213,7 +358,7 @@
     ['SEO', 'Publicar artículos', 'Al aprobar', 'Publica en Webflow o rehace con los cambios pedidos.', '41-seo-acciones', 'incluido'],
     ['SEO', 'Posiciones y on-page', 'Semanal / quincenal', 'Posición de keywords y revisión on-page con propuestas.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Leads', 'Leads', 'Al llegar + cada 30 min', 'Formularios del sitio y de Meta → Sheet → Telegram; Conversions API.', '30-leads', 'incluido'],
-    ['Paid', 'Campañas de Meta', 'Desde el panel / n8n', 'Crea campañas en pausa (7 objetivos) con pieza y texto; «probar» valida sin crear.', '50-paid-campanas-meta', 'incluido'],
+    ['Paid', 'Campañas de Meta', 'Webhook', 'Crea campañas en pausa (7 objetivos) con pieza y texto; «probar» valida sin crear.', '50-paid-campanas-meta', 'incluido'],
     ['Paid', 'Optimizador de Meta Ads', 'Diario 10:40', 'Pausa campañas del agente que rompen las reglas de costo por lead y propone lo demás.', '51-meta-ads-optimizador', 'incluido'],
     ['Paid', 'Audiencias de Meta', 'A pedido', 'Audiencias base y similares por marca, sin listas de clientes.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Análisis', 'Analista semanal', 'Lunes', 'GA4, Search Console y Meta Ads: semana contra la anterior y 3 recomendaciones.', 'docs/agentes-por-portar.md', 'por armar'],
@@ -221,28 +366,30 @@
     ['Atención', 'Agente de WhatsApp', 'Siempre', 'Responde, captura leads y escala a una persona.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Operación', 'Vigilante', 'Cada hora :40', 'Posts atorados, caídas de n8n y recordatorios antes de la hora de publicación.', '14-vigilante', 'incluido'],
     ['Operación', 'Alertas de error y reinicio', 'Al fallar / al arrancar n8n', 'Avisan en Telegram qué flujo falló o que n8n se reinició.', '01 y 02', 'incluido'],
-    ['Panel', 'Panel (lectura y acciones)', 'Al abrir el panel', 'Los dos webhooks que usa esta pantalla.', '60-panel-lectura y 61-panel-acciones', 'incluido'],
+    ['Panel', 'Panel (lectura y acciones)', 'Al abrir el panel', 'Los dos webhooks que usa esta pantalla.', '60 y 61', 'incluido'],
   ];
   function vistaAgentes() {
-    const fila = a => '<tr><td>' + esc(a[0]) + '</td><td><b>' + esc(a[1]) + '</b><div style="color:var(--suave);font-size:13px">' + esc(a[3]) + '</div></td><td>' + esc(a[2]) + '</td><td><code>' + esc(a[4]) + '</code></td><td><span class="chip ' + (a[5] === 'incluido' ? 'aprobado' : 'por-aprobar') + '">' + esc(a[5]) + '</span></td></tr>';
-    return '<div class="tarjeta"><h2>Agentes de la agencia</h2><table><tr><th>Área</th><th>Agente</th><th>Cuándo</th><th>Flujo</th><th>Estado</th></tr>' + AGENTES.map(fila).join('') + '</table></div>'
-      + '<div class="tarjeta"><h2>Cómo subir los flujos a tu n8n</h2><ol style="margin:0;padding-left:20px;line-height:1.8">'
+    const inc = AGENTES.filter(a => a[5] === 'incluido').length;
+    return heroe('Agentes de la agencia', inc + ' de ' + AGENTES.length, 'Agentes listos para importar en tu n8n. Los «por armar» tienen su lógica en docs/agentes-por-portar.md.')
+      + '<div class="bloque">' + tituloSec('Agentes', 'n8n/flujos') + '<table><tr><th>Área</th><th>Agente</th><th>Cuándo</th><th>Flujo</th><th>Estado</th></tr>' + AGENTES.map(a => '<tr><td>' + esc(a[0]) + '</td><td><b>' + esc(a[1]) + '</b><div style="color:var(--muted);font-size:13px">' + esc(a[3]) + '</div></td><td>' + esc(a[2]) + '</td><td class="mono">' + esc(a[4]) + '</td><td><span class="etiq ' + (a[5] === 'incluido' ? 'ok' : 'hacer') + '">' + esc(a[5]) + '</span></td></tr>').join('') + '</table></div>'
+      + '<div class="resumen" style="margin-bottom:64px"><b style="font-size:20px">Cómo subir los flujos a tu n8n</b><ol style="margin:14px 0 0;padding-left:20px;line-height:1.9">'
       + '<li>Crea en n8n las credenciales con los nombres de <code>docs/instalacion.md</code> (paso 5).</li>'
       + '<li>Crea las tablas <code>seo_articulos</code>, <code>paid_campanas</code> y <code>meta_ads_decisiones</code> en n8n → Data tables.</li>'
       + '<li>Copia <code>n8n/config.ejemplo.json</code> como <code>n8n/config.json</code>, llénalo y corre <code>python3 n8n/configurar.py</code>.</li>'
-      + '<li>Importa los archivos de <code>n8n/listos/</code>: con <code>n8n import:workflow --separate --input=n8n/listos</code> o uno por uno en Workflows → Import from file.</li>'
+      + '<li>Importa <code>n8n/listos/</code>: <code>n8n import:workflow --separate --input=n8n/listos</code> o uno por uno en Workflows → Import from file.</li>'
       + '<li>Si importaste uno por uno, corre <code>python3 n8n/configurar.py --ids</code> y reconecta los nodos que lista.</li>'
       + '<li>Activa primero Alertas de error, Telegram (respuestas) y Vigilante; luego el resto.</li>'
-      + '</ol><p style="color:var(--suave);font-size:13px;margin-bottom:0">Atajo: dale a Claude acceso a tu n8n (MCP) y pídele «sube los flujos de n8n/listos y asigna mis credenciales».</p></div>';
+      + '</ol><div class="insight" style="margin-top:16px">Atajo: dale a Claude acceso a tu n8n (MCP) y pídele «sube los flujos de n8n/listos y asigna mis credenciales».</div></div>';
   }
 
   function pintar() {
     if (!datos && tab !== 'agentes') return;
-    const vistas = { resumen: vistaResumen, posts: vistaPosts, leads: vistaLeads, blog: vistaBlog, research: vistaResearch, agentes: vistaAgentes };
+    const vistas = { hoy: vistaHoy, resultados: vistaResultados, contenido: vistaContenido, seo: vistaSeo, research: vistaResearch, agentes: vistaAgentes };
     $('#contenido').innerHTML = vistas[tab]();
-    const f = $('#fMarca');
-    if (f) f.onchange = () => { marcaFiltro = f.value; pintar(); };
+    const n = datos ? pendientes().length : 0;
+    $('#badgeHoy').hidden = !n; $('#badgeHoy').textContent = n;
   }
+  function irA(t) { tab = t; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('activa', x.dataset.tab === t)); pintar(); window.scrollTo(0, 0); }
 
   async function accion(acc, id, version, texto) {
     try {
@@ -256,6 +403,10 @@
   }
 
   document.addEventListener('click', ev => {
+    const ir = ev.target.closest('[data-ir]');
+    if (ir) { ev.preventDefault(); irA(ir.dataset.ir); return; }
+    const ab = ev.target.closest('[data-abrir]');
+    if (ab && !ev.target.closest('a,button[data-acc]')) { abierto = ab.dataset.abrir; if (abierto) irA('contenido'); else pintar(); return; }
     const b = ev.target.closest('button[data-acc]');
     if (!b) return;
     const { acc, id, v } = b.dataset;
@@ -271,24 +422,18 @@
     b.disabled = true;
     accion(acc, id, v);
   });
-
-  $('#tabs').onclick = ev => {
-    const b = ev.target.closest('button[data-tab]');
-    if (!b) return;
-    document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('activa', x === b));
-    tab = b.dataset.tab;
-    pintar();
-  };
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && abierto) { abierto = ''; pintar(); } });
+  $('#tabs').onclick = ev => { const b = ev.target.closest('button[data-tab]'); if (b) irA(b.dataset.tab); };
   $('#recargar').onclick = cargar;
   $('#dias').onchange = cargar;
   $('#ajustes').onclick = () => {
     const c = conf();
-    $('#url').value = c.url;
-    $('#token').value = c.token;
+    $('#nombre').value = c.nombre; $('#url').value = c.url; $('#token').value = c.token;
     const d = $('#dlgConexion');
-    d.onclose = () => { if (d.returnValue === 'ok') { mem.set('panel_url', $('#url').value.trim().replace(/\/+$/, '')); mem.set('panel_token', $('#token').value.trim()); cargar(); } };
+    d.onclose = () => { if (d.returnValue === 'ok') { mem.set('panel_nombre', $('#nombre').value.trim() || 'Agencia'); mem.set('panel_url', $('#url').value.trim().replace(/\/+$/, '')); mem.set('panel_token', $('#token').value.trim()); pintarLogo(); cargar(); } };
     d.showModal();
   };
+  pintarLogo();
   if (conf().url && conf().token) cargar(); else $('#ajustes').click();
 })();
 </script>
