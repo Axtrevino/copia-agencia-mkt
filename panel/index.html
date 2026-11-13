@@ -44,6 +44,7 @@
   nav { display: flex; gap: 28px; overflow-x: auto; }
   nav button { border: 0; background: none; padding: 0 0 12px; font-size: 15px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
   nav button.activa { color: var(--ink); font-weight: 500; border-bottom-color: var(--ink); }
+  .badge[hidden] { display: none; }
   .badge { background: var(--accent); color: var(--ink); font-size: 12px; font-weight: 700; border-radius: 999px; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; }
 
   /* Héroe y escala de números: nivel 1 (120 / frase 72), nivel 2 (32), nivel 3 (18 + mono 14) */
@@ -114,13 +115,42 @@
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { text-align: left; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 10px 10px 0; border-bottom: 2px solid var(--ink); }
   td { padding: 14px 10px 14px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td.mono { font: 14px var(--mono); }
+  td.mono { font: 14px var(--mono); white-space: nowrap; }
+  th { white-space: nowrap; }
 
   .hall { padding: 16px 0; border-bottom: 1px solid var(--line); }
   .hall .ceja { font-size: 11px; }
   .hall p { margin: 6px 0; font-size: 15px; }
   .hall .acc { font-weight: 600; font-size: 14px; }
 
+  .heroe-paid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 48px; align-items: end; padding: 56px 0 40px; }
+  @media (max-width: 1000px) { .heroe-paid { grid-template-columns: 1fr; } }
+  .heroe-paid .grande { display: flex; align-items: flex-end; gap: 18px; margin-top: 14px; }
+  .heroe-paid .grande .n1 { margin: 0; }
+  .heroe-paid .grande b { font-size: 26px; letter-spacing: -.02em; line-height: 1.15; padding-bottom: 14px; }
+  .tarjetas.cuatro { grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 0; }
+  .tarjetas.cuatro .tarjeta { border-top: 1px solid var(--line); border-bottom: 0; padding: 16px 12px 0 0; }
+  .tarjetas.cuatro .tarjeta + .tarjeta { border-left: 0; padding-left: 0; }
+  .tarjetas.cuatro .nota { font: 12px var(--mono); }
+  @media (max-width: 760px) { .tarjetas.cuatro { grid-template-columns: 1fr 1fr; } }
+  .camp { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto auto; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .camp .cuadro { width: 56px; height: 56px; border-radius: 8px; }
+  .camp b { font-size: 16px; font-weight: 600; display: block; }
+  .camp .meta { color: var(--muted); font-size: 13px; }
+  .camp .est { text-align: right; font-size: 13px; font-weight: 600; }
+  .camp .est small { display: block; font: 11px var(--mono); color: var(--muted); font-weight: 400; }
+  .switch { width: 46px; height: 26px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--soft); position: relative; cursor: pointer; padding: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s; }
+  .switch.on { background: var(--ink); border-color: var(--ink); }
+  .switch.on::after { left: 22px; background: var(--accent); }
+  .pide { background: var(--soft); border-radius: 14px; padding: 24px; align-self: start; }
+  .pide h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.02em; }
+  .pide > p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  .pide form { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .pide label { display: block; font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .pide input, .pide select, .pide textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .pide .todo { grid-column: 1 / -1; }
+  .pide .res { margin-top: 14px; font-size: 14px; }
   .detalle { border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin: 8px 0 24px; }
   .detalle h3 { margin: 6px 0 10px; font-size: 22px; letter-spacing: -.02em; }
   .detalle .copy { white-space: pre-wrap; font-size: 15px; max-height: 260px; overflow: auto; }
@@ -156,6 +186,7 @@
     <nav id="tabs">
       <button data-tab="hoy" class="activa">Hoy <span class="badge" id="badgeHoy" hidden></span></button>
       <button data-tab="resultados">Resultados</button>
+      <button data-tab="paid">Paid</button>
       <button data-tab="contenido">Contenido</button>
       <button data-tab="seo">SEO</button>
       <button data-tab="research">Research</button>
@@ -177,6 +208,10 @@
     <p style="color:var(--muted);font-size:13px;margin:12px 0 0">Se guarda solo en este navegador.</p>
     <div class="fila-btn"><button class="btn negro" value="ok">Guardar</button><button class="btn" value="cancel" formnovalidate>Cancelar</button></div>
   </form>
+</dialog>
+
+<dialog id="dlgImagen" style="width:min(560px,94vw)">
+  <form method="dialog"><img id="imgPaid" alt="Imagen del anuncio" style="width:100%;border-radius:10px;display:block"><div class="fila-btn"><button class="btn">Cerrar</button></div></form>
 </dialog>
 
 <dialog id="dlgCambios">
@@ -209,7 +244,7 @@
     const r = await fetch(c.url + '/webhook/' + ruta, { ...opciones, headers: { 'X-Panel-Token': c.token, 'Content-Type': 'application/json', ...(opciones.headers || {}) } });
     const texto = await r.text();
     let j = {}; try { j = JSON.parse(texto); } catch (e) { j = { motivo: texto.slice(0, 200) }; }
-    if (!r.ok) throw new Error(j.motivo || j.message || ('n8n respondió ' + r.status));
+    if (!r.ok) throw new Error(j.motivo || j.mensaje || j.message || ('n8n respondió ' + r.status));
     return j;
   }
 
@@ -329,6 +364,52 @@
       + '<div>' + tituloSec('Sale esta semana', '') + semana() + '</div></div>';
   }
 
+  // Paid: campañas de Meta creadas desde aquí (siempre en pausa), prender/apagar y lo que hizo el optimizador.
+  const TOPE = 300; // MXN al día por campaña; es el mismo tope del flujo «Paid campañas» (nodo Validar)
+  const OBJETIVOS = { leads_sitio: 'Leads en el sitio (píxel)', leads_formulario: 'Leads con formulario de Meta', trafico: 'Tráfico al sitio', reconocimiento: 'Reconocimiento (alcance)', interaccion: 'Interacción con un post', seguidores_fb: 'Seguidores de Facebook', visitas_ig: 'Visitas al perfil de Instagram' };
+  let paidRes = '';
+  function vistaPaid() {
+    const camps = (datos.campanas || []).filter(deMarca);
+    const dec = (datos.decisiones || []).filter(deMarca);
+    const ultima = dec.length ? String(dec[0].fecha).slice(0, 10) : '';
+    const deUltima = dec.filter(x => String(x.fecha).slice(0, 10) === ultima);
+    const gasto = deUltima.reduce((s, x) => s + Number(x.gasto_7d || 0), 0);
+    const leadsAds = deUltima.reduce((s, x) => s + Number(x.leads_7d || 0), 0);
+    const prendidas = camps.filter(c => c.estado === 'activa').length;
+    const leadsMeta = ((datos.leads || {}).por_fuente || {}).Meta || 0;
+    const marcasOp = listaMarcas();
+    const campHtml = camps.length ? camps.map(c => {
+      const on = c.estado === 'activa', puede = c.medio !== 'google' && ['activa', 'en pausa'].includes(c.estado);
+      return '<div class="camp"><div class="cuadro" style="background:linear-gradient(135deg,' + color(c.marca) + ',#111)"></div><div><b>' + esc(c.nombre) + '</b><div class="meta">' + esc(c.medio === 'google' ? 'Google' : 'Meta') + ' · ' + esc(nombreMarca(c.marca)) + ' · $' + fmt(c.presupuesto) + '/día · ' + esc(OBJETIVOS[c.objetivo] || c.objetivo || '') + ' · ' + esc(c.actualizado) + '</div>' + (c.error ? '<div class="meta" style="color:var(--down)">' + esc(c.error) + '</div>' : '') + '</div>'
+        + '<div class="est" style="color:' + (on ? 'var(--up)' : 'inherit') + '">' + esc(on ? 'Prendida' : c.estado) + '<small>' + (on ? 'gasta hasta $' + fmt(c.presupuesto) + '/día' : 'prender = gastar') + '</small></div>'
+        + '<div style="display:flex;gap:8px;align-items:center">' + (c.medio !== 'google' ? '<button class="btn" data-paid="ver_imagen" data-id="' + esc(c.campana_id) + '">Imagen</button>' : '') + (puede ? '<button class="switch' + (on ? ' on' : '') + '" title="' + (on ? 'Apagar' : 'Prender') + '" data-paid="estado" data-id="' + esc(c.campana_id) + '" data-prender="' + (!on) + '" data-monto="' + esc(c.presupuesto) + '"></button>' : '') + '</div></div>';
+    }).join('') : '<div class="vacio">Todavía no hay campañas. Pide la primera a la derecha: se crea en pausa.</div>';
+    const decHtml = dec.length ? '<table><tr><th>Fecha</th><th>Conjunto</th><th>Regla</th><th>Acción</th><th>Gasto</th><th>Leads</th><th>$/lead</th></tr>' + dec.slice(0, 30).map(x => '<tr><td class="mono">' + esc(String(x.fecha).slice(0, 10)) + '</td><td><span class="punto" style="background:' + color(x.marca) + '"></span> ' + esc(x.conjunto) + '<div style="color:var(--muted);font-size:13px">' + esc(x.detalle) + '</div></td><td class="mono">' + esc(x.regla) + '</td><td><span class="etiq ' + (x.estado === 'aplicada' ? 'arreglar' : x.estado === 'propuesta' ? 'decidir' : 'hacer') + '">' + esc(x.accion) + '</span></td><td class="mono">$' + fmt(x.gasto_7d) + '</td><td class="mono">' + esc(x.leads_7d) + '</td><td class="mono">' + (x.cpl_7d ? '$' + fmt(x.cpl_7d) : '—') + '</td></tr>').join('') + '</table>' : '<div class="vacio">El optimizador corre diario a las 10:40. Cuando haya campañas con gasto, aquí verás qué pausó y qué propone.</div>';
+    const opcion = (v, t) => '<option value="' + v + '">' + t + '</option>';
+    return '<div class="heroe-paid"><div><div class="ceja">Inversión en anuncios · últimos 7 días</div><div class="grande"><div class="n1">$' + fmt(Math.round(gasto)) + '</div><b>MXN invertidos<br>en Meta</b></div></div>'
+      + '<div class="tarjetas cuatro">' + tarjeta('Gasto en Meta', '$' + fmt(Math.round(gasto)), 'MXN · 7 días', 'Meta Ads · optimizador') + tarjeta('Prendidas', fmt(prendidas), prendidas ? 'gastando' : 'ninguna', 'paid_campanas') + tarjeta('Leads de anuncios', fmt(leadsAds || leadsMeta), leadsAds ? 'Meta Ads · 7 días' : 'fuente Meta · periodo', 'Meta') + tarjeta('Tope por campaña', '$' + TOPE, 'MXN al día', 'Regla del flujo') + '</div></div>'
+      + '<div class="cols"><div><div class="bloque">' + tituloSec('Campañas creadas desde aquí', 'Se crean en pausa; tú las prendes') + campHtml + '</div>'
+      + '<div class="bloque">' + tituloSec('Lo que hizo el optimizador', 'pausa solo campañas «[Agente]»; lo demás lo propone') + decHtml + '</div></div>'
+      + '<div class="pide"><h2>Pide una campaña</h2><p>Se redacta el anuncio con la ficha de la marca, se hace la pieza y se crea en Meta <b>en pausa</b>, con tope de $' + TOPE + ' al día. «Probar» le pregunta a Meta si la acepta sin crear nada.</p>'
+      + '<form id="formPaid"><div><label>Marca</label><select name="marca">' + (marcasOp.length ? marcasOp : ['marca-a', 'marca-b']).map(m => opcion(esc(m), esc(nombreMarca(m)))).join('') + '</select></div>'
+      + '<div><label>Presupuesto MXN/día</label><input name="presupuesto_diario" type="number" min="30" max="' + TOPE + '" value="150" required></div>'
+      + '<div class="todo"><label>Nombre</label><input name="nombre" placeholder="Leads · CDMX y Monterrey" required maxlength="100"></div>'
+      + '<div class="todo"><label>Objetivo</label><select name="objetivo">' + Object.entries(OBJETIVOS).map(([k, t]) => opcion(k, t)).join('') + '</select></div>'
+      + '<div class="todo"><label>Idea del anuncio</label><textarea name="mensaje" rows="2" placeholder="Qué quieres decir y a quién"></textarea></div>'
+      + '<div><label>Público</label><input name="publico" placeholder="Dueños de negocio, 28–55, CDMX"></div>'
+      + '<div><label>Lleva a (landing)</label><input name="landing" placeholder="https://www.tu-sitio.com/contacto"></div>'
+      + '<div class="todo"><label>Titular (opcional)</label><input name="titular" maxlength="60"></div>'
+      + '<div class="todo" data-solo="leads_formulario" hidden><label>ID del formulario de Meta</label><input name="form_id" inputmode="numeric"></div>'
+      + '<div data-solo="interaccion" hidden><label>Post de Facebook (id)</label><input name="post_fb" placeholder="123_456"></div>'
+      + '<div data-solo="interaccion" hidden><label>o liga de Instagram</label><input name="post_ig" placeholder="https://www.instagram.com/p/…"></div>'
+      + '<div class="todo fila-btn" style="margin-top:4px"><button class="btn amarillo" data-enviar="crear">Crear en pausa</button><button class="btn" data-enviar="probar">Probar en Meta</button></div></form>'
+      + '<div class="res" id="paidRes">' + paidRes + '</div></div></div>';
+  }
+
+  async function pedirPaid(cuerpo) {
+    return pedir('agencia-paid-campanas', { method: 'POST', body: JSON.stringify(cuerpo) });
+  }
+
   function vistaSeo() {
     const a = (datos.articulos || []).filter(deMarca);
     const por = a.filter(x => x.estado === 'por aprobar').length;
@@ -358,7 +439,7 @@
     ['SEO', 'Publicar artículos', 'Al aprobar', 'Publica en Webflow o rehace con los cambios pedidos.', '41-seo-acciones', 'incluido'],
     ['SEO', 'Posiciones y on-page', 'Semanal / quincenal', 'Posición de keywords y revisión on-page con propuestas.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Leads', 'Leads', 'Al llegar + cada 30 min', 'Formularios del sitio y de Meta → Sheet → Telegram; Conversions API.', '30-leads', 'incluido'],
-    ['Paid', 'Campañas de Meta', 'Webhook', 'Crea campañas en pausa (7 objetivos) con pieza y texto; «probar» valida sin crear.', '50-paid-campanas-meta', 'incluido'],
+    ['Paid', 'Campañas de Meta', 'Desde la pestaña Paid', 'Crea campañas en pausa (7 objetivos) con pieza y texto; «probar» valida sin crear.', '50-paid-campanas-meta', 'incluido'],
     ['Paid', 'Optimizador de Meta Ads', 'Diario 10:40', 'Pausa campañas del agente que rompen las reglas de costo por lead y propone lo demás.', '51-meta-ads-optimizador', 'incluido'],
     ['Paid', 'Audiencias de Meta', 'A pedido', 'Audiencias base y similares por marca, sin listas de clientes.', 'docs/agentes-por-portar.md', 'por armar'],
     ['Análisis', 'Analista semanal', 'Lunes', 'GA4, Search Console y Meta Ads: semana contra la anterior y 3 recomendaciones.', 'docs/agentes-por-portar.md', 'por armar'],
@@ -384,7 +465,7 @@
 
   function pintar() {
     if (!datos && tab !== 'agentes') return;
-    const vistas = { hoy: vistaHoy, resultados: vistaResultados, contenido: vistaContenido, seo: vistaSeo, research: vistaResearch, agentes: vistaAgentes };
+    const vistas = { hoy: vistaHoy, resultados: vistaResultados, paid: vistaPaid, contenido: vistaContenido, seo: vistaSeo, research: vistaResearch, agentes: vistaAgentes };
     $('#contenido').innerHTML = vistas[tab]();
     const n = datos ? pendientes().length : 0;
     $('#badgeHoy').hidden = !n; $('#badgeHoy').textContent = n;
@@ -421,6 +502,49 @@
     if (acc === 'descartar' && !confirm('¿Descartar ' + id + '? No se publicará.')) return;
     b.disabled = true;
     accion(acc, id, v);
+  });
+  // Paid: formulario, prender/apagar e imagen del anuncio.
+  document.addEventListener('change', ev => {
+    if (ev.target.name !== 'objetivo') return;
+    document.querySelectorAll('#formPaid [data-solo]').forEach(x => { x.hidden = x.dataset.solo !== ev.target.value; });
+  });
+  document.addEventListener('submit', ev => { if (ev.target.id === 'formPaid') ev.preventDefault(); });
+  document.addEventListener('click', async ev => {
+    const env = ev.target.closest('button[data-enviar]');
+    if (env) {
+      ev.preventDefault();
+      const form = $('#formPaid');
+      if (!form.reportValidity()) return;
+      const p = Object.fromEntries([...new FormData(form)].filter(([, v]) => String(v).trim()));
+      p.medio = 'meta';
+      p.presupuesto_diario = Number(p.presupuesto_diario);
+      const crear = env.dataset.enviar === 'crear';
+      if (crear && !confirm('Se crea en Meta EN PAUSA (no gasta hasta que la prendas). ¿Sigo?')) return;
+      form.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      $('#paidRes').innerHTML = '<span style="color:var(--muted)">' + (crear ? 'Redactando el anuncio, haciendo la pieza y creando en Meta… tarda 1 a 3 minutos.' : 'Preguntándole a Meta…') + '</span>';
+      try { const r = await pedirPaid({ accion: crear ? 'crear' : 'probar', propuesta: p }); paidRes = '<div class="aviso' + (r.ok ? '' : ' error') + '" style="margin:0">' + esc(r.mensaje || (r.ok ? 'Listo.' : 'No se pudo.')) + (r.data && r.data.publico_estimado ? '<br>Público estimado: ' + esc(r.data.publico_estimado) : '') + '</div>'; if (crear && r.ok) await cargar(); else pintar(); }
+      catch (e) { paidRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; pintar(); }
+      return;
+    }
+    const bp = ev.target.closest('button[data-paid]');
+    if (!bp) return;
+    const id = bp.dataset.id;
+    try {
+      if (bp.dataset.paid === 'estado') {
+        const prender = bp.dataset.prender === 'true';
+        if (prender && !confirm('Prender ' + id + ' empieza a gastar hasta $' + bp.dataset.monto + ' MXN al día. ¿Lo prendo?')) return;
+        bp.disabled = true;
+        const r = await pedirPaid({ accion: 'estado', campana_id: id, prender });
+        paidRes = '<div class="aviso' + (r.ok ? '' : ' error') + '" style="margin:0">' + esc(r.mensaje) + '</div>';
+        await cargar();
+      } else {
+        bp.disabled = true;
+        const r = await pedirPaid({ accion: 'ver_imagen', campana_id: id });
+        const src = r.data && r.data.imagen;
+        bp.disabled = false;
+        if (src && /^data:image\//.test(src)) { $('#imgPaid').src = src; $('#dlgImagen').showModal(); }
+      }
+    } catch (e) { paidRes = '<div class="aviso error" style="margin:0">' + esc(e.message) + '</div>'; pintar(); }
   });
   document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && abierto) { abierto = ''; pintar(); } });
   $('#tabs').onclick = ev => { const b = ev.target.closest('button[data-tab]'); if (b) irA(b.dataset.tab); };

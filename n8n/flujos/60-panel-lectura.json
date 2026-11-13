@@ -2,7 +2,7 @@
   "name": "Agencia · Panel (lectura)",
   "nodes": [
     {
-      "id": "7be0f2e1-3bd9-46d8-be03-68d2f153b962",
+      "id": "0e6479e7-f39d-4b95-89b2-e7b686e9ea65",
       "name": "Panel lectura",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -19,7 +19,7 @@
           "allowedOrigins": "*"
         }
       },
-      "webhookId": "8037fc9c-4e77-4e99-9640-9942a1d8b547",
+      "webhookId": "38ed3dac-ed3f-4373-9884-01af85c72bc8",
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -28,7 +28,7 @@
       }
     },
     {
-      "id": "7955bbcb-54ac-4911-9532-0e566dcaa285",
+      "id": "3c8f1fab-9024-4f7d-8657-d688761737ea",
       "name": "Calendario",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -61,7 +61,7 @@
       "alwaysOutputData": true
     },
     {
-      "id": "13691e63-3c30-4ed1-8df3-94b2d0a752e7",
+      "id": "e3ab29ba-3529-4887-9d9d-69bd9fe6a648",
       "name": "Leads",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -94,7 +94,7 @@
       "alwaysOutputData": true
     },
     {
-      "id": "e133aadf-f10e-44af-929c-427862e84f62",
+      "id": "1522cf53-6afb-4044-9e26-3933c3b3ab4e",
       "name": "Publicados",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -127,7 +127,7 @@
       "alwaysOutputData": true
     },
     {
-      "id": "e596de79-a3ba-4632-8680-99bff2211645",
+      "id": "90eff854-fae8-4423-b27b-98b396789c48",
       "name": "Hallazgos",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -160,7 +160,7 @@
       "alwaysOutputData": true
     },
     {
-      "id": "3d0e30bd-ffe5-4fc5-9769-7d91cae74f5a",
+      "id": "c4fc344d-219a-409d-bb0a-323886cb5436",
       "name": "seo_articulos",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
@@ -183,26 +183,76 @@
       "alwaysOutputData": true
     },
     {
-      "id": "ddc6a7a9-a2e0-41a9-87f0-b0ee43324387",
-      "name": "Resumen",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "d8514a6e-4688-43fa-8b61-84f21be32d5e",
+      "name": "paid_campanas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
       "position": [
         1320,
         300
       ],
       "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__PAID_TABLA_ID__",
+          "cachedResultName": "paid_campanas"
+        },
+        "returnAll": true
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "de5e57cd-ca37-4d7d-9f2c-043e7f34871d",
+      "name": "meta_ads_decisiones",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__META_DECISIONES_TABLA_ID__",
+          "cachedResultName": "meta_ads_decisiones"
+        },
+        "returnAll": false,
+        "limit": 200,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "DESC"
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "c7be185a-069b-402e-83a0-f1edf315400e",
+      "name": "Resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Lo que ve el panel. Sin datos de contacto de los leads (nombre, correo, teléfono quedan en el Sheet).\nconst z = 'America/Mexico_City', hoy = $now.setZone(z);\nconst q = ($('Panel lectura').first().json.query || {});\nconst dias = Math.min(180, Math.max(1, Number(q.dias) || 30));\nconst desde = hoy.minus({ days: dias }).toFormat('yyyy-MM-dd');\nconst filas = n => { try { return $(n).all().map(i => i.json || {}); } catch (e) { return []; } };\nconst cal = filas('Calendario').filter(r => r.post_id);\nconst posts = cal\n  .filter(r => String(r.fecha || '') >= hoy.minus({ days: 14 }).toFormat('yyyy-MM-dd'))\n  .sort((a, b) => (String(a.fecha) + String(a.hora)).localeCompare(String(b.fecha) + String(b.hora)))\n  .map(r => ({ post_id: r.post_id, marca: r.marca, fecha: r.fecha, hora: r.hora, tipo: r.tipo, estado: r.estado, version: r.version,\n    titular: r.titular, copy: String(r.copy || '').slice(0, 900), tema: String(r.tema || '').slice(0, 600), fb_url: r.fb_url, ig_url: r.ig_url, cambios_pedidos: r.cambios_pedidos }));\nconst leads = filas('Leads').filter(l => l.lead_id && String(l.fecha || '') >= desde);\nconst porMarca = {}, porFuente = {}, porDia = {};\nfor (const l of leads) {\n  if (l.estado === 'descartado') continue;\n  porMarca[l.marca] = (porMarca[l.marca] || 0) + 1;\n  const fuente = l.gclid ? 'Google Ads' : (l.fbclid || l.fbc || l.origen === 'meta_form') ? 'Meta' : l.utm_source || (l.referrer ? 'referido' : 'directo');\n  porFuente[fuente] = (porFuente[fuente] || 0) + 1;\n  const d = String(l.fecha).slice(0, 10); porDia[d] = (porDia[d] || 0) + 1;\n}\nconst ultimos = leads.slice(-50).reverse().map(l => ({ fecha: l.fecha, marca: l.marca, origen: l.origen, estado: l.estado, empresa: l.empresa, tipo: l.tipo, utm_source: l.utm_source, utm_campaign: l.utm_campaign, notas: l.notas }));\nconst publicados = filas('Publicados').filter(p => String(p.fecha_hora || '') >= desde).length;\nconst articulos = filas('seo_articulos').map(a => ({ id: a.id, marca: a.marca, keyword: a.keyword, titulo: a.titulo, estado: a.estado, version: a.version, url: a.url, volumen: a.volumen, dificultad: a.dificultad, actualizado: a.actualizado }));\nconst hallazgos = filas('Hallazgos').filter(h => String(h.fecha || '') >= desde).slice(-40).reverse();\nconst estados = {};\nfor (const p of cal) estados[p.estado || 'sin estado'] = (estados[p.estado || 'sin estado'] || 0) + 1;\nreturn [{ json: { generado: hoy.toFormat('yyyy-MM-dd HH:mm'), dias, kpis: { leads: Object.values(porMarca).reduce((a, b) => a + b, 0), publicados, por_aprobar: cal.filter(p => p.estado === 'por aprobar').length, articulos_por_aprobar: articulos.filter(a => a.estado === 'por aprobar').length }, estados, leads: { por_marca: porMarca, por_fuente: porFuente, por_dia: porDia, ultimos }, posts, articulos, hallazgos } }];"
+        "jsCode": "// Lo que ve el panel. Sin datos de contacto de los leads (nombre, correo, teléfono quedan en el Sheet).\nconst z = 'America/Mexico_City', hoy = $now.setZone(z);\nconst q = ($('Panel lectura').first().json.query || {});\nconst dias = Math.min(180, Math.max(1, Number(q.dias) || 30));\nconst desde = hoy.minus({ days: dias }).toFormat('yyyy-MM-dd');\nconst filas = n => { try { return $(n).all().map(i => i.json || {}); } catch (e) { return []; } };\nconst cal = filas('Calendario').filter(r => r.post_id);\nconst posts = cal\n  .filter(r => String(r.fecha || '') >= hoy.minus({ days: 14 }).toFormat('yyyy-MM-dd'))\n  .sort((a, b) => (String(a.fecha) + String(a.hora)).localeCompare(String(b.fecha) + String(b.hora)))\n  .map(r => ({ post_id: r.post_id, marca: r.marca, fecha: r.fecha, hora: r.hora, tipo: r.tipo, estado: r.estado, version: r.version,\n    titular: r.titular, copy: String(r.copy || '').slice(0, 900), tema: String(r.tema || '').slice(0, 600), fb_url: r.fb_url, ig_url: r.ig_url, cambios_pedidos: r.cambios_pedidos }));\nconst leads = filas('Leads').filter(l => l.lead_id && String(l.fecha || '') >= desde);\nconst porMarca = {}, porFuente = {}, porDia = {};\nfor (const l of leads) {\n  if (l.estado === 'descartado') continue;\n  porMarca[l.marca] = (porMarca[l.marca] || 0) + 1;\n  const fuente = l.gclid ? 'Google Ads' : (l.fbclid || l.fbc || l.origen === 'meta_form') ? 'Meta' : l.utm_source || (l.referrer ? 'referido' : 'directo');\n  porFuente[fuente] = (porFuente[fuente] || 0) + 1;\n  const d = String(l.fecha).slice(0, 10); porDia[d] = (porDia[d] || 0) + 1;\n}\nconst ultimos = leads.slice(-50).reverse().map(l => ({ fecha: l.fecha, marca: l.marca, origen: l.origen, estado: l.estado, empresa: l.empresa, tipo: l.tipo, utm_source: l.utm_source, utm_campaign: l.utm_campaign, notas: l.notas }));\nconst publicados = filas('Publicados').filter(p => String(p.fecha_hora || '') >= desde).length;\nconst articulos = filas('seo_articulos').map(a => ({ id: a.id, marca: a.marca, keyword: a.keyword, titulo: a.titulo, estado: a.estado, version: a.version, url: a.url, volumen: a.volumen, dificultad: a.dificultad, actualizado: a.actualizado }));\nconst hallazgos = filas('Hallazgos').filter(h => String(h.fecha || '') >= desde).slice(-40).reverse();\nconst campanas = filas('paid_campanas').filter(c => c.campana_id).map(c => ({ campana_id: c.campana_id, marca: c.marca, medio: c.medio, nombre: c.nombre, estado: c.estado, objetivo: c.objetivo, presupuesto: c.presupuesto, landing: c.landing, titular: c.titular, copy: String(c.copy || '').slice(0, 600), error: c.error, actualizado: c.actualizado })).sort((a, b) => String(b.actualizado).localeCompare(String(a.actualizado)));\nconst decisiones = filas('meta_ads_decisiones').filter(x => x.adset_id && String(x.fecha || '') >= hoy.minus({ days: 14 }).toFormat('yyyy-MM-dd')).slice(0, 60).map(x => ({ fecha: x.fecha, marca: x.marca, campana: x.campana, conjunto: x.conjunto, regla: x.regla, accion: x.accion, estado: x.estado, gasto_7d: x.gasto_7d, leads_7d: x.leads_7d, cpl_7d: x.cpl_7d, detalle: x.detalle }));\nconst estados = {};\nfor (const p of cal) estados[p.estado || 'sin estado'] = (estados[p.estado || 'sin estado'] || 0) + 1;\nreturn [{ json: { generado: hoy.toFormat('yyyy-MM-dd HH:mm'), dias, kpis: { leads: Object.values(porMarca).reduce((a, b) => a + b, 0), publicados, por_aprobar: cal.filter(p => p.estado === 'por aprobar').length, articulos_por_aprobar: articulos.filter(a => a.estado === 'por aprobar').length }, estados, leads: { por_marca: porMarca, por_fuente: porFuente, por_dia: porDia, ultimos }, posts, articulos, hallazgos, campanas, decisiones } }];"
       }
     },
     {
-      "id": "3f0c3f8d-311e-4606-802f-6dfc4aa2244c",
+      "id": "6df872eb-fe82-4a68-b8d7-be54b712f462",
       "name": "Responder",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1540,
+        1980,
         300
       ],
       "parameters": {
@@ -279,6 +329,28 @@
       ]
     },
     "seo_articulos": {
+      "main": [
+        [
+          {
+            "node": "paid_campanas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "paid_campanas": {
+      "main": [
+        [
+          {
+            "node": "meta_ads_decisiones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "meta_ads_decisiones": {
       "main": [
         [
           {

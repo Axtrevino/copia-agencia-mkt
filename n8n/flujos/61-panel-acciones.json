@@ -2,7 +2,7 @@
   "name": "Agencia · Panel acciones",
   "nodes": [
     {
-      "id": "abb3f26c-5ae6-45e7-9f3b-a73137c6fc83",
+      "id": "678690b5-55d3-4015-bbc4-d1899e680c18",
       "name": "Panel acciones",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -19,7 +19,7 @@
           "allowedOrigins": "*"
         }
       },
-      "webhookId": "6149dcd4-2b23-4476-b947-d92d031121f0",
+      "webhookId": "a229f10c-a2f6-47e9-89a0-af6d8dc0fda9",
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -28,7 +28,7 @@
       }
     },
     {
-      "id": "be4da252-5637-4690-bd3f-6273717ee52c",
+      "id": "f07ba2b9-b081-4ef9-b3da-475aa62144a0",
       "name": "Leer post",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -70,7 +70,7 @@
       "alwaysOutputData": true
     },
     {
-      "id": "df139fa1-2a67-47dc-8cbd-dcaddb7a0d5b",
+      "id": "576b9e33-e537-489e-a05a-20f1f69bbb22",
       "name": "Validar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -84,7 +84,7 @@
       }
     },
     {
-      "id": "66cbf8f5-5f1b-496c-824c-55c1a5dedbe9",
+      "id": "d84c4084-e9b2-4429-b90c-602f07ddfdc6",
       "name": "Por acción",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -99,7 +99,7 @@
       }
     },
     {
-      "id": "27a05c38-81ec-45c3-a97e-e0fdd0be82bd",
+      "id": "fdc9e73b-9d6f-4cd0-802f-73420e4440ed",
       "name": "Aprobar",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -170,7 +170,7 @@
       }
     },
     {
-      "id": "ded95671-f74a-41f8-b3f9-1c06545796b7",
+      "id": "ac4fea15-bf34-4cc8-b9b1-dd5a4dbdbe3e",
       "name": "Guardar cambios",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -251,7 +251,7 @@
       }
     },
     {
-      "id": "f2a90bff-b332-407e-aa86-99fa58ea43ea",
+      "id": "eaffea97-d664-472c-b547-9f71db936def",
       "name": "Nueva versión",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -273,7 +273,7 @@
       }
     },
     {
-      "id": "881d83fb-a3c0-4170-afcb-5b93ec492f64",
+      "id": "1478a9c0-e0e0-428a-b87c-e893d23cec08",
       "name": "Descartar",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
@@ -344,7 +344,7 @@
       }
     },
     {
-      "id": "bc441138-2bc9-45da-b061-461dcaef72bb",
+      "id": "f8e00e3d-7243-4fc0-a971-b5a04f3312e6",
       "name": "Listo",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -369,7 +369,7 @@
       }
     },
     {
-      "id": "df79c5d7-fdb0-4bec-8e51-9b0eb403d8c3",
+      "id": "4ec7db73-06e0-4a84-b7f9-ae68f3e175da",
       "name": "No se pudo",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,

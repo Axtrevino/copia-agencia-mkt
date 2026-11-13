@@ -13,9 +13,19 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "agencia-paid-campanas",
-        "options": {}
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
       },
-      "webhookId": "3d71dc2f-64b6-40ba-bc85-a28c0a19c9f8"
+      "webhookId": "3d71dc2f-64b6-40ba-bc85-a28c0a19c9f8",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Panel (X-Panel-Token)"
+        }
+      }
     },
     {
       "id": "580007c0-dfdf-4087-8a24-0d691ca6e7b9",
@@ -28,8 +38,9 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Pedido del Panel de marketing (pestaña Paid). Valida antes de gastar o tocar Meta.\nconst b = ($json.body || $json) || {};\nconst accion = String(b.accion || '').trim();\nconst ahora = $now.setZone('America/Mexico_City');\nconst TOPE = 300; // MXN al día por campaña (cámbialo aquí; es el límite de gasto que se acepta desde el panel).\n// Objetivos de campaña que se pueden crear.\nconst OBJETIVOS = ['reconocimiento', 'trafico', 'visitas_ig', 'interaccion', 'seguidores_fb', 'leads_sitio', 'leads_formulario'];\nconst conSitio = ['trafico', 'leads_sitio']; // necesitan landing del sitio de la marca\nif (accion === 'crear' || accion === 'probar') {\n  const p = b.propuesta || {};\n  const marca = String(p.marca || '');\n  if (!['marca-a', 'marca-b'].includes(marca)) throw new Error('Marca inválida: usa marca-a o marca-b.');\n  const medio = String(p.medio || 'meta').toLowerCase();\n  if (!['meta', 'google'].includes(medio)) throw new Error('Medio inválido: meta o google.');\n  const presupuesto = Math.round(Number(p.presupuesto_diario));\n  if (!(presupuesto >= 30)) throw new Error('El presupuesto diario mínimo es MXN 30.');\n  if (presupuesto > TOPE) throw new Error('El tope es MXN ' + TOPE + ' al día por campaña; esta pide ' + presupuesto + '.');\n  const nombre = String(p.nombre || '').trim().slice(0, 100);\n  if (!nombre) throw new Error('Falta el nombre de la campaña.');\n  let objetivo = String(p.objetivo || 'leads_sitio');\n  if (objetivo === 'leads') objetivo = 'leads_sitio';\n  if (!OBJETIVOS.includes(objetivo)) throw new Error('Objetivo no válido. Usa: ' + OBJETIVOS.join(', ') + '.');\n  if (medio === 'google' && accion === 'probar') throw new Error('Google todavía no se puede probar: no hay conexión por API.');\n  const dominio = marca === 'marca-a' ? /^https:\\/\\/(www\\.)?marca-a\\.com\\.mx(\\/|$|\\?)/ : /^https:\\/\\/(www\\.)?marca-b\\.mx(\\/|$|\\?)/;\n  let landing = String(p.landing || '').trim();\n  if (medio === 'meta' && conSitio.includes(objetivo) && !dominio.test(landing)) throw new Error('La landing debe ser una página del sitio de la marca, con https.');\n  if (landing && !dominio.test(landing)) throw new Error('La landing debe ser una página del sitio de la marca, con https.');\n  if (!landing) landing = marca === 'marca-a' ? 'https://www.__DOMINIO_A__/' : 'https://www.__DOMINIO_B__/';\n  // Interacción: se promociona un post que ya se publicó (no se crea anuncio nuevo).\n  let post = null;\n  if (objetivo === 'interaccion') {\n    const fb = String(p.post_fb || '').trim();\n    // Acepta la liga del post de Instagram o solo su código.\n    const igTxt = String(p.post_ig || '').trim(), igM = igTxt.match(/instagram\\.com\\/(?:[^/]+\\/)?(?:p|reel|tv)\\/([A-Za-z0-9_-]+)/);\n    const ig = igM ? igM[1] : igTxt;\n    const red = p.red === 'instagram' || (p.red !== 'facebook' && ig && !fb) ? 'instagram' : 'facebook';\n    if (red === 'facebook' && !/^\\d+_\\d+$/.test(fb)) throw new Error('Para interacción en Facebook elige un post publicado (falta su id de Facebook).');\n    if (red === 'instagram' && !/^[A-Za-z0-9_-]{5,}$/.test(ig)) throw new Error('Para interacción en Instagram elige un post publicado (falta su liga de Instagram).');\n    post = { red, fb, ig, post_id: String(p.post_id || '') };\n  }\n  const form_id = String(p.form_id || '').trim();\n  if (objetivo === 'leads_formulario' && !/^\\d+$/.test(form_id)) throw new Error('Para leads con formulario de Meta elige un formulario.');\n  const ids = v => (Array.isArray(v) ? v : []).map(String).filter(x => /^\\d+$/.test(x)).slice(0, 20);\n  const incluir = ids(p.audiencias_incluir), excluir = ids(p.audiencias_excluir);\n  const campana_id = (marca === 'marca-a' ? 'PAID-MA-' : 'PAID-MB-') + ahora.toFormat('yyMMdd-HHmmss');\n  const probar = accion === 'probar';\n  return [{ json: { accion, probar, campana_id, marca, medio, nombre, objetivo, presupuesto, landing, post, form_id, incluir, excluir, propuesta: p, propuesta_txt: JSON.stringify(p).slice(0, 8000), estado: medio === 'meta' ? 'creando' : 'encargada', actualizado: ahora.toFormat('yyyy-MM-dd HH:mm'), ruta: probar ? 3 : 0 } }];\n}\nif (accion === 'estado') {\n  const campana_id = String(b.campana_id || '').trim();\n  if (!campana_id) throw new Error('Falta campana_id.');\n  if (typeof b.prender !== 'boolean') throw new Error('Falta prender: true o false.');\n  return [{ json: { accion, campana_id, prender: b.prender, ruta: 1 } }];\n}\nif (accion === 'ver_imagen') {\n  const campana_id = String(b.campana_id || '').trim();\n  if (!campana_id) throw new Error('Falta campana_id.');\n  return [{ json: { accion, campana_id, ruta: 2 } }];\n}\nthrow new Error('Acción no válida: crear, probar, estado o ver_imagen.');\n"
-      }
+        "jsCode": "// Pedido del Panel de marketing (pestaña Paid). Valida antes de gastar o tocar Meta.\nconst b = ($json.body || $json) || {};\nconst accion = String(b.accion || '').trim();\nconst ahora = $now.setZone('America/Mexico_City');\nconst TOPE = 300; // MXN al día por campaña (cámbialo aquí; es el límite de gasto que se acepta desde el panel).\n// Objetivos de campaña que se pueden crear.\nconst OBJETIVOS = ['reconocimiento', 'trafico', 'visitas_ig', 'interaccion', 'seguidores_fb', 'leads_sitio', 'leads_formulario'];\nconst conSitio = ['trafico', 'leads_sitio']; // necesitan landing del sitio de la marca\nif (accion === 'crear' || accion === 'probar') {\n  const p = b.propuesta || {};\n  const marca = String(p.marca || '');\n  if (!['marca-a', 'marca-b'].includes(marca)) throw new Error('Marca inválida: usa marca-a o marca-b.');\n  const medio = String(p.medio || 'meta').toLowerCase();\n  if (!['meta', 'google'].includes(medio)) throw new Error('Medio inválido: meta o google.');\n  const presupuesto = Math.round(Number(p.presupuesto_diario));\n  if (!(presupuesto >= 30)) throw new Error('El presupuesto diario mínimo es MXN 30.');\n  if (presupuesto > TOPE) throw new Error('El tope es MXN ' + TOPE + ' al día por campaña; esta pide ' + presupuesto + '.');\n  const nombre = String(p.nombre || '').trim().slice(0, 100);\n  if (!nombre) throw new Error('Falta el nombre de la campaña.');\n  let objetivo = String(p.objetivo || 'leads_sitio');\n  if (objetivo === 'leads') objetivo = 'leads_sitio';\n  if (!OBJETIVOS.includes(objetivo)) throw new Error('Objetivo no válido. Usa: ' + OBJETIVOS.join(', ') + '.');\n  if (medio === 'google' && accion === 'probar') throw new Error('Google todavía no se puede probar: no hay conexión por API.');\n  const sitio = marca === 'marca-a' ? '__DOMINIO_A__' : '__DOMINIO_B__';\n  const dominio = new RegExp('^https://(www\\\\.)?' + sitio.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&') + '(/|$|\\\\?)');\n  let landing = String(p.landing || '').trim();\n  if (medio === 'meta' && conSitio.includes(objetivo) && !dominio.test(landing)) throw new Error('La landing debe ser una página del sitio de la marca, con https.');\n  if (landing && !dominio.test(landing)) throw new Error('La landing debe ser una página del sitio de la marca, con https.');\n  if (!landing) landing = marca === 'marca-a' ? 'https://www.__DOMINIO_A__/' : 'https://www.__DOMINIO_B__/';\n  // Interacción: se promociona un post que ya se publicó (no se crea anuncio nuevo).\n  let post = null;\n  if (objetivo === 'interaccion') {\n    const fb = String(p.post_fb || '').trim();\n    // Acepta la liga del post de Instagram o solo su código.\n    const igTxt = String(p.post_ig || '').trim(), igM = igTxt.match(/instagram\\.com\\/(?:[^/]+\\/)?(?:p|reel|tv)\\/([A-Za-z0-9_-]+)/);\n    const ig = igM ? igM[1] : igTxt;\n    const red = p.red === 'instagram' || (p.red !== 'facebook' && ig && !fb) ? 'instagram' : 'facebook';\n    if (red === 'facebook' && !/^\\d+_\\d+$/.test(fb)) throw new Error('Para interacción en Facebook elige un post publicado (falta su id de Facebook).');\n    if (red === 'instagram' && !/^[A-Za-z0-9_-]{5,}$/.test(ig)) throw new Error('Para interacción en Instagram elige un post publicado (falta su liga de Instagram).');\n    post = { red, fb, ig, post_id: String(p.post_id || '') };\n  }\n  const form_id = String(p.form_id || '').trim();\n  if (objetivo === 'leads_formulario' && !/^\\d+$/.test(form_id)) throw new Error('Para leads con formulario de Meta elige un formulario.');\n  const ids = v => (Array.isArray(v) ? v : []).map(String).filter(x => /^\\d+$/.test(x)).slice(0, 20);\n  const incluir = ids(p.audiencias_incluir), excluir = ids(p.audiencias_excluir);\n  const campana_id = (marca === 'marca-a' ? 'PAID-MA-' : 'PAID-MB-') + ahora.toFormat('yyMMdd-HHmmss');\n  const probar = accion === 'probar';\n  return [{ json: { accion, probar, campana_id, marca, medio, nombre, objetivo, presupuesto, landing, post, form_id, incluir, excluir, propuesta: p, propuesta_txt: JSON.stringify(p).slice(0, 8000), estado: medio === 'meta' ? 'creando' : 'encargada', actualizado: ahora.toFormat('yyyy-MM-dd HH:mm'), ruta: probar ? 3 : 0 } }];\n}\nif (accion === 'estado') {\n  const campana_id = String(b.campana_id || '').trim();\n  if (!campana_id) throw new Error('Falta campana_id.');\n  if (typeof b.prender !== 'boolean') throw new Error('Falta prender: true o false.');\n  return [{ json: { accion, campana_id, prender: b.prender, ruta: 1 } }];\n}\nif (accion === 'ver_imagen') {\n  const campana_id = String(b.campana_id || '').trim();\n  if (!campana_id) throw new Error('Falta campana_id.');\n  return [{ json: { accion, campana_id, ruta: 2 } }];\n}\nthrow new Error('Acción no válida: crear, probar, estado o ver_imagen.');\n"
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "id": "332de3ab-1ee5-4d22-81cd-7f057a4467f0",
@@ -533,7 +544,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Google Ads todavía no tiene conexión por API para crear campañas: se guarda la propuesta y el panel abre el encargo.\nconst V = $('Validar').first().json;\nreturn [{ json: { respuesta: { ok: true, mensaje: 'Guardé la propuesta de Google Ads. Google todavía no está conectado para crearla solo: queda como encargo y la armo en pausa con tu OK.', data: { campana_id: V.campana_id, estado: 'encargada' } } } }];\n"
+        "jsCode": "// Google Ads todavía no tiene conexión por API para crear campañas: se guarda la propuesta y el panel abre el encargo.\nconst V = $('Validar').first().json;\nreturn [{ json: { respuesta: { ok: true, mensaje: 'Guardé la propuesta de Google Ads. Google Ads no está conectado para crearla sola: créala a mano en Google Ads, en pausa.', data: { campana_id: V.campana_id, estado: 'encargada' } } } }];\n"
       }
     },
     {
@@ -1438,6 +1449,56 @@
           "name": "Meta Ads B"
         }
       }
+    },
+    {
+      "id": "d1a5bb08-567c-4444-a584-b555f3120376",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4252,
+        672
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "a22a74f8-470f-4536-a010-c140e4df44f4",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        444,
+        920
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, mensaje: String($json.error?.message || $json.error || 'Pedido inválido') }) }}",
+        "options": {
+          "responseCode": 422,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "connections": {
@@ -1457,6 +1518,13 @@
         [
           {
             "node": "Acción",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
             "type": "main",
             "index": 0
           }
@@ -1985,6 +2053,17 @@
         [
           {
             "node": "Imagen Marca B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
             "type": "main",
             "index": 0
           }

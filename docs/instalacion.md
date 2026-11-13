@@ -96,7 +96,7 @@ Nunca pegues llaves en los flujos ni en el repo: solo en credenciales de n8n y s
 ## 8. Panel
 
 Abre `panel/index.html` (o súbelo a cualquier hosting estático) → Conexión → URL de tu n8n y el
-valor de «Panel (X-Panel-Token)». Activa en n8n «Panel (lectura)» y «Panel acciones».
+valor de «Panel (X-Panel-Token)». Activa en n8n «Panel (lectura)», «Panel acciones» y «Paid campañas (Meta)»; los tres usan la credencial «Panel (X-Panel-Token)». En la pestaña Paid las campañas se crean en pausa; prenderlas es lo único que gasta.
 
 ## Primera prueba
 
